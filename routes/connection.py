@@ -92,8 +92,8 @@ def handle_post(handler, path, q):
                         handler._send_json(401, {"error": "请先登录", "require_login": True})
                         return True
                     ok, msg = auth.change_password(u["user"],
-                                                   b.get("old_password", ""),
-                                                   b.get("new_password", ""))
+                                                   b.get("old_password") or b.get("old_pwd", ""),
+                                                   b.get("new_password") or b.get("new_pwd", ""))
                     if ok:
                         handler._send_json(200, {"ok": True, "message": msg})
                         handler._audit_action("change_password", u["user"])

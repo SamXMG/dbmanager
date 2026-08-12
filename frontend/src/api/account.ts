@@ -9,7 +9,7 @@ export const login = (username: string, password: string) =>
 export const register = (username: string, password: string) =>
   post<{ ok?: boolean; message?: string }>('/api/register', { username, password })
 export const changePwd = (old_pwd: string, new_pwd: string) =>
-  post<{ ok?: boolean; message?: string }>('/api/password', { old_pwd, new_pwd })
+  post<{ ok?: boolean; message?: string }>('/api/password', { old_password: old_pwd, new_password: new_pwd })
 
 export const listUsers = () => get<{ users: UserInfo[] }>('/api/users')
 export const saveUser = (body: Record<string, unknown>) => post('/api/users', body)
