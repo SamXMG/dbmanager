@@ -320,6 +320,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         for _prefix in STATIC_DIRS:
             if path.startswith(_prefix):
                 return False
+        if path.startswith("/assets/"):   # Vue3 构建产物资源(前端收口后默认入口引用)
+            return False
         if path.startswith("/api/gateway/"):
             return False
         if path in ("/api/config", "/api/pubkey"):
@@ -340,6 +342,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         for _prefix in STATIC_DIRS:
             if path.startswith(_prefix):
                 return False
+        if path.startswith("/assets/"):   # Vue3 构建产物资源(默认入口引用, 401 会导致白屏)
+            return False
         if path in ("/api/config", "/api/pubkey", "/api/login", "/api/register", "/api/logout",
                     "/api/gateway/login", "/api/gateway/status",
                     "/api/health", "/api/metrics"):
@@ -356,6 +360,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if not auth.auth_enabled() or os.environ.get("DBM_DEV") == "1":
             return False
         path, _ = self._parse()
+        # 静态资源与前端外壳必须放行: 未改密用户刷新页面时若 JS/CSS 403, 改密 UI 无法渲染(白屏)
+        if path in ("/", "/index.html") or path.startswith(("/v2", "/css/", "/js/", "/assets/")):
+            return False
         if path in ("/api/password", "/api/logout", "/api/config", "/api/pubkey",
                     "/api/login", "/api/gateway/login", "/api/gateway/status",
                     "/api/health", "/api/metrics"):
