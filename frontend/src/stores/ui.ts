@@ -1,0 +1,64 @@
+// UI store: theme/transactionMode + toast/modal/ctxMenu 状态
+import { defineStore } from 'pinia'
+
+export interface Toast { id: number; msg: string; err?: boolean }
+
+/** 右键菜单项: sep=分隔线; danger=红色危险项(对齐旧版 cm-item/cm-sep) */
+export interface CtxItem {
+  label?: string
+  fn?: () => void
+  danger?: boolean
+  sep?: boolean
+}
+
+export const useUIStore = defineStore('ui', {
+  state: () => ({
+    theme: 'light' as 'light' | 'dark',
+    transactionMode: false,
+    view: 'browse' as 'browse' | 'sql',   // 主内容视图: 数据浏览 / SQL 工作台(对齐旧版 switchView)
+    toasts: [] as Toast[],
+    toastSeq: 0,
+    modal: null as string | null,   // 当前弹窗内容(GenericModal 渲染 showModal 注入的 HTML)
+    ctxMenu: null as { x: number; y: number; items: CtxItem[] } | null,
+    designer: null as { s: string; t: string } | null,  // 表设计器(TableDesignerModal 渲染)
+    routine: null as { s: string; name: string; kind: string } | null,  // 存储过程/函数/触发器编辑器
+    showTasks: false,  // 调度任务管理弹窗(TaskModal.vue)
+  }),
+  actions: {
+    /** 初始化主题(读 localStorage + 应用到 body) */
+    initTheme() {
+      try {
+        this.theme = (localStorage.getItem('dbm_theme') as 'light' | 'dark') || 'light'
+      } catch { /* 隐私模式 */ }
+      document.body.dataset.theme = this.theme === 'dark' ? 'dark' : ''
+    },
+    toggleTheme() {
+      this.theme = this.theme === 'dark' ? 'light' : 'dark'
+      try { localStorage.setItem('dbm_theme', this.theme) } catch { /* */ }
+      document.body.dataset.theme = this.theme === 'dark' ? 'dark' : ''
+    },
+    toggleTx() { this.transactionMode = !this.transactionMode },
+    switchView(v: 'browse' | 'sql') { this.view = v },
+    toast(msg: string, err = false) {
+      const id = ++this.toastSeq
+      this.toasts.push({ id, msg, err })
+      setTimeout(() => {
+        this.toasts = this.toasts.filter(t => t.id !== id)
+      }, 2600)
+    },
+    showModal(html: string) { this.modal = html },
+    closeModal() { this.modal = null },
+    showCtxMenu(x: number, y: number, items: CtxItem[]) {
+      this.ctxMenu = { x, y, items }
+    },
+    closeCtxMenu() { this.ctxMenu = null },
+
+    /** 表设计器开关(TableDesignerModal.vue 消费) */
+    openDesigner(s: string, t: string) { this.designer = { s, t } },
+    closeDesigner() { this.designer = null },
+
+    /** 存储过程/函数/触发器编辑器(RoutineModal.vue 消费) */
+    openRoutine(s: string, name: string, kind: string) { this.routine = { s, name, kind } },
+    closeRoutine() { this.routine = null },
+  },
+})

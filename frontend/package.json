@@ -1,0 +1,36 @@
+{
+  "name": "dbmanager-frontend",
+  "private": true,
+  "version": "1.5.0",
+  "type": "module",
+  "description": "dbmanager Vue3 前端(精简版迁移), 产物纯静态 dist/, 由后端 python http.server serve",
+  "license": "Apache-2.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "vue-tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@codemirror/autocomplete": "^6.17.0",
+    "@codemirror/commands": "^6.6.0",
+    "@codemirror/lang-sql": "^6.7.0",
+    "@codemirror/language": "^6.10.0",
+    "@codemirror/state": "^6.4.0",
+    "@codemirror/view": "^6.30.0",
+    "codemirror": "^6.0.1",
+    "pinia": "^2.2.0",
+    "vue": "^3.5.0",
+    "vue-router": "^4.5.0",
+    "vue-virtual-scroller": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "@vitejs/plugin-vue": "^5.2.0",
+    "typescript": "~5.6.0",
+    "vite": "^5.4.0",
+    "vitest": "^4.1.10",
+    "vue-tsc": "^3.3.9"
+  }
+}

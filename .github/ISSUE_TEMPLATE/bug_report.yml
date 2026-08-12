@@ -1,0 +1,43 @@
+name: Bug 报告
+description: 提交一个可复现的缺陷
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: 提交前请先搜索是否已有相同 issue。
+  - type: input
+    id: version
+    attributes:
+      label: 版本
+      description: 见 /api/health 或页面顶栏
+      placeholder: 1.5.0
+    validations:
+      required: true
+  - type: textarea
+    id: env
+    attributes:
+      label: 环境
+      description: 操作系统 / Python 版本 / 数据库类型与版本 / 部署方式（本机、Docker、内网）
+      placeholder: Windows 11 / Python 3.12 / SQLite / 本机运行
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 从启动服务开始，到问题出现为止
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为
+      description: 含错误信息；涉及安全问题时请走 SECURITY.md，不要在这里贴敏感信息
+    validations:
+      required: true

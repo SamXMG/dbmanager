@@ -1,0 +1,53 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install deps + verify
+        run: |
+          pip install -r requirements.txt pyflakes
+          python -m pyflakes *.py routes/*.py services/*.py tests/*.py 2>&1 | grep -i undefined && exit 1 || exit 0
+          python -c "import app; print('import OK')"
+          python tests/smoke_test.py
+          python tests/test_ops.py
+          python -m py_compile config.py && python -c "from config import VERSION; print('VERSION:', VERSION)"
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run test
+          npm run typecheck
+          npm run build
+
+      - name: Extract changelog for tag
+        id: changelog
+        run: |
+          VERSION=$(python -c "from config import VERSION; print(VERSION)")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          # 取 CHANGELOG 首个版本节
+          awk '/^## \[/{p=1} p{print} /^## \[/ && ++c==2{exit}' CHANGELOG.md > /tmp/rel_notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "v${{ steps.changelog.outputs.version }}"
+          body_path: /tmp/rel_notes.md
+          draft: false
+          prerelease: false

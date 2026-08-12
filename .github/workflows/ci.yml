@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ['3.10', '3.11', '3.12']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install dependencies
+        run: pip install -r requirements.txt pyflakes
+      # pyodbc/oracledb 依赖按平台条件安装(requirements.txt 已声明);
+      # 测试只使用 SQLite, 无需真实数据库驱动
+      - name: Static check (pyflakes undefined names)
+        shell: bash
+        run: |
+          python -m pyflakes *.py routes/*.py services/*.py tests/*.py 2>&1 | grep -i "undefined" && exit 1 || exit 0
+      - name: Import integrity (no circular imports)
+        run: python -c "import app; print('import app OK')"
+      - name: Run smoke tests
+        run: python tests/smoke_test.py
+      - name: Run ops unit tests
+        run: python tests/test_ops.py
+      - name: Run task scheduler tests
+        run: python tests/test_task_sched.py
+        env:
+          PYTHONPATH: .
+      - name: HTTP full-chain smoke (real server + SQLite)
+        run: python tests/e2e_http_smoke.py 18777
+      - name: Security E2E (auth / account / ACL)  # 四轮评估 P0: 硬编码路径已可移植化, 守护 RBAC 写门禁
+        shell: bash
+        run: |
+          python app.py > /tmp/dbm_server.log 2>&1 &
+          SERVER_PID=$!
+          sleep 4
+          python tests/e2e_auth.py || { kill $SERVER_PID 2>/dev/null; exit 1; }
+          python tests/e2e_acct.py || { kill $SERVER_PID 2>/dev/null; exit 1; }
+          python tests/e2e_acl.py || { kill $SERVER_PID 2>/dev/null; exit 1; }
+          kill $SERVER_PID 2>/dev/null || true
+      - name: Dependency vulnerability scan (pip-audit)
+        continue-on-error: true   # 发现即报告, 不阻塞发版(修复依赖由维护者处理)
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.txt --timeout 60
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Unit tests (vitest, core logic: 注入防护/格式化)
+        run: npm run test
+      - name: Type check (vue-tsc)
+        run: npm run typecheck
+      - name: Build
+        run: npm run build
+      - name: Dependency vulnerability scan (npm audit, production deps only)
+        run: npm audit --omit=dev --audit-level=high

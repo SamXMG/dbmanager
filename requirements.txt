@@ -1,0 +1,18 @@
+# dbmanager 运行时依赖
+# 安装: pip install -r requirements.txt
+# 按需驱动说明:
+#   - mariadb: 可选。安装后用官方连接器(支持 GSSAPI 等); 未安装自动回退 pymysql
+#   - pyodbc: 仅 SQL Server 需要, 且需系统安装 ODBC Driver 17/18 (Windows 桌面版)
+#             Linux/macOS/手机端可不装
+#   - ldap3: 仅内网 LDAP/AD 登录需要(DBM_LDAP_URL/DBM_LDAP_BASE 启用); 未安装自动降级本地登录
+SQLAlchemy>=2.0,<2.1
+pycryptodome>=3.20
+PyMySQL>=1.1
+pg8000>=1.30
+mariadb>=1.1; platform_system != "Linux" or python_version < "3.13"
+pyodbc>=5.0; platform_system == "Windows" or platform_system == "Darwin"
+paramiko>=3.0
+oracledb>=2.0
+pymongo>=4.0
+redis>=4.0
+ldap3>=2.9.1

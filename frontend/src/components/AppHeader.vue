@@ -1,0 +1,115 @@
+<script setup lang="ts">
+// 顶栏: 连接信息/用户/角色/主题切换/事务(真实现: 开关+提交/回滚)/停止服务
+import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { useConnectionStore } from '@/stores/connection'
+import { useAuthStore } from '@/stores/auth'
+import { useUIStore } from '@/stores/ui'
+import { useTabStore } from '@/stores/tab'
+import { shutdown } from '@/api/connection'
+import { txCommit, txRollback } from '@/api/data'
+import ConnMgrModal from '@/components/ConnMgrModal.vue'
+import AuthModal from '@/components/AuthModal.vue'
+
+const router = useRouter()
+const conn = useConnectionStore()
+const auth = useAuthStore()
+const ui = useUIStore()
+const tabStore = useTabStore()
+
+const showConnMgr = ref(false)
+const showAuth = ref(false)
+
+const info = computed(() => {
+  if (!conn.conn) return ''
+  const c = conn.conn
+  return [c.db_type, c.server, c.database].filter(Boolean).join(' · ')
+})
+
+function toggleTheme() {
+  const dark = document.body.dataset.theme === 'dark'
+  document.body.dataset.theme = dark ? '' : 'dark'
+  try { localStorage.setItem('dbm_theme', dark ? 'light' : 'dark') } catch { /* */ }
+}
+
+/** 事务模式: 开启=ui.toggleTx(); 关闭=先回滚未提交修改(对齐旧版) */
+async function toggleTx() {
+  if (ui.transactionMode) {
+    if (confirm('关闭事务模式将回滚所有未提交的修改，确认？')) {
+      await doRollback()
+      ui.toggleTx()
+    }
+  } else {
+    ui.toggleTx()
+    ui.toast('事务模式已开启: 增删改进入事务, 可统一提交/回滚')
+  }
+}
+
+async function doCommit() {
+  if (!confirm('确认提交所有修改？提交后无法撤销。')) return
+  try {
+    await txCommit(tabStore.activeId ?? 0)
+    ui.toast('事务已提交')
+  } catch (e) { ui.toast('提交失败: ' + (e as Error).message, true) }
+}
+
+async function doRollback() {
+  try {
+    await txRollback(tabStore.activeId ?? 0)
+    ui.toast('已回滚所有修改')
+  } catch (e) { ui.toast('回滚失败: ' + (e as Error).message, true) }
+}
+
+async function doShutdown() {
+  if (!confirm('确认停止服务？\n停止后页面将无法使用，需重新启动 app.py 才能再次访问。')) return
+  try { await shutdown() } catch { /* 服务已停 */ }
+  setTimeout(() => { document.body.innerHTML = '<div style="padding:80px;text-align:center;color:var(--text2)">服务已停止。<br>如要再次使用，请重新运行本程序（python app.py）。</div>' }, 600)
+}
+
+async function logout() {
+  conn.disconnect()
+  await auth.logout()   // 清内存令牌 + 调 /api/logout 删会话清 HttpOnly Cookie
+  router.push('/')
+}
+</script>
+
+<template>
+  <header class="app-header">
+    <h1>DB Manager</h1>
+    <span class="db" v-if="conn.connected">{{ info }}</span>
+    <div class="right">
+      <span v-if="conn.connected" style="font-size:13px;color:var(--text2);margin-right:8px">
+        {{ auth.name || '未登录' }}<span v-if="auth.roleLabel"> ({{ auth.roleLabel }})</span>
+      </span>
+      <button v-if="!conn.connected" class="sm" @click="showConnMgr = true">我的连接</button>
+      <button class="sm" @click="toggleTheme" title="切换深浅色主题">🌓 主题</button>
+      <template v-if="conn.connected">
+        <button class="sm" @click="toggleTx" :class="{ 'tx-on': ui.transactionMode }" title="事务模式: 开启后增删改进入事务, 可统一提交/回滚">
+          事务: {{ ui.transactionMode ? '开' : '关' }}
+        </button>
+        <template v-if="ui.transactionMode">
+          <button class="sm primary" @click="doCommit" title="提交当前标签页所有未提交修改">提交</button>
+          <button class="sm danger" @click="doRollback" title="回滚当前标签页所有未提交修改">回滚</button>
+        </template>
+      </template>
+      <button v-if="auth.isLoggedIn" class="sm" @click="showAuth = true">改密</button>
+      <button v-if="!auth.isLoggedIn" class="sm" @click="showAuth = true">登录</button>
+      <button v-if="conn.connected" class="sm" @click="logout">断开</button>
+      <button v-if="conn.connected" class="sm danger" @click="doShutdown">停止服务</button>
+    </div>
+  </header>
+  <ConnMgrModal v-if="showConnMgr" :show="showConnMgr" @close="showConnMgr = false" />
+  <AuthModal v-if="showAuth" :show="showAuth" @done="showAuth = false" />
+</template>
+
+<style scoped>
+.app-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 16px; background: var(--header-bg); color: var(--header-text);
+  font-size: 14px; flex-shrink: 0;
+}
+.app-header h1 { font-size: 16px; font-weight: 600; margin: 0; white-space: nowrap; }
+.app-header .db { color: var(--text3); font-size: 12px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.right { display: flex; align-items: center; gap: 6px; }
+button.tx-on { background: #a32d2d; color: #fff; border-color: #a32d2d; }
+</style>

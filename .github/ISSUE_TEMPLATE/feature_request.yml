@@ -1,0 +1,23 @@
+name: 功能建议
+description: 提出一个新功能或改进
+labels: [enhancement]
+body:
+  - type: textarea
+    id: scenario
+    attributes:
+      label: 使用场景
+      description: 你在什么情况下需要这个功能
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: 期望行为
+      description: 希望它怎么工作（能画草图或贴截图更好）
+    validations:
+      required: true
+  - type: input
+    id: minimal
+    attributes:
+      label: 最小可用版本
+      description: 如果功能太大，描述一个可以先落地的小版本

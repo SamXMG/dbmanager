@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.git/
+.gitignore
+.gitattributes
+.workbuddy/
+tests/
+logs/
+users.json
+connections.json
+.dbm_rsa
+.dbm_key
+.dbm_gateway
+dbmanager_code_*.zip
+_*.db
+Dockerfile
+.dockerignore

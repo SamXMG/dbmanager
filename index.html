@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DB Manager 多数据库版</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+  <header>
+    <h1>DB Manager</h1>
+    <span class="db" id="dbinfo"></span>
+    <select id="dbSwitch" style="display:none;max-width:180px" title="连接内选库: 切换 SQL 控制台的目标库(不重新连接); 选「全部库」按 schema 分组显示所有库的表" onchange="onDbSwitch()"></select>
+    <div class="view-switch" id="viewSwitch" style="display:none">
+      <button class="sm primary" id="viewBrowseBtn" onclick="switchView('browse')">数据浏览</button>
+      <button class="sm" id="viewSqlBtn" onclick="switchView('sql')">SQL 工作台</button>
+    </div>
+    <div class="right">
+      <button class="sm" onclick="location.href='/v2'" title="切换到 Vue3 新版前端(迁移版)">🚀 新版</button>
+      <div id="authBox" style="display:none;align-items:center;gap:6px">
+        <button class="sm" id="loginBtn" onclick="showAuthModal()" title="登录账号">登录</button>
+        <span id="userInfo" style="font-size:13px;color:#4e5969;display:none"></span>
+        <button class="sm" id="logoutBtn" style="display:none" onclick="logoutAccount()" title="退出登录">登出</button>
+      </div>
+      <button class="sm" id="themeBtn" onclick="toggleTheme()" title="切换深浅色主题">🌓 主题</button>
+      <button class="sm" id="txBtn" onclick="toggleTransaction()" style="display:none">事务模式: 关</button>
+      <button class="sm" id="pwdBtn" style="display:none" onclick="showChangePwd()" title="修改当前登录账号密码">改密</button>
+      <button class="sm" id="acctBtn" style="display:none" onclick="showAcctMgr()" title="账号管理(读写角色)">账号</button>
+      <button class="sm" id="switchBtn" style="display:none" onclick="logout()">切换数据库</button>
+      <button class="sm danger" id="stopBtn" style="display:none" onclick="stopService()">停止服务</button>
+    </div>
+  </header>
+  <div class="warn">⚠ 本工具直连数据库，新增/修改/删除会真实落库。开启事务模式可撤销操作。仅监听本地；保存的连接密码以 AES 加密存于 connections.json（与 Navicat
+    一致），连接会话密码仅保留在服务端内存。手动 WHERE 框请使用目标库的引用语法（SQL Server 用 [列]，MySQL 用 `列`，PG/SQLite 用 "列"）。</div>
+  <div id="connPanel">
+    <h2>连接数据库</h2>
+    <div class="sub">支持 SQLite / MySQL / PostgreSQL / SQL Server（需安装对应驱动）。</div>
+    <div class="field">
+      <label>Navicat 快速连接（自动发现本机连接）</label>
+      <div class="row2">
+        <select id="connQuick">
+          <option value="">— 手动输入 —</option>
+        </select>
+        <button type="button" onclick="applyQuick()">填入</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>我的连接（可保存/加密密码，一键直连）</label>
+      <button type="button" class="primary" style="width:100%" onclick="openConnMgr()">管理我的连接</button>
+    </div>
+    <div class="field">
+      <label>数据库类型</label>
+      <select id="cType" onchange="onTypeChange()">
+        <option value="sqlite">SQLite（文件）</option>
+        <option value="mysql" selected>MySQL</option>
+        <option value="postgresql">PostgreSQL</option>
+        <option value="mssql">SQL Server</option>
+        <option value="oceanbase">OceanBase</option>
+        <option value="tidb">TiDB</option>
+        <option value="kingbase">KingbaseES</option>
+      </select>
+    </div>
+    <div id="hostFields">
+      <div class="field">
+        <label>服务器 (SERVER)</label>
+        <input id="cServer" list="srvList" placeholder="如 localhost 或 192.168.1.10\sql2019">
+        <datalist id="srvList">
+          <option value="localhost"></option>
+          <option value="."></option>
+        </datalist>
+      </div>
+      <div class="field">
+        <label>端口 (PORT，可选)</label>
+        <input id="cPort" placeholder="MySQL 3306 / PostgreSQL 5432 / SQL Server 1433">
+      </div>
+      <div class="field">
+        <label id="dbLabel">数据库 (DATABASE)</label>
+        <div class="row2">
+          <input id="cDb" list="dbList" placeholder="数据库名，或点右侧加载">
+          <datalist id="dbList"></datalist>
+          <button type="button" id="loadDbsBtn" onclick="loadDbs()" style="white-space:nowrap">加载库列表</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>账号 (UID)</label>
+        <input id="cUid" placeholder="如 sa / dbuser">
+      </div>
+      <div class="field">
+        <label>密码 (PWD)</label>
+        <input id="cPwd" type="password" placeholder="密码">
+      </div>
+    </div>
+    <div id="sqliteFields" style="display:none">
+      <div class="field">
+        <label>数据库文件 / 路径</label>
+        <input id="cDbSqlite" placeholder="如 ./app.db 或 /data/app.db">
+      </div>
+      <div class="field">
+        <label>密码（可选）</label>
+        <input id="cPwdSqlite" type="password" placeholder="若文件加密可填">
+      </div>
+    </div>
+    <button class="primary" id="connBtn" style="width:100%; margin-top:4px" onclick="doConnect()">连接</button>
+  </div>
+  <div id="app">
+    <div class="main" id="browseView">
+      <div class="side">
+        <div id="sideConns" class="side-conns"></div>
+        <div id="treeCrumbs" class="tree-crumbs" style="display:none"></div>
+        <div class="s-head"><input id="tblSearch" placeholder="搜索表/集合/键..." oninput="renderTables(this.value)"></div>
+        <div class="list" id="tblList"></div>
+      </div>
+      <div class="content">
+        <div class="tx-bar" id="txBar"><span>⚠ 事务模式已开启，所有修改暂未提交</span><button class="sm primary"
+            onclick="commitTx()">提交事务</button><button class="sm" onclick="rollbackTx()">回滚撤销</button></div>
+        <div class="doctabs" id="doctabs" style="display:none"></div>
+        <div class="tabs" id="tabs" style="display:none">
+          <div class="tab active" data-tab="data" onclick="switchTab('data')">数据</div>
+          <div class="tab" data-tab="struct" onclick="switchTab('struct')">结构</div>
+        </div>
+        <div class="toolbar" id="toolbar" style="display:none">
+          <span class="tname" id="curTable"></span>
+          <input class="where" id="whereBox" placeholder="筛选条件(不含 WHERE)，如 name like '%test%'">
+          <select id="sizeSel" onchange="loadData(1)">
+            <option value="50">50条/页</option>
+            <option value="100" selected>100条/页</option>
+            <option value="200">200条/页</option>
+            <option value="500">500条/页</option>
+            <option value="2000">2000条/页(虚拟滚动)</option>
+          </select>
+          <button onclick="loadData(1)">查询</button>
+          <button class="primary sm" onclick="openAdd()">+ 新增</button>
+          <button onclick="loadData(currentPage)">刷新</button>
+          <button class="sm" onclick="openSync()">同步到...</button>
+          <button class="sm" onclick="showStats()" title="对列做 COUNT/SUM/AVG/MIN/MAX 统计">统计</button>
+          <button class="sm" onclick="genTestData()" title="按列类型生成随机测试数据(真实插入)">测试数据</button>
+          <button class="sm" onclick="openSchemaDiff()" title="对比当前连接与目标连接的表结构差异, 可生成并执行同步DDL">结构对比</button>
+          <button class="sm" onclick="downloadBackup()" title="备份整个库(生成CREATE TABLE+数据的SQL脚本下载)">备份</button>
+          <button class="sm" onclick="openRestore()" title="执行备份的SQL脚本还原数据(危险操作)">还原</button>
+          <button class="sm primary" onclick="openImport()">导入</button>
+          <button class="sm" onclick="openPasteInsert()">粘贴插入</button>
+          <button class="sm" onclick="exportData('csv')">导出CSV</button>
+          <button class="sm" onclick="exportData('xlsx')">导出Excel</button>
+          <button class="sm" onclick="exportData('json')">导出JSON</button>
+          <button class="sm" id="selectAllBtn" onclick="toggleSelectAll()">全选</button>
+          <button class="sm danger" id="delSelBtn" style="display:none" onclick="deleteSelectedRows()">删除选中</button>
+          <button class="sm" id="expSelBtn" style="display:none" onclick="exportSelectedRows()">导出选中</button>
+          <button class="sm" id="filterClear" style="display:none" onclick="clearAllFilters()">清除筛选</button>
+          <button class="sm" id="redisNewKeyBtn" style="display:none" onclick="redisNewKey()" title="新建 Redis 键">新建键</button>
+          <button class="sm" id="redisTtlBtn" style="display:none" onclick="redisTtl()" title="查看/设置当前键的过期时间">TTL</button>
+          <button class="sm danger" id="redisDelKeyBtn" style="display:none" onclick="redisDelKey()" title="删除当前整个键(不可恢复)">删除键</button>
+        </div>
+        <div class="gridwrap" id="grid"></div>
+        <div class="statbar" id="statBar" style="display:none"></div>
+        <div class="pager" id="pager" style="display:none"></div>
+      </div>
+      <!-- 右侧属性面板: 选中对象详情 -->
+      <div id="propsPanel" class="props" style="display:none">
+        <div class="props-head">属性</div>
+        <div id="propsBody" class="props-body"></div>
+      </div>
+    </div>
+    <div id="sqlView" style="display:none;flex:1;flex-direction:column;min-height:0;padding:12px 14px;">
+          <div class="sql-bar">
+            <button class="primary sm" onclick="runSql()">执行 (Ctrl+Enter)</button>
+            <button class="sm" onclick="openQueryBuilder()" title="可视化构建 SELECT 查询">构建器</button>
+            <button class="sm" onclick="formatSqlInput()" title="美化当前 SQL(关键字换行/列表缩进)">格式化</button>
+            <button class="sm" onclick="explainSql()" title="查看当前 SQL 的执行计划(EXPLAIN)">解释</button>
+            <button class="sm danger" id="writeBtn" onclick="toggleWriteMode()" style="background:#fcebeb;color:#a32d2d;border-color:#f7c1c1">写模式: 关</button>
+            <button class="sm" onclick="exportSqlResult()">导出结果CSV</button>
+            <button class="sm" onclick="exportSqlResultXlsx()">导出结果Excel</button>
+            <button class="sm" onclick="clearSqlHist()">清空历史</button>
+            <span class="sql-hint" id="sqlHint"></span>
+          </div>
+          <div class="proc-bar" id="procBar" style="display:none">
+            <span id="procName">编辑对象</span>
+            <button class="sm primary" onclick="saveRoutine()" title="DROP 后重建(MySQL)或直接执行(PG/MSSQL)">💾 保存重建</button>
+            <button class="sm" onclick="execRoutine()">▶ 执行...</button>
+            <button class="sm danger" onclick="dropRoutine()">🗑 删除</button>
+            <button class="sm" onclick="closeProcBar()">✕ 退出编辑</button>
+          </div>
+          <div class="sql-wrap">
+            <pre id="sqlHigh" aria-hidden="true"></pre>
+            <textarea id="sqlInput" spellcheck="false" placeholder="输入只读 SQL, 如: SELECT TOP 100 * FROM dbo.PoJc WHERE 1=1&#10;仅支持 SELECT / SHOW / EXPLAIN / DESC, Ctrl+Enter 执行"></textarea>
+            <div id="sqlAc"></div>
+          </div>
+          <div class="sql-hist" id="sqlHist" style="display:none">
+            <div class="hist-tool"><input id="sqlHistSearch" class="hist-search" placeholder="搜索 SQL 历史..." title="按内容过滤历史/收藏"><span class="hist-lbl" id="histLbl"></span></div>
+            <div class="hist-items" id="sqlHistItems"></div>
+          </div>
+          <div id="sqlTabs" class="sql-tabs" style="display:none"></div>
+          <div class="sql-filter" id="sqlFilterBar" style="display:none">
+            <input id="sqlFilter" type="search" placeholder="在当前结果中过滤 (不重新查询)..." title="按任意列内容过滤当前结果集, 清空恢复全部">
+            <span class="sql-filter-info" id="sqlFilterInfo"></span>
+          </div>
+          <div class="gridwrap" id="sqlResult" style="flex:1;overflow:auto;"></div>
+    </div>
+    <!-- 底部状态条(Navicat 风格): 连接/库/对象计数/用户/视图切换 -->
+    <div id="statusBar" class="status-bar" style="display:none">
+      <span class="st-item" id="stConn" title="当前连接">🔗 -</span>
+      <span class="st-item" id="stDb" title="当前库">🗄️ -</span>
+      <span class="st-item" id="stObj" title="对象数量">-</span>
+      <span class="st-spacer"></span>
+      <span class="st-item" id="stUser" title="当前用户">👤 -</span>
+      <button class="st-btn" id="stViewBrowse" onclick="switchView('browse')" title="数据浏览">表</button>
+      <button class="st-btn" id="stViewSql" onclick="switchView('sql')" title="SQL 工作台">SQL</button>
+    </div>
+  </div>
+  <div class="mask" id="mask">
+    <div class="modal" id="modal"></div>
+  </div>
+  <div class="toast" id="toast"></div>
+  <div id="filterPop"></div>
+  <div id="ctxMenu"></div>
+  <div class="mask" id="connMgr">
+    <div class="modal">
+      <h3>我的连接</h3>
+      <p class="sub" style="color:#86909c;font-size:12px;margin-bottom:12px;">连接信息保存在 connections.json，密码以 AES 加密存储（与
+        Navicat 行为一致）。</p>
+      <button class="primary sm" type="button" onclick="showConnForm()">+ 新建连接</button>
+      <div id="connListBox" style="margin-top:12px;"></div>
+
+      <div id="connFormBox" style="display:none;margin-top:14px;border-top:1px solid #eee;padding-top:14px;">
+        <h4 id="connFormTitle" style="margin:0 0 10px;font-size:14px;">新建连接</h4>
+        <div class="field"><label>连接名称</label><input id="mName" placeholder="如 本地MariaDB"></div>
+        <div class="field"><label>云厂商（可选，快速模板）</label>
+          <select id="mCloud" onchange="mCloudChange()">
+            <option value="">不使用云模板</option>
+            <option value="aliyun">阿里云</option>
+            <option value="tencent">腾讯云</option>
+            <option value="huawei">华为云</option>
+            <option value="aws">Amazon AWS</option>
+            <option value="azure">Microsoft Azure</option>
+            <option value="oracle_cloud">Oracle Cloud</option>
+            <option value="mongo_cloud">MongoDB Atlas</option>
+          </select>
+        </div>
+        <div id="cloudTip" class="cloud-tip" style="display:none"></div>
+        <div class="field"><label>数据库类型</label>
+          <select id="mType" onchange="mTypeChange()">
+            <option value="mysql">MySQL / MariaDB</option>
+            <option value="postgresql">PostgreSQL</option>
+            <option value="mssql">SQL Server</option>
+            <option value="sqlite">SQLite</option>
+            <option value="oceanbase">OceanBase（MySQL 模式）</option>
+            <option value="tidb">TiDB（MySQL 协议）</option>
+            <option value="kingbase">人大金仓 KingbaseES（PG 模式）</option>
+            <option value="oracle">Oracle</option>
+            <option value="mongodb">MongoDB</option>
+            <option value="redis">Redis</option>
+          </select>
+        </div>
+        <div id="mHostFields">
+          <div class="row2">
+            <div class="field"><label>服务器</label><input id="mServer" placeholder="localhost 或 192.168.1.10"></div>
+            <div class="field"><label>端口</label><input id="mPort" placeholder="MySQL 3306 / MariaDB 3307"></div>
+          </div>
+          <div class="field"><label>数据库（可选，留空则连接后列出全部库）</label><input id="mDb" placeholder="如 timesheetoms"></div>
+          <div class="row2">
+            <div class="field"><label>账号</label><input id="mUid" placeholder="如 root"></div>
+            <div class="field"><label>密码</label><input id="mPwd" type="password" placeholder="留空则不设密码"></div>
+          </div>
+          <div class="field" style="margin-top:10px"><label><input type="checkbox" id="mSsh" onchange="mSshToggle()"> SSH 隧道（经跳板机访问内网数据库）</label></div>
+          <div id="mSshFields" style="display:none;border-left:2px solid var(--primary);padding-left:10px">
+            <div class="row2">
+              <div class="field"><label>SSH 主机</label><input id="mSshHost" placeholder="跳板机 IP"></div>
+              <div class="field"><label>SSH 端口</label><input id="mSshPort" placeholder="22"></div>
+            </div>
+            <div class="row2">
+              <div class="field"><label>SSH 账号</label><input id="mSshUser" placeholder="如 root"></div>
+              <div class="field"><label>SSH 密码（或留空用私钥）</label><input id="mSshPwd" type="password"></div>
+            </div>
+            <div class="field"><label>私钥文件（可选）</label><input id="mSshKey" placeholder="如 C:/Users/you/.ssh/id_ed25519"></div>
+          </div>
+        </div>
+        <div id="mSqliteFields" style="display:none">
+          <div class="field"><label>数据库文件 / 路径</label><input id="mDbSqlite" placeholder="./app.db"></div>
+        </div>
+        <div id="mAclFields" style="display:none;border-left:2px solid var(--primary);padding-left:10px;margin-top:10px">
+          <div class="field"><label>可见用户（逗号分隔，留空=所有人可见）</label><input id="mVisibleTo" placeholder="如 zhangsan, lisi"></div>
+          <div class="field"><label><input type="checkbox" id="mReadOnly"> 生产库强制只读（该连接禁止一切写操作）</label></div>
+        </div>
+        <div class="acts">
+          <button type="button" onclick="hideConnForm()">取消</button>
+          <button type="button" onclick="testFormConn()">测试连接</button>
+          <button class="primary" type="button" onclick="connSave()">保存</button>
+        </div>
+      </div>
+
+      <div class="acts" style="margin-top:16px;">
+        <button type="button" onclick="closeConnMgr()">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 账号登录弹窗(启用 users.json 后显示): 登录/注册双视图 -->
+  <div class="mask" id="authMask">
+    <div class="modal" style="width:420px;max-width:92vw;">
+      <div id="authLoginView">
+        <h3>登录</h3>
+        <p class="sub" style="color:#86909c;font-size:12px;margin-bottom:12px;">本工具已启用账号体系，登录后继续使用。</p>
+        <div class="field">
+          <label>用户名</label>
+          <input id="authUser" autocomplete="username" placeholder="请输入用户名">
+        </div>
+        <div class="field">
+          <label>密码</label>
+          <input id="authPwd" type="password" autocomplete="current-password" placeholder="请输入密码" onkeydown="if(event.key==='Enter')submitLogin()">
+        </div>
+        <div class="acts" style="justify-content:space-between;margin-top:12px;">
+          <button type="button" onclick="showRegisterView()" style="background:none;border:none;color:#165dff;cursor:pointer;font-size:13px">没有账号？新建账号</button>
+          <button type="button" class="primary" onclick="submitLogin()">登录</button>
+        </div>
+      </div>
+      <div id="authRegView" style="display:none">
+        <h3>新建账号</h3>
+        <p class="sub" id="regTip" style="color:#86909c;font-size:12px;margin-bottom:12px;">自助注册默认为<strong>只读</strong>权限；如需读写权限请联系管理员在「账号」管理中升级。</p>
+        <div class="field">
+          <label>用户名</label>
+          <input id="regUser" autocomplete="username" placeholder="2-32 位，字母/数字/下划线/中文">
+        </div>
+        <div class="field">
+          <label>密码</label>
+          <input id="regPwd" type="password" autocomplete="new-password" placeholder="至少 6 位">
+        </div>
+        <div class="field">
+          <label>确认密码</label>
+          <input id="regPwd2" type="password" autocomplete="new-password" placeholder="再次输入密码" onkeydown="if(event.key==='Enter')submitRegister()">
+        </div>
+        <div class="acts" style="justify-content:space-between;margin-top:12px;">
+          <button type="button" onclick="showLoginView()" style="background:none;border:none;color:#165dff;cursor:pointer;font-size:13px">← 返回登录</button>
+          <button type="button" class="primary" onclick="submitRegister()">创建账号</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 公网访问验证弹窗 -->
+  <div class="mask" id="gwMask">
+    <div class="modal" style="width:420px;max-width:92vw;">
+      <h3>公网访问验证</h3>
+      <p class="sub" style="color:#86909c;font-size:12px;margin-bottom:12px;">检测到你正通过公网地址访问，请输入网关访问令牌以继续（内网/局域网访问无需此步骤）。</p>
+      <div class="field">
+        <label>访问令牌 (Gateway Token)</label>
+        <input id="gwToken" type="password" placeholder="请输入访问令牌" onkeydown="if(event.key==='Enter')submitGateway()">
+      </div>
+      <div class="acts" style="justify-content:flex-end;margin-top:12px;">
+        <button type="button" class="primary" onclick="submitGateway()">验证并访问</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/store.js"></script>
+  <script src="js/base.js"></script>
+  <script src="js/tree.js"></script>
+  <script src="js/grid.js"></script>
+  <script src="js/sql.js"></script>
+
+  <!-- 可复用模板(结构固定+多次复用+填数据): JS cloneNode 克隆填充, 数据用 textContent 天然免转义 -->
+  <template id="tpl-field">
+    <div class="field">
+      <label></label>
+      <input>
+    </div>
+  </template>
+  <template id="tpl-ctx-item">
+    <div class="cm-item"></div>
+  </template>
+</body>
+
+</html>

@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.pyc
+
+# 敏感文件: 密钥、含密码密文的连接配置、网关令牌、自签证书, 绝不入库
+.dbm_rsa
+.dbm_key
+.dbm_gateway
+.dbm_cert.pem
+.dbm_key_ssl.pem
+connections.json
+
+# 测试产物
+_test_tmp.db
+tests/*.db
+
+# 打包产物
+dbmanager_code_*.zip
+
+# 临时/日志
+/tmp/
+*.log
+.git.broken/
+logs/
+
+# 账号配置(含密码哈希, 每台机器各自维护)
+users.json
+_*.db
+
+# Vue3 前端(迁移版): 依赖与构建产物不入库(源码在 frontend/src)
+frontend/node_modules/
+frontend/dist/
+frontend/*.timestamp-*.mjs
+frontend/.npm-cache/
+frontend/.vite/
+
+# 连接配置原子写临时文件(含敏感连接信息, 绝不入库)
+connections.json.tmp
+
+# 调度任务运行时数据(P2-2): 任务配置 + 备份产物
+tasks.json
+tasks.json.tmp
+backups/
+_ci_smoke*.db
+
+# 本地测试部署的数据库服务端(MongoDB/Redis 二进制与运行期数据, 严禁随交付物分发)
+localdb/
+_acl*.db
+
+# vue-tsc 临时产物
+frontend/_tsc_test.json
