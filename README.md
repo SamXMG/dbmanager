@@ -45,6 +45,27 @@ python app.py
 # 或双击 setup_new_pc.bat（自动装依赖并启动）
 ```
 
+### 局域网访问（其他电脑连进来）
+
+默认只监听本机（安全设计）。要开放给局域网：
+
+```bash
+# 方式一: 一键脚本(Windows)
+#   双击 start_lan.bat
+
+# 方式二: 手动
+DBM_HOST=0.0.0.0 python app.py     # Linux/macOS
+# PowerShell: $env:DBM_HOST="0.0.0.0"; python app.py
+```
+
+还需两步：
+1. **防火墙放行 8770**（管理员 PowerShell 或 CMD 执行一次）：
+   `netsh advfirewall firewall add rule name="DB Manager 8770" dir=in action=allow protocol=TCP localport=8770`
+2. 其他电脑浏览器访问 `http://<本机局域网IP>:8770`（本机 IP 用 `ipconfig` 查看）
+
+> ⚠️ 开放局域网后，同一网段任何人都能访问——务必先登录改掉默认密码，
+> 生产环境强烈建议配合 `DBM_SSL=1`（HTTPS）。
+
 > ⚠️ **安全警告**：首次启动 `ensure_default()` 会**自动创建** `users.json` 并生成默认管理员 `admin / admin123`（admin 角色）——即默认部署就是"认证开启 + 公开弱口令"，LAN/公网部署**必须立即登录修改默认密码**，否则内网任意人可登录接管（配合账号管理接口可进一步提权）。可用环境变量 `DBM_DEFAULT_PWD` 覆盖首次建库密码（仅首次创建生效）。仅在手动删除 `users.json` 且未设 `DBM_AUTH=1` 时才为单机无鉴权模式。
 
 ## Docker 部署
