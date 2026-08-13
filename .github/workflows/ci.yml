@@ -18,15 +18,18 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
-      - name: Install dependencies
-        run: pip install -r requirements.txt pyflakes ruff
-      # pyodbc/oracledb 依赖按平台条件安装(requirements.txt 已声明);
+      - name: Install dependencies (consumes requirements.lock, 路线图 1.3)
+        run: pip install -r requirements.lock pyflakes ruff mypy
+      # pyodbc/oracledb 依赖按平台条件安装(requirements.lock 已声明);
       # 测试只使用 SQLite, 无需真实数据库驱动
       - name: Static check (ruff F+E9, 与 pyflakes 语义对齐)
         shell: bash
         run: |
           ruff check --select F,E9 . 2>&1 | tail -20
           python -m pyflakes *.py routes/*.py services/*.py tests/*.py 2>&1 | grep -i "undefined" && exit 1 || exit 0
+      - name: Type check (mypy, 路线图 1.3: 先 non-blocking, 存量标注收敛后转阻断)
+        continue-on-error: true
+        run: mypy scanner.py handler_security.py services/core.py config.py dbcore.py
       - name: Import integrity (no circular imports)
         run: python -c "import app; print('import app OK')"
       - name: Run smoke tests
@@ -65,11 +68,11 @@ jobs:
           python tests/e2e_stage5b.py || { kill $SERVER_PID 2>/dev/null; exit 1; }
           python tests/e2e_explain.py || { kill $SERVER_PID 2>/dev/null; exit 1; }
           kill $SERVER_PID 2>/dev/null || true
-      - name: Dependency vulnerability scan (pip-audit)
+      - name: Dependency vulnerability scan (pip-audit, 基于 lock 锁定集)
         continue-on-error: true   # 发现即报告, 不阻塞发版(修复依赖由维护者处理)
         run: |
           pip install pip-audit
-          pip-audit -r requirements.txt --timeout 60
+          pip-audit -r requirements.lock --timeout 60
 
   frontend:
     runs-on: ubuntu-latest

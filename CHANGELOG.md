@@ -2,6 +2,15 @@
 
 本项目遵循[语义化版本](https://semver.org/lang/zh-CN/)。发版流程：更新 `config.py VERSION` 与 `frontend/package.json version` → 追加本节 → 打 tag `vX.Y.Z`（自动触发 Release 构建）。
 
+## [Unreleased] - handler 拆分 + CI lock 消费(优化路线图 1.1/1.3)
+
+### 重构
+- **`handler.py` 拆分(1049→816 行)**：Navicat 保存连接扫描 → 独立 `scanner.py`；网关令牌/HTTPS·SSL/内网判定 → 独立 `handler_security.py`；handler 保留 re-export（`routes`/`app` 的 `handler._xxx()` 包装接口不变，零行为变化）。`Dockerfile` 同步补拷两个新模块（防 docker 崩复发）
+- **CI 消费 `requirements.lock`(1.3)**：`pip install -r requirements.lock`（原 txt）+ pip-audit 基于 lock 锁定集；新增 mypy 门禁（non-blocking，`scanner/handler_security/services/core/config/dbcore`，存量标注收敛后转阻断）
+
+### 验证
+- 单测 7 项 + e2e 8 项（8770 连跑 auth/acct/acl/sql_workbench/stage5/stage5b/p0_ssrf + http_smoke 独立）全绿
+
 ## [Unreleased] - 审计表清理(优化路线图 0.1)
 
 ### 修复
