@@ -19,11 +19,12 @@ FAIL = []
 
 
 def check(name, cond, extra=""):
+    """pytest 兼容(2.2): 断言即失败标记, 同时保留 CLI 打印输出"""
     if cond:
         print("  ✓", name)
     else:
-        FAIL.append(name)
         print("  ✗", name, extra)
+    assert cond, "%s %s" % (name, extra)
 
 
 def main():

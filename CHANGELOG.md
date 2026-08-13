@@ -2,6 +2,15 @@
 
 本项目遵循[语义化版本](https://semver.org/lang/zh-CN/)。发版流程：更新 `config.py VERSION` 与 `frontend/package.json version` → 追加本节 → 打 tag `vX.Y.Z`（自动触发 Release 构建）。
 
+## [Unreleased] - 单测迁 pytest(优化路线图 2.2)
+
+### 工程化
+- `pyproject.toml` 加 `[tool.pytest.ini_options]`（testpaths/tests、python_files/test_*.py）
+- 自定义 check 测试（`test_p0_security` 24 项、`test_audit` 4 项）改为 **assert 断言**，pytest 收集后断言生效（保留 CLI 打印）
+- 新增 pytest 风格 `tests/test_services_ddl.py`（30 项）：`safe_where_clause`/`_check_default`/`_check_type` 注入攻击样本参数化
+- CI：单测统一为 `pytest tests/ -q`（原 5 个逐个 step 合并；unittest 类自动收集，e2e steps 不变）
+- 本地验证：**pytest 54 passed**（unittest + pytest 风格混合收集）
+
 ## [Unreleased] - 双前端退役(优化路线图 1.2)
 
 ### 重构

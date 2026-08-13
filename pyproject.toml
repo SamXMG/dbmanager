@@ -27,3 +27,11 @@ disallow_untyped_defs = false
 warn_unused_ignores = false
 # 存量代码未全量标注, 先只对增量模块严格; 后续可收窄 exclude
 exclude = "(tests/|js/|frontend/)"
+
+# pytest(优化路线图 2.2): 兼容收集 unittest.TestCase 与 pytest 风格 test_* 函数;
+# 自定义 check 脚本(test_p0_security/test_audit)已改为 assert 断言, pytest 收集后断言生效
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-q"
+
