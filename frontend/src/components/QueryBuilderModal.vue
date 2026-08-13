@@ -290,13 +290,15 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
 .qb-cols {
   max-height: 168px; overflow: auto; border: 1px solid var(--border);
   border-radius: 6px; padding: 4px; display: flex; flex-direction: column; gap: 2px;
+  background: var(--panel2);
 }
 .qb-col {
   display: flex; align-items: center; gap: 8px; padding: 5px 8px;
   border-radius: 5px; cursor: pointer; font-size: 13px; border-left: 3px solid transparent;
+  color: var(--text);
 }
 .qb-col:hover { background: var(--panel3); }
-.qb-col-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qb-col-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
 .qb-col-type { color: var(--text3); font-size: 11px; flex-shrink: 0; }
 /* 被条件引用的列: 常驻浅标识 */
 .qb-col-ref { background: var(--primary-bg); }

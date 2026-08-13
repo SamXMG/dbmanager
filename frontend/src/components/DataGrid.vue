@@ -261,33 +261,13 @@ function onRowCtx(e: MouseEvent, i: number) {
   ui.showCtxMenu(e.clientX, e.clientY, items)
 }
 
-/** 编辑行弹窗: 预填当前值, 提交整行 PUT */
+/** 编辑行弹窗: 预填当前值, 提交整行 PUT(走 EditRowModal 动态组件) */
 function openEditRow(i: number) {
   const cur = tab.current
   const row = grid.rows[i]
   const cols = tab.currentMeta?.columns || []
   if (!cur || !row || !cols.length) { ui.toast('无法编辑(无列信息)', true); return }
-  const lines = cols.map(c =>
-    `<div class="row2" style="margin-bottom:6px"><label style="width:120px;flex-shrink:0">${esc(c.name)}</label>` +
-    `<input id="ed_${esc(c.name)}" value="${esc(fmt(row[c.name]))}" placeholder="${esc(c.type || '')}" style="flex:1"></div>`).join('')
-  ui.showModal(`<h3>编辑行 · ${esc(cur.s)}.${esc(cur.t)}</h3>${lines}` +
-    `<div class="acts"><button data-action="close">取消</button><button class="primary" id="edOk">保存</button></div>`)
-  setTimeout(() => {
-    const ok = document.getElementById('edOk')
-    if (ok) ok.onclick = async () => {
-      const values: Record<string, unknown> = {}
-      cols.forEach(c => {
-        const el = document.getElementById('ed_' + c.name) as HTMLInputElement
-        if (el) {
-          const v = el.value
-          values[c.name] = v === '' && (c as { nullable?: boolean }).nullable ? null : v
-        }
-      })
-      const ok2 = await grid.updateRowValues(i, values)
-      ui.closeModal()
-      ui.toast(ok2 ? '已保存' : '保存失败', !ok2)
-    }
-  }, 0)
+  ui.openModal('EditRowModal', { s: cur.s, t: cur.t, row, columns: cols, i })
 }
 
 async function copyRow(i: number) {

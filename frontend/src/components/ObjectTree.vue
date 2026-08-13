@@ -201,127 +201,19 @@ async function execAlter(s: string, t: string, action: string, payload: Record<s
   return alterTable({ s, t, action, payload })
 }
 
-// ---- ER 关系图: /api/er -> 中心表 + 外键关联表 SVG(renderErSvg 翻译) ----
-interface ErColumn { name: string; type?: string }
-interface ErTable { schema: string; name: string; columns: ErColumn[]; pk: string[] }
-interface ErRel { from_schema: string; from_table: string; to_schema: string; to_table: string; from_columns: string[]; to_columns: string[] }
-interface DbObject { schema?: string; name: string; type?: string }
-
-async function openEr(s: string, t: string) {
-  try {
-    const d = await getEr(s, t) as unknown as { tables: ErTable[]; relations: ErRel[] }
-    const tables = d.tables || [], rels = d.relations || []
-    if (!tables.length) { ui.toast('无表数据', true); return }
-    const svg = genErSvg(s, t, tables, rels)
-    ui.showModal(`<h3>ER 关系图 · ${esc(s ? s + '.' : '')}${esc(t)} <span style="color:var(--text3);font-weight:400;font-size:12px">(${tables.length} 表 · ${rels.length} 关系)</span></h3>
-      <div style="overflow:auto;max-height:70vh">${svg}</div>
-      <div class="acts"><button class="primary" data-action="close">关闭</button></div>`)
-  } catch (e) { ui.toast('ER 图加载失败: ' + errMsg(e), true) }
+// ---- ER 关系图: 走 ERDiagramModal 动态组件(getEr 数据 + SVG 均在该组件内渲染, 无注入) ----
+function openEr(s: string, t: string) {
+  ui.openModal('ERDiagramModal', { s, t })
 }
 
-function genErSvg(schema: string, name: string, tables: ErTable[], rels: ErRel[]): string {
-  const TW = 190, TH = 26, TDH = 18, PAD = 30
-  const centerKey = schema + '.' + name
-  const ordered = [tables.find(t => (t.schema + '.' + t.name) === centerKey) || tables[0]]
-    .concat(tables.filter(t => (t.schema + '.' + t.name) !== centerKey).sort((a, b) => b.columns.length - a.columns.length))
-  const n = ordered.length
-  const cols = Math.max(1, Math.ceil(Math.sqrt(n * 1.4)))
-  const rowsN = Math.ceil(n / cols)
-  const maxCols = Math.max(1, ...ordered.map(t => t.columns.length))
-  const cellW = TW + PAD, cellH = 90 + maxCols * TDH + PAD
-  const W = Math.max(600, cols * cellW + PAD), H = Math.max(400, rowsN * cellH + PAD)
-  const pos: Record<string, { x: number; y: number }> = {}
-  ordered.forEach((t, i) => {
-    const cx = i % cols, cy = Math.floor(i / cols)
-    pos[t.schema + '.' + t.name] = { x: PAD + cx * cellW, y: PAD + cy * cellH }
-  })
-  let box = ''
-  ordered.forEach(t => {
-    const p = pos[t.schema + '.' + t.name]
-    const h = TH + t.columns.length * TDH
-    box += `<rect x="${p.x}" y="${p.y}" width="${TW}" height="${h}" rx="6" fill="var(--panel, #fff)" stroke="var(--text3)"/>`
-    box += `<rect x="${p.x}" y="${p.y}" width="${TW}" height="${TH}" rx="6" fill="var(--primary)" opacity="0.15"/>`
-    box += `<text x="${p.x + 8}" y="${p.y + 17}" font-size="12" font-weight="600" fill="var(--text)">${esc(t.name)}</text>`
-    t.columns.forEach((c, ci) => {
-      const y = p.y + TH + 14 + ci * TDH
-      const isPk = t.pk.includes(c.name)
-      box += `<text x="${p.x + 8}" y="${y}" font-size="11" fill="${isPk ? 'var(--warning-solid)' : 'var(--text2, var(--text3))'}">${esc(c.name)}</text>`
-      box += `<text x="${p.x + TW - 8}" y="${y}" font-size="10" text-anchor="end" fill="var(--text3)">${esc(String(c.type || '').split('(')[0])}</text>`
-    })
-  })
-  let lines = ''
-  rels.forEach(r => {
-    const from = pos[r.from_schema + '.' + r.from_table]
-    const to = pos[r.to_schema + '.' + r.to_table]
-    if (!from || !to) return
-    const x1 = from.x + TW, y1 = from.y + TH + 8
-    const x2 = to.x, y2 = to.y + TH + 8
-    const mx = (x1 + x2) / 2
-    lines += `<path d="M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}" fill="none" stroke="var(--primary)" stroke-width="1.2" marker-end="url(#erArrow)"/>`
-    const lbl = (r.from_columns || []).map((c, i) => c + ' → ' + ((r.to_columns || [])[i] || '')).join(', ')
-    lines += `<text x="${mx}" y="${(y1 + y2) / 2 - 4}" font-size="10" fill="var(--primary)" text-anchor="middle">${esc(lbl)}</text>`
-  })
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" style="width:100%;min-width:${W}px;background:var(--panel, #fff);border-radius:8px">
-    <defs><marker id="erArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--primary)"/></marker></defs>
-    ${box}${lines}</svg>`
+// ---- 数据同步(跨库 / 跨连接同名表): 两种模式整合进 SyncModal 动态组件 ----
+function openTransfer(_db: string, s: string, t: string) {
+  ui.openModal('SyncModal', { s, t })
 }
 
-// ---- 数据同步(跨库, 目标表须存在): /api/transfer ----
-async function openTransfer(db: string, s: string, t: string) {
-  const cur = connStore.conn?.database || ''
-  const dbs = dbStore.databases.filter((d: string) => d && d !== cur)
-  const opts = [cur, ...dbs]
-  ui.showModal(`<h3>数据同步 · ${esc(s)}.${esc(t)}</h3>
-    <div style="color:var(--text3);font-size:12px;margin-bottom:10px">源表数据复制到目标表(同名列交集, 目标自增主键由数据库生成)</div>
-    <div class="field"><label>目标库</label><select id="trDb">${opts.map(d => `<option value="${esc(d)}" ${d === cur ? 'selected' : ''}>${esc(d)}</option>`).join('')}</select></div>
-    <div class="field"><label>目标表(须已存在)</label><input id="trTable" placeholder="如 ${esc(t)}_copy"></div>
-    <p style="color:var(--warning);font-size:12px">⚠ 源表全部数据将插入目标表</p>
-    <div class="acts"><button data-action="close">取消</button><button class="primary" id="trGo">开始同步</button></div>`)
-  setTimeout(() => {
-    const go = document.getElementById('trGo')
-    if (go) go.onclick = async () => {
-      const toDb = (document.getElementById('trDb') as HTMLSelectElement).value
-      const toT = (document.getElementById('trTable') as HTMLInputElement).value.trim()
-      if (!toT) { ui.toast('请填写目标表', true); return }
-      try {
-        const d = await transferData({ s, t, to_db: toDb, to_t: toT })
-        ui.closeModal()
-        ui.toast('已同步 ' + (d.transferred ?? 0) + ' 行数据')
-      } catch (e) { ui.toast('同步失败: ' + errMsg(e), true) }
-    }
-  }, 0)
-}
-
-// ---- 结构同步(跨连接, 同名表): /api/sync ----
-async function openSchemaSync(s: string, t: string) {
-  let conns: ConnMeta[] = []
-  try { conns = await listConnections() } catch { /* */ }
-  let html = `<h3>同步表数据 · ${esc(s)}.${esc(t)}</h3>
-    <div style="color:var(--text3);font-size:12px;margin-bottom:10px">把当前连接中该表数据复制到目标连接的<b>同名表</b>(按同名列匹配)</div>`
-  if (!conns.length) {
-    html += '<div class="empty2">请先在「我的连接」中保存目标连接</div>'
-  } else {
-    html += `<div class="field"><label>目标连接</label><select id="syncDst">${conns.map(c => `<option value="${esc(c.name)}">${esc(c.name)} (${esc(c.db_type)} · ${esc(c.server || '')})</option>`).join('')}</select></div>
-      <div class="field"><label>模式</label><select id="syncMode"><option value="append">追加(不清空目标)</option><option value="replace">清空目标后复制</option></select></div>
-      <div class="acts"><button data-action="close">取消</button><button class="primary" id="syncGo">开始同步</button></div>`
-  }
-  ui.showModal(html)
-  setTimeout(() => {
-    const go = document.getElementById('syncGo')
-    if (go) go.onclick = async () => {
-      const dstName = (document.getElementById('syncDst') as HTMLSelectElement).value
-      const mode = (document.getElementById('syncMode') as HTMLSelectElement).value
-      if (!dstName) { ui.toast('请选择目标连接', true); return }
-      if (!await confirmDanger(`确认将 ${s}.${t} 同步到「${dstName}」(${mode === 'replace' ? '清空目标后复制' : '追加'})?`)) return
-      const conn = connStore.conn
-      const src = conn && conn.name ? { name: conn.name } : conn || {}
-      try {
-        const d = await syncTable({ src, dst: { name: dstName }, schema: s, table: t, mode })
-        ui.closeModal()
-        ui.toast('同步完成: 复制 ' + (d as { synced?: number }).synced + ' 行')
-      } catch (e) { ui.toast('同步失败: ' + errMsg(e), true) }
-    }
-  }, 0)
+// ---- 结构同步(跨连接, 同名表): 同走 SyncModal ----
+function openSchemaSync(s: string, t: string) {
+  ui.openModal('SyncModal', { s, t })
 }
 
 /** 生成 INSERT 模板(列名 + ? 占位, 对齐旧版 genInsertSql) */
@@ -365,7 +257,7 @@ function dbSchemas(db: string): string[] {
 function typeGroups(db: string, schema: string | null) {
   const obj = dbStore.dbObjects(db)
   if (!obj) return []
-  const inSch = (arr: DbObject[]) =>
+  const inSch = (arr: Array<{ schema?: string; name: string; type?: string }>) =>
     schema ? arr.filter(x => (x.schema || '(默认)') === schema) : arr
   const tables = inSch(obj.tables).filter(t => t.type !== 'View')
   const views = inSch(obj.tables).filter(t => t.type === 'View')

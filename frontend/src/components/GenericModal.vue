@@ -1,22 +1,16 @@
 <script setup lang="ts">
-// 通用弹窗(阶段5): 渲染 ui.modal(innerHTML, showModal 注入)
-// 修复: 之前 ui.modal 存了 HTML 但无组件渲染 -> 所有 showModal 弹窗(新增行/统计/看全文/ER图等)都不显示
-// P0-5 加固: v-html 前过 DOMPurify 白名单净化(script/事件属性/外链一律剔除)。
-// CSP 兼容(修复): 后端 script-src 'self' 禁内联事件处理器 -> 弹窗按钮不再用 onclick,
-//   改用声明式 data-action / data-call, 由本组件统一事件委托分发:
-//   - data-action="close"   -> 关闭弹窗
-//   - data-action="remove"  -> 删除最近的行容器(.row2, 查询构建器条件行)
-//   - data-call="__xxx"     -> 调用 window.__xxx()(调用方自行挂载)
+// 通用弹窗(阶段5): 动态渲染 ui.modal.name 对应的注册组件(Vue 原生 <component :is>),
+// 取代旧版 ui.showModal(html) 的 HTML 字符串注入模式(无 XSS 面、可维护、主题一致)。
+// 遮罩/焦点陷阱/Esc 关闭等 a11y 能力保留; 组件自身负责内容、关闭时调用 ui.closeModal()。
 import { computed, onBeforeUnmount, watch } from 'vue'
-import DOMPurify from 'dompurify'
 import { useUIStore } from '@/stores/ui'
+import { modalRegistry } from './modals'
 
 const ui = useUIStore()
-// 默认白名单净化: 内联事件(onclick 等)一律剔除, XSS 面最小化
-const safeHtml = computed(() => (ui.modal ? DOMPurify.sanitize(ui.modal) : ''))
+const comp = computed(() => (ui.modal ? modalRegistry[ui.modal.name] || null : null))
+const props = computed(() => ui.modal?.props || {})
 
-// 焦点陷阱(3.6 a11y): 弹窗打开时 Tab/Shift+Tab 在弹窗内循环, 不溢出到页面背景;
-// 不自动移入焦点(避免破坏弹窗内 autofocus 意图)
+// 焦点陷阱(3.6 a11y): 弹窗打开时 Tab/Shift+Tab 在弹窗内循环, 不溢出到页面背景
 function trapFocus(e: KeyboardEvent) {
   if (e.key !== 'Tab') return
   const mask = document.querySelector('.g-modal-mask')
@@ -35,33 +29,14 @@ watch(() => ui.modal, (v) => {
   else document.removeEventListener('keydown', trapFocus)
 })
 onBeforeUnmount(() => document.removeEventListener('keydown', trapFocus))
-
-function onModalClick(e: MouseEvent) {
-  const target = e.target as HTMLElement | null
-  const el = target?.closest?.('[data-action], [data-call]') as HTMLElement | null
-  if (!el) return
-  const action = el.getAttribute('data-action')
-  if (action === 'close') { ui.closeModal(); return }
-  if (action === 'remove') {
-    const row = el.closest('.row2')
-    if (row) row.remove()
-    else el.remove()
-    return
-  }
-  const call = el.getAttribute('data-call')
-  if (call) {
-    const fn = (window as unknown as Record<string, unknown>)[call]
-    if (typeof fn === 'function') (fn as () => void)()
-  }
-}
 </script>
 
 <template>
   <Teleport to="body">
-    <div v-if="ui.modal" class="g-modal-mask" role="dialog" aria-modal="true"
+    <div v-if="comp" class="g-modal-mask" role="dialog" aria-modal="true"
          aria-label="对话框" @click.self="ui.closeModal()"
          @keydown.esc="ui.closeModal()">
-      <div class="g-modal" v-html="safeHtml" @click="onModalClick"></div>
+      <component :is="comp" v-bind="props" />
     </div>
   </Teleport>
 </template>
@@ -77,7 +52,8 @@ function onModalClick(e: MouseEvent) {
   justify-content: center;
   padding: 16px;
 }
-.g-modal {
+/* 注册组件内部用 .g-modal 作为卡片容器(若组件自带 mask 则用其自身) */
+.g-modal-mask :deep(.g-modal) {
   background: var(--panel, #fff);
   border-radius: 10px;
   width: 680px;
@@ -86,22 +62,6 @@ function onModalClick(e: MouseEvent) {
   overflow: auto;
   padding: 18px 20px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+  color: var(--text);
 }
-.g-modal :deep(h3) { margin: 0 0 12px; font-size: 16px; }
-.g-modal :deep(.acts) { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
-.g-modal :deep(.field) { margin-bottom: 8px; display: flex; flex-direction: column; gap: 4px; }
-.g-modal :deep(.field label) { font-size: 12px; color: var(--text2, var(--text3)); }
-.g-modal :deep(input[type="text"]),
-.g-modal :deep(input:not([type])),
-.g-modal :deep(input[type="number"]),
-.g-modal :deep(input[type="search"]),
-.g-modal :deep(select) {
-  padding: 5px 8px; border: 1px solid var(--border2, var(--border)); border-radius: 5px;
-  font-size: 13px; outline: none; background: var(--panel, #fff); color: inherit;
-}
-.g-modal :deep(.row2) { display: flex; gap: 8px; }
-.g-modal :deep(.row2 .field) { flex: 1; }
-.g-modal :deep(.empty2) { color: var(--text3); font-size: 12px; padding: 8px 0; }
-.g-modal :deep(pre) { font-family: Consolas, monospace; }
-.g-modal :deep(button.sm), .g-modal :deep(button) { padding: 4px 12px; font-size: 12px; }
 </style>

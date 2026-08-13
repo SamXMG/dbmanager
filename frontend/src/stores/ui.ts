@@ -18,7 +18,7 @@ export const useUIStore = defineStore('ui', {
     view: 'browse' as 'browse' | 'sql',   // 主内容视图: 数据浏览 / SQL 工作台(对齐旧版 switchView)
     toasts: [] as Toast[],
     toastSeq: 0,
-    modal: null as string | null,   // 当前弹窗内容(GenericModal 渲染 showModal 注入的 HTML)
+    modal: null as { name: string; props?: Record<string, unknown> } | null,  // 动态组件弹窗(GenericModal 按 name 渲染注册组件)
     ctxMenu: null as { x: number; y: number; items: CtxItem[] } | null,
     designer: null as { s: string; t: string } | null,  // 表设计器(TableDesignerModal 渲染)
     routine: null as { s: string; name: string; kind: string } | null,  // 存储过程/函数/触发器编辑器
@@ -47,7 +47,8 @@ export const useUIStore = defineStore('ui', {
         this.toasts = this.toasts.filter(t => t.id !== id)
       }, 2600)
     },
-    showModal(html: string) { this.modal = html },
+    /** 打开动态组件弹窗(取代旧版 ui.showModal(html) 注入式弹窗) */
+    openModal(name: string, props?: Record<string, unknown>) { this.modal = { name, props } },
     closeModal() { this.modal = null },
     showCtxMenu(x: number, y: number, items: CtxItem[]) {
       this.ctxMenu = { x, y, items }

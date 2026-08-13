@@ -37,7 +37,16 @@ async function onExec() {
   }
 }
 async function onExplain() {
-  try { await sqlStore.explain() } catch (e) { ui.toast('EXPLAIN 失败: ' + errMsg(e), true) }
+  try {
+    const tab = await sqlStore.explain()
+    ui.openModal('ExplainPlanModal', { tabId: tab.id })
+  } catch (e) { ui.toast('EXPLAIN 失败: ' + errMsg(e), true) }
+}
+/** 结果集图表: 打开 ResultChartModal(读取当前结果 tab) */
+function openChart() {
+  const tab = sqlStore.activeTab
+  if (!tab || !tab.columns?.length) { ui.toast('当前没有可绘制的结果集', true); return }
+  ui.openModal('ResultChartModal')
 }
 function onFormat() {
   const before = sqlStore.sqlText
@@ -149,16 +158,7 @@ function onRowCtx(e: MouseEvent, row: Record<string, unknown>) {
   ])
 }
 function showCellDetail(col: string, v: unknown) {
-  const full = v == null ? '' : String(v)
-  const w = window as unknown as Record<string, unknown>
-  w.__sqlCellDetail = full
-  w.__copySqlCell = () => {
-    const t = String(w.__sqlCellDetail || '')
-    navigator.clipboard?.writeText(t).then(() => ui.toast('已复制 ' + t.length + ' 字符')).catch(() => ui.toast('复制失败', true))
-  }
-  ui.showModal(`<h3>${esc(col)} <span style="color:var(--text3);font-weight:400;font-size:12px">(完整内容 ${full.length} 字符)</span></h3>
-    <pre style="max-height:60vh;overflow:auto;white-space:pre-wrap;word-break:break-all;background:var(--panel2);border:1px solid var(--border);padding:10px;border-radius:6px;margin:8px 0">${esc(full)}</pre>
-    <div class="acts"><button data-call="__copySqlCell">复制全文</button><button data-action="close">关闭</button></div>`)
+  ui.openModal('CellDetailModal', { col, text: v == null ? '' : String(v) })
 }
 
 // ---- 历史 / 收藏 ----
@@ -201,6 +201,7 @@ function tabLabel(t: { sql: string }): string {
       <button class="sm" @click="onFormat" title="美化当前 SQL (Ctrl+Shift+F)">格式化</button>
       <button class="sm" @click="openQueryBuilder" title="可视化构建 SELECT 查询">构建器</button>
       <button class="sm" @click="onExplain" title="查看当前 SQL 的执行计划 (EXPLAIN)">解释</button>
+      <button class="sm" @click="openChart" title="将当前结果集绘制为柱状图">图表</button>
       <button class="sm" :class="sqlStore.writeMode ? 'write-on' : 'write-off'" @click="sqlStore.writeMode = !sqlStore.writeMode"
               :title="sqlStore.writeMode ? '写模式已开启, 可执行 DML/DDL' : '只读模式, 仅允许 SELECT/SHOW/EXPLAIN/DESC'">
         写模式: {{ sqlStore.writeMode ? '开' : '关' }}

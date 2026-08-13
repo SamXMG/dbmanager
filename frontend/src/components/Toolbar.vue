@@ -10,7 +10,7 @@ import { useAuthStore } from '@/stores/auth'
 import { API_BASE, authState } from '@/api/client'
 import { useUIStore } from '@/stores/ui'
 import { useConnectionStore } from '@/stores/connection'
-import { importData, alterTable } from '@/api/schema'
+import { alterTable } from '@/api/schema'
 
 const grid = useGridStore()
 const tab = useTabStore()
@@ -34,28 +34,12 @@ async function loadAll() {
   ui.toast('已加载 ' + n + ' 行')
 }
 
-/** 新增行(简版: 弹窗收集列值, 空值用 null) */
-async function addRow() {
+/** 新增行(简版: 弹窗收集列值, 空值用 null) —— 走 AddRowModal 动态组件 */
+function addRow() {
   const cur = tab.current
   if (!cur) return
-  const meta = tab.currentMeta
-  const lines = (meta?.columns || []).map(c => {
-    return `<div class="row2" style="margin-bottom:6px"><label style="width:120px;flex-shrink:0">${c.name}</label><input id="add_${c.name}" placeholder="${(c.type || '')}" style="flex:1"></div>`
-  }).join('')
-  ui.showModal(`<h3>新增行 · ${cur.s}.${cur.t}</h3>${lines}<div class="acts"><button data-action="close">取消</button><button class="primary" id="addOk">插入</button></div>`)
-  setTimeout(() => {
-    const ok = document.getElementById('addOk')
-    if (ok) ok.onclick = async () => {
-      const values: Record<string, unknown> = {}
-      ;(meta?.columns || []).forEach(c => {
-        const el = document.getElementById('add_' + c.name) as HTMLInputElement
-        if (el && el.value !== '') values[c.name] = el.value
-      })
-      const ok2 = await grid.insert(values)
-      ui.closeModal()
-      ui.toast(ok2 ? '已插入' : '插入失败', !ok2)
-    }
-  }, 0)
+  const cols = tab.currentMeta?.columns || []
+  ui.openModal('AddRowModal', { s: cur.s, t: cur.t, columns: cols })
 }
 
 /** 删除选中行 */
@@ -113,164 +97,40 @@ function exportSelected() {
   ui.toast('已导出选中 ' + rows.length + ' 行')
 }
 
-/** Excel/CSV 批量粘贴插入: 粘贴到弹窗 -> 解析 TSV/CSV -> 列映射 -> /api/import(事务感知) */
+/** Excel/CSV 批量粘贴插入: 逻辑(解析 TSV/CSV -> 列映射 -> /api/import)已迁入 PasteInsertModal.vue。 */
 function pasteInsert() {
   const cur = tab.current
   const meta = tab.currentMeta
   if (!cur || !meta) return
-  ui.showModal(`<h3>批量粘贴插入 · ${cur.s}.${cur.t}</h3>
-    <p style="color:var(--text3);font-size:12px;margin:4px 0 8px">从 Excel/表格复制数据后粘贴到下方(第一行为列名, 或直接数据), 按列顺序映射</p>
-    <textarea id="piText" style="width:100%;height:140px;box-sizing:border-box;padding:8px;font-family:Consolas,monospace;font-size:12px" placeholder="粘贴 Excel 复制的单元格..."></textarea>
-    <div class="acts"><button data-action="close">取消</button><button class="primary" id="piGo">导入 {{ meta.columns.length }} 列</button></div>`)
-  setTimeout(() => {
-    const go = document.getElementById('piGo')
-    if (go) go.onclick = async () => {
-      const raw = (document.getElementById('piText') as HTMLTextAreaElement).value
-      if (!raw.trim()) { ui.toast('请先粘贴数据', true); return }
-      const rows = parsePaste(raw)
-      if (!rows.length) { ui.toast('未解析到数据', true); return }
-      const cols = meta.columns.map(c => c.name)
-      const mapped = rows.map(r => {
-        const o: Record<string, unknown> = {}
-        cols.forEach((c, i) => { if (r[i] !== undefined && r[i] !== '') o[c] = r[i] })
-        return o
-      })
-      if (!await confirmDanger(`确认插入 ${mapped.length} 行到 ${cur.s}.${cur.t}？`)) return
-      try {
-        const payload: Record<string, unknown> = { s: cur.s, t: cur.t, columns: cols, rows: mapped }
-        if (ui.transactionMode) payload.transaction = true
-        const d = await importData(payload)
-        ui.closeModal()
-        ui.toast('已导入 ' + (d as { affected?: number }).affected + ' 行')
-        grid.loadData(1)
-      } catch (e) { ui.toast('导入失败: ' + errMsg(e), true) }
-    }
-  }, 0)
-}
-/** 解析粘贴文本: TSV/CSV(引号包裹的逗号值) */
-function parsePaste(raw: string): string[][] {
-  const lines = raw.replace(/\r\n/g, '\n').split('\n').filter(l => l.trim() !== '')
-  const isTsv = lines[0].includes('\t')
-  return lines.map(l => {
-    if (isTsv) return l.split('\t')
-    // CSV: 处理引号
-    const out: string[] = []
-    let cur = '', inQ = false
-    for (let i = 0; i < l.length; i++) {
-      const ch = l[i]
-      if (inQ) {
-        if (ch === '"' && l[i + 1] === '"') { cur += '"'; i++ }
-        else if (ch === '"') inQ = false
-        else cur += ch
-      } else if (ch === '"') inQ = true
-      else if (ch === ',') { out.push(cur); cur = '' }
-      else cur += ch
-    }
-    out.push(cur)
-    return out
-  })
+  ui.openModal('PasteInsertModal', { s: cur.s, t: cur.t, columns: meta.columns })
 }
 
-/** 列统计(简版: 弹窗选列) */
+/** 列统计(简版: 弹窗选列) —— 走 ColumnStatsModal 动态组件 */
 function showStats() {
   const cur = tab.current
   const meta = tab.currentMeta
   if (!cur || !meta) return
-  const opts = (meta.columns || []).map(c => `<option value="${c.name}">${c.name}</option>`).join('')
-  ui.showModal(`<h3>列统计 · ${cur.s}.${cur.t}</h3>
-    <div class="field"><label>列</label><select id="stCol">${opts}</select></div>
-    <div class="acts"><button data-action="close">取消</button><button class="primary" id="stGo">统计</button></div>`)
-  setTimeout(() => {
-    const go = document.getElementById('stGo')
-    if (go) go.onclick = async () => {
-      const col = (document.getElementById('stCol') as HTMLSelectElement).value
-      const d = await statsCol(col)
-      ui.closeModal()
-      if (!d) { ui.toast('统计失败', true); return }
-      let rows = `<tr><td>COUNT</td><td>${d.count}</td></tr>
-        <tr><td>MIN</td><td>${d.min ?? '-'}</td></tr>
-        <tr><td>MAX</td><td>${d.max ?? '-'}</td></tr>`
-      if ('sum' in d) rows += `<tr><td>SUM</td><td>${d.sum ?? '-'}</td></tr>`
-      if ('avg' in d) rows += `<tr><td>AVG</td><td>${d.avg ?? '-'}</td></tr>`
-      ui.showModal(`<h3>统计: ${col}</h3><table class="p-tbl"><tbody>${rows}</tbody></table>
-        <div class="acts"><button data-action="close">关闭</button></div>`)
-    }
-  }, 0)
+  ui.openModal('ColumnStatsModal', { s: cur.s, t: cur.t, columns: meta.columns })
 }
 
-import { statsColumn } from '@/api/data'
-async function statsCol(col: string) {
-  const cur = tab.current
-  if (!cur) return null
-  try { return await statsColumn({ s: cur.s, t: cur.t, col, where: grid.buildWhere() }) }
-  catch { return null }
-}
-
-// ---- Redis 键操作(对齐旧版 redisNewKey/redisTtl/redisDelKey: 全走 /api/alter) ----
-function redisAlter(action: string, payload: Record<string, unknown>) {
-  const cur = tab.current
-  if (!cur) return Promise.reject(new Error('无当前键'))
-  return alterTable({ s: cur.s, t: cur.t, action, payload })
-}
+// ---- Redis 键操作(对齐旧版 redisNewKey/redisTtl/redisDelKey) ----
+// 新建 / TTL 弹窗逻辑已迁入 RedisKeyModal / RedisTtlModal(均走 /api/alter)。
 function redisNewKey() {
   const cur = tab.current
   if (!cur) return
-  ui.showModal(`<h3>新建 Redis 键</h3>
-    <div class="field"><label>键名</label><input id="rkName" placeholder="如 user:1001"></div>
-    <div class="field"><label>类型</label><select id="rkType">
-      <option value="string">String</option><option value="hash">Hash</option>
-      <option value="list">List</option><option value="set">Set</option><option value="zset">ZSet</option>
-    </select></div>
-    <div class="field"><label>初始值</label><input id="rkVal" placeholder="String 为值; Hash/List/Set 为单个元素; ZSet 为成员(score=0)"></div>
-    <div class="field"><label>过期秒数(留空=永久)</label><input id="rkTtl" type="number" placeholder="如 3600"></div>
-    <div class="acts"><button data-action="close">取消</button><button class="primary" id="rkGo">创建</button></div>`)
-  setTimeout(() => {
-    const go = document.getElementById('rkGo')
-    if (go) go.onclick = async () => {
-      const name = (document.getElementById('rkName') as HTMLInputElement).value.trim()
-      if (!name) { ui.toast('请填写键名', true); return }
-      const type = (document.getElementById('rkType') as HTMLSelectElement).value
-      const value = (document.getElementById('rkVal') as HTMLInputElement).value
-      const ttl = (document.getElementById('rkTtl') as HTMLInputElement).value
-      try {
-        await redisAlter('create', { type, value, ttl: ttl ? parseInt(ttl, 10) : 0 })
-        ui.closeModal()
-        ui.toast('已创建键 ' + name)
-      } catch (e) { ui.toast('创建失败: ' + errMsg(e), true) }
-    }
-  }, 0)
+  ui.openModal('RedisKeyModal', { s: cur.s, t: cur.t })
 }
 async function redisTtl() {
   const cur = tab.current
   if (!cur) return
-  let now = '(获取失败)'
-  try {
-    const d = await redisAlter('set_ttl', {}) as { ttl?: number }
-    now = d.ttl != null && d.ttl > 0 ? d.ttl + ' 秒' : '永久(-1)'
-  } catch { /* */ }
-  ui.showModal(`<h3>键 ${cur.t} 的 TTL</h3>
-    <div class="field"><label>当前过期时间</label><div style="color:var(--text2)">${now}</div></div>
-    <div class="field"><label>新过期秒数(0=永久)</label><input id="rtTtl" type="number" placeholder="如 3600"></div>
-    <div class="acts"><button data-action="close">取消</button><button class="primary" id="rtGo">应用</button></div>`)
-  setTimeout(() => {
-    const go = document.getElementById('rtGo')
-    if (go) go.onclick = async () => {
-      const v = (document.getElementById('rtTtl') as HTMLInputElement).value
-      if (v === '') { ui.toast('请输入过期秒数(0=永久)', true); return }
-      try {
-        await redisAlter('set_ttl', { ttl: parseInt(v, 10) })
-        ui.closeModal()
-        ui.toast('TTL 已更新')
-      } catch (e) { ui.toast('设置失败: ' + errMsg(e), true) }
-    }
-  }, 0)
+  ui.openModal('RedisTtlModal', { s: cur.s, t: cur.t })
 }
 async function redisDelKey() {
   const cur = tab.current
   if (!cur) return
   if (!await confirmDanger(`[危险] 将删除整个键 "${cur.t}"，该键下所有数据不可恢复！\n确定继续吗？`)) return
   try {
-    await redisAlter('drop', {})
+    await alterTable({ s: cur.s, t: cur.t, action: 'drop', payload: {} })
     ui.toast('已删除键 ' + cur.t)
     tab.closeTab(tab.activeId ?? -1)
   } catch (e) { ui.toast('删除失败: ' + errMsg(e), true) }
