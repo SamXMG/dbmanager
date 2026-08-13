@@ -23,6 +23,7 @@ export const useUIStore = defineStore('ui', {
     designer: null as { s: string; t: string } | null,  // 表设计器(TableDesignerModal 渲染)
     routine: null as { s: string; name: string; kind: string } | null,  // 存储过程/函数/触发器编辑器
     showTasks: false,  // 调度任务管理弹窗(TaskModal.vue)
+    queryBuilder: false,  // 查询构建器模态(QueryBuilderModal.vue 消费)
   }),
   actions: {
     /** 初始化主题(读 localStorage + 应用到 body) */
@@ -60,5 +61,9 @@ export const useUIStore = defineStore('ui', {
     /** 存储过程/函数/触发器编辑器(RoutineModal.vue 消费) */
     openRoutine(s: string, name: string, kind: string) { this.routine = { s, name, kind } },
     closeRoutine() { this.routine = null },
+
+    /** 查询构建器开关(QueryBuilderModal.vue 消费, 对齐 designer/routine 模式) */
+    openQueryBuilder() { this.queryBuilder = true },
+    closeQueryBuilder() { this.queryBuilder = false },
   },
 })

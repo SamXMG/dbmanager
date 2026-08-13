@@ -2,7 +2,6 @@
 // 弹窗走 ui.showModal + setTimeout 绑 onclick 模式(对齐 Toolbar.addRow/pasteInsert)
 import { useUIStore } from '@/stores/ui'
 import { errMsg } from '@/utils/err'
-import { useSqlStore } from '@/stores/sql'
 import { useConnectionStore } from '@/stores/connection'
 import { useDatabaseStore } from '@/stores/database'
 import { useTabStore } from '@/stores/tab'
@@ -15,7 +14,6 @@ import { STORAGE_KEYS } from '@/constants/storage'
 import { confirmDanger } from '@/utils/confirm'
 
 const ui = useUIStore()
-const sqlStore = useSqlStore()
 const connStore = useConnectionStore()
 const dbStore = useDatabaseStore()
 const tabStore = useTabStore()
@@ -24,7 +22,6 @@ const auth = useAuthStore()
 // P1-9 去重: esc/quoteIdent 统一收口到 sqlIdent.ts(单点维护方言规则), 此处 re-export 保持旧引用兼容
 import { esc, quoteIdent, qident } from '@/utils/sqlIdent'
 export { esc, quoteIdent, qident }
-function dbType(): string { return connStore.conn?.db_type || 'mysql' }
 function downloadBlob(blob: Blob, filename: string) {
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob)
@@ -34,70 +31,14 @@ function downloadBlob(blob: Blob, filename: string) {
 }
 
 // ================= 查询构建器 =================
-/** 可视化拼 SELECT(旧版 openQueryBuilder): 选表 -> 勾列 -> 条件 -> 排序 -> limit -> 生成 SQL 到工作台 */
-export async function openQueryBuilder() {
+// 升级为独立 Vue 组件 QueryBuilderModal.vue(对齐 designer/routine 模态挂载模式):
+// 列选择高亮 / 条件行点击高亮列 / 原生事件绑定 / 主题对比度 / 响应式, 均在组件内完成。
+// 此处仅做入口(连接校验 + 打开模态), 移除旧版 window.__qbAdd/__qbBuild 动态 innerHTML 方案。
+export function openQueryBuilder() {
   if (!connStore.connected) { ui.toast('请先连接数据库', true); return }
-  let tables = dbStore.tables.filter(x => x.type !== 'View')
+  const tables = dbStore.tables.filter(x => x.type !== 'View')
   if (!tables.length) { ui.toast('无可用表', true); return }
-  const opts = tables.map(t => `<option value="${esc(t.schema + '\u0001' + t.name)}">${esc(t.schema ? t.schema + '.' : '')}${esc(t.name)}</option>`).join('')
-  ui.showModal(`<h3>查询构建器</h3>
-    <div class="field"><label>表</label><select id="qbTable">${opts}</select></div>
-    <div class="field"><label>选择列(勾选参与查询)</label><div id="qbCols" style="max-height:140px;overflow:auto;border:1px solid #eee;border-radius:6px;padding:6px"></div></div>
-    <h4 style="margin:8px 0 4px;font-size:13px">条件(WHERE, AND 连接)</h4>
-    <div id="qbCond"></div>
-    <button class="sm" data-call="__qbAdd">+ 条件</button>
-    <div class="field" style="margin-top:8px"><label>排序</label>
-      <div class="row2"><select id="qbSortCol"><option value="">无</option></select><select id="qbSortDir"><option value="ASC">升序</option><option value="DESC">降序</option></select></div>
-    </div>
-    <div class="field"><label>LIMIT</label><input id="qbLimit" type="number" value="100" style="width:120px"></div>
-    <div class="acts"><button data-action="close">取消</button><button class="primary" data-call="__qbBuild">生成 SQL</button></div>`)
-  const sel = document.getElementById('qbTable') as HTMLSelectElement
-  const loadCols = async () => {
-    const [s, t] = sel.value.split('\u0001')
-    try {
-      const cols = await getColumns(s, t)
-      const box = document.getElementById('qbCols')
-      if (box) box.innerHTML = cols.map(c => `<label style="display:block;padding:2px 6px;cursor:pointer"><input type="checkbox" value="${esc(c.name)}" checked> ${esc(c.name)} <span style="color:var(--text3);font-size:11px">${esc(c.type || '')}</span></label>`).join('')
-      const sc = document.getElementById('qbSortCol') as HTMLSelectElement
-      if (sc) sc.innerHTML = '<option value="">无</option>' + cols.map(c => `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('')
-    } catch { /* */ }
-  }
-  await loadCols()
-  sel.addEventListener('change', loadCols)
-  ;(window as unknown as Record<string, unknown>).__qbAdd = () => {
-    const cols = [...document.querySelectorAll('#qbCols input')].map(x => (x as HTMLInputElement).value)
-    if (!cols.length) { ui.toast('请先选择列', true); return }
-    const box = document.getElementById('qbCond')
-    if (box) box.insertAdjacentHTML('beforeend',
-      `<div class="row2" style="margin-bottom:4px"><select class="qb-c">${cols.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('')}</select>` +
-      `<select class="qb-op"><option value="=">=</option><option value="!=">!=</option><option value=">">&gt;</option><option value=">=">&gt;=</option><option value="<">&lt;</option><option value="<=">&lt;=</option><option value="LIKE">LIKE</option><option value="IN">IN</option><option value="IS NULL">IS NULL</option></select>` +
-      `<input class="qb-v" placeholder="值(IS NULL 可空)" style="flex:1"><button class="sm danger" data-action="remove" title="删除条件" aria-label="删除条件"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>`)
-  }
-  ;(window as unknown as Record<string, unknown>).__qbBuild = () => {
-    const [s, t] = sel.value.split('\u0001')
-    const q = (n: string) => qident(dbType(), n)
-    const checked = [...document.querySelectorAll('#qbCols input:checked')].map(x => (x as HTMLInputElement).value)
-    const cols = checked.length ? checked.map(q).join(', ') : '*'
-    let sql = 'SELECT ' + cols + ' FROM ' + q(s) + '.' + q(t)
-    const conds = [...document.querySelectorAll('#qbCond .row2')].map(el => {
-      const c = (el.querySelector('.qb-c') as HTMLSelectElement).value
-      const op = (el.querySelector('.qb-op') as HTMLSelectElement).value
-      const v = (el.querySelector('.qb-v') as HTMLInputElement).value.trim()
-      if (op === 'IS NULL') return q(c) + ' IS NULL'
-      if (v === '') return null
-      const val = (op === 'LIKE' || op === 'IN') ? v : (isNaN(Number(v)) ? "'" + v.replace(/'/g, "''") + "'" : v)
-      return q(c) + ' ' + op + ' ' + val
-    }).filter(Boolean) as string[]
-    if (conds.length) sql += ' WHERE ' + conds.join(' AND ')
-    const sortCol = (document.getElementById('qbSortCol') as HTMLSelectElement).value
-    if (sortCol) sql += ' ORDER BY ' + q(sortCol) + ' ' + (document.getElementById('qbSortDir') as HTMLSelectElement).value
-    const lim = parseInt((document.getElementById('qbLimit') as HTMLInputElement).value, 10)
-    if (lim > 0) sql += ' LIMIT ' + lim
-    sqlStore.setSqlText(sql)
-    ui.closeModal()
-    ui.switchView('sql')
-    ui.toast('SQL 已生成, 检查后按 Ctrl+Enter 执行')
-  }
+  ui.openQueryBuilder()
 }
 
 // ================= 数据导入向导(CSV 前端解析 / XLSX 后端解析 -> 列映射) =================

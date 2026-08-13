@@ -14,6 +14,7 @@ import GenericModal from '@/components/GenericModal.vue'
 const TableDesignerModal = defineAsyncComponent(() => import('@/components/TableDesignerModal.vue'))
 const RoutineModal = defineAsyncComponent(() => import('@/components/RoutineModal.vue'))
 const TaskModal = defineAsyncComponent(() => import('@/components/TaskModal.vue'))
+const QueryBuilderModal = defineAsyncComponent(() => import('@/components/QueryBuilderModal.vue'))
 
 const router = useRouter()
 const connStore = useConnectionStore()
@@ -70,6 +71,7 @@ function onAuthDone() {
   <TableDesignerModal />
   <RoutineModal />
   <TaskModal />
+  <QueryBuilderModal />
   <CtxMenu />
   <RouterView />
 </template>
