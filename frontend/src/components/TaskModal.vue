@@ -128,20 +128,20 @@ async function onDelete(t: TaskInfo) {
 .tk-modal { background: var(--panel, #fff); border-radius: 10px; width: 680px; max-width: 94vw; max-height: 86vh; display: flex; flex-direction: column; padding: 16px 20px 20px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); }
 .tk-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .tk-head h3 { margin: 0; font-size: 15px; }
-.tk-tip { font-size: 12px; color: var(--text2, #86909c); margin-bottom: 10px; }
-.tk-form { border: 1px solid var(--border, #e4e7ed); border-radius: 8px; padding: 10px; margin-bottom: 10px; }
+.tk-tip { font-size: 12px; color: var(--text2, var(--text3)); margin-bottom: 10px; }
+.tk-form { border: 1px solid var(--border, var(--border)); border-radius: 8px; padding: 10px; margin-bottom: 10px; }
 .row2 { display: flex; gap: 8px; margin-bottom: 8px; }
 .row2 .field { flex: 1; display: flex; flex-direction: column; gap: 4px; }
-.field label { font-size: 12px; color: var(--text2, #86909c); }
-.field input, .field select { padding: 5px 8px; border: 1px solid var(--border2, #e5e6eb); border-radius: 5px; font-size: 13px; background: var(--panel, #fff); color: inherit; }
+.field label { font-size: 12px; color: var(--text2, var(--text3)); }
+.field input, .field select { padding: 5px 8px; border: 1px solid var(--border2, var(--border)); border-radius: 5px; font-size: 13px; background: var(--panel, #fff); color: inherit; }
 .acts2 { flex-direction: row !important; align-items: flex-end; gap: 6px !important; }
 .tk-list { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 6px; }
-.tk-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--border, #e4e7ed); border-radius: 8px; }
+.tk-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--border, var(--border)); border-radius: 8px; }
 .tk-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.tk-sub { font-size: 11px; color: var(--text3, #86909c); }
+.tk-sub { font-size: 11px; color: var(--text3, var(--text3)); }
 .tk-state { font-size: 11px; padding: 1px 8px; border-radius: 8px; background: #fcebeb; color: #a32d2d; }
 .tk-state.on { background: #e8f7f0; color: #0f6e56; }
 .tk-acts { margin-top: 12px; display: flex; justify-content: flex-end; }
-.empty2 { color: var(--text3, #999); font-size: 13px; padding: 16px; text-align: center; }
+.empty2 { color: var(--text3, var(--text3)); font-size: 13px; padding: 16px; text-align: center; }
 button.sm { padding: 4px 10px; font-size: 12px; }
 </style>

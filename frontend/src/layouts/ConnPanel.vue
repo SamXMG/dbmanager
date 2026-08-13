@@ -311,7 +311,7 @@ onMounted(async () => {
 .conn-list { display: flex; flex-direction: column; gap: 4px; max-height: 220px; overflow: auto; }
 .conn-row { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 13px; }
 .conn-row:hover { background: var(--panel2); border-color: var(--primary); }
-.dot { width: 8px; height: 8px; border-radius: 50%; background: #999; flex-shrink: 0; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text3); flex-shrink: 0; }
 .dot.on { background: #52c41a; }
 .nm { font-weight: 600; white-space: nowrap; }
 .det { color: var(--text3); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }

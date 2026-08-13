@@ -2,6 +2,14 @@
 
 本项目遵循[语义化版本](https://semver.org/lang/zh-CN/)。发版流程：更新 `config.py VERSION` 与 `frontend/package.json version` → 追加本节 → 打 tag `vX.Y.Z`（自动触发 Release 构建）。
 
+## [Unreleased] - 设计 Token 收口 + 无障碍达标(优化路线图 3.4/3.6)
+
+### UI
+- **设计 Token 收口(3.4)**：组件/layouts 内 127 处裸 hex 替换为语义 token（`--primary`/`--text3`/`--border`/`--panel2`/`--text`），颜色单点维护、深浅主题联动
+- **对比度达标(3.6)**：浅色 `--text3` 由 `#86909c`（3.2:1）调深至 `#6b7280`（≥4.5:1 AA）
+- **焦点陷阱(3.6)**：`GenericModal` 弹窗打开时 Tab/Shift+Tab 在弹窗内循环（不自动聚焦，保留 autofocus 意图）
+- 验证：vue-tsc 0 错、vitest 23/23、build 成功
+
 ## [Unreleased] - 单测迁 pytest(优化路线图 2.2)
 
 ### 工程化

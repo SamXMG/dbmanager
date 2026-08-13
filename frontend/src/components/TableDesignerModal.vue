@@ -336,30 +336,30 @@ const previewSql = computed(() => {
 }
 .td-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
 .td-head h3 { margin: 0; font-size: 15px; flex-shrink: 0; }
-.td-switch { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2, #86909c); }
-.td-switch select { padding: 4px 8px; border: 1px solid var(--border2, #e5e6eb); border-radius: 5px; font-size: 13px; background: var(--panel, #fff); color: inherit; max-width: 220px; }
+.td-switch { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2, var(--text3)); }
+.td-switch select { padding: 4px 8px; border: 1px solid var(--border2, var(--border)); border-radius: 5px; font-size: 13px; background: var(--panel, #fff); color: inherit; max-width: 220px; }
 .td-head button { margin-left: auto; }
-.td-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border, #e4e7ed); flex-shrink: 0; }
-.td-tab { padding: 7px 16px; font-size: 13px; cursor: pointer; border-radius: 6px 6px 0 0; border: 1px solid transparent; border-bottom: none; color: var(--text2, #86909c); }
+.td-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border, var(--border)); flex-shrink: 0; }
+.td-tab { padding: 7px 16px; font-size: 13px; cursor: pointer; border-radius: 6px 6px 0 0; border: 1px solid transparent; border-bottom: none; color: var(--text2, var(--text3)); }
 .td-tab:hover { background: rgba(128, 128, 128, 0.06); }
-.td-tab.active { background: var(--panel, #fff); border-color: var(--border, #e4e7ed); color: var(--primary, #165dff); font-weight: 600; }
+.td-tab.active { background: var(--panel, #fff); border-color: var(--border, var(--border)); color: var(--primary, var(--primary)); font-weight: 600; }
 .td-warn { padding: 6px 10px; margin: 8px 0 0; font-size: 12px; color: #d4660a; background: #fff7e6; border: 1px solid #ffd591; border-radius: 6px; flex-shrink: 0; }
 .td-body { flex: 1; min-height: 0; overflow: auto; padding: 10px 2px; }
 .td-list { max-height: 200px; overflow: auto; border: 1px solid var(--border, #eee); border-radius: 6px; }
 .td-row { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-bottom: 1px solid var(--border, #f5f6f8); }
 .td-row:last-child { border-bottom: none; }
 .td-main { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
-.td-sub { color: var(--text2, #86909c); font-size: 12px; margin-left: 6px; }
+.td-sub { color: var(--text2, var(--text3)); font-size: 12px; margin-left: 6px; }
 .td-h4 { margin: 10px 0 6px; font-size: 13px; }
 .td-form { display: flex; flex-direction: column; gap: 8px; max-width: 560px; }
 .td-form .row2 { display: flex; gap: 8px; }
 .td-form .row2 .field { flex: 1; }
 .field { display: flex; flex-direction: column; gap: 4px; }
-.field label { font-size: 12px; color: var(--text2, #86909c); }
+.field label { font-size: 12px; color: var(--text2, var(--text3)); }
 .field.chk { justify-content: center; }
-.field input, .field select { padding: 5px 8px; border: 1px solid var(--border2, #e5e6eb); border-radius: 5px; font-size: 13px; outline: none; background: var(--panel, #fff); color: inherit; }
-.empty2 { color: var(--text3, #999); font-size: 12px; padding: 8px; }
-.td-preview { margin: 0; font-family: Consolas, monospace; font-size: 12px; color: var(--text, #1d2129); white-space: pre-wrap; background: var(--panel2, #f7f8fa); padding: 10px; border-radius: 6px; }
+.field input, .field select { padding: 5px 8px; border: 1px solid var(--border2, var(--border)); border-radius: 5px; font-size: 13px; outline: none; background: var(--panel, #fff); color: inherit; }
+.empty2 { color: var(--text3, var(--text3)); font-size: 12px; padding: 8px; }
+.td-preview { margin: 0; font-family: Consolas, monospace; font-size: 12px; color: var(--text, var(--text)); white-space: pre-wrap; background: var(--panel2, var(--panel2)); padding: 10px; border-radius: 6px; }
 button.sm { padding: 4px 10px; font-size: 12px; }
 button.sm.danger { background: #fcebeb; color: #a32d2d; border-color: #f7c1c1; }
 </style>

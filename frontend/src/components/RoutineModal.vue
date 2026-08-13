@@ -151,21 +151,21 @@ async function doDrop() {
 .rt-src {
   flex: 1; min-height: 200px; resize: none;
   font-family: Consolas, "Cascadia Mono", monospace; font-size: 13px; line-height: 1.5;
-  padding: 10px; border: 1px solid var(--border2, #e5e6eb); border-radius: 6px;
-  background: var(--panel2, #f7f8fa); color: inherit; outline: none;
+  padding: 10px; border: 1px solid var(--border2, var(--border)); border-radius: 6px;
+  background: var(--panel2, var(--panel2)); color: inherit; outline: none;
 }
 .rt-params { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
-.rt-plbl { font-size: 12px; color: var(--text2, #86909c); }
+.rt-plbl { font-size: 12px; color: var(--text2, var(--text3)); }
 .rt-param { display: flex; align-items: center; gap: 6px; font-size: 12px; }
-.rt-param label { color: var(--text2, #86909c); }
-.rt-ptype { color: #999; font-size: 11px; }
-.rt-param input { width: 130px; padding: 4px 8px; border: 1px solid var(--border2, #e5e6eb); border-radius: 5px; font-size: 12px; background: var(--panel, #fff); color: inherit; }
+.rt-param label { color: var(--text2, var(--text3)); }
+.rt-ptype { color: var(--text3); font-size: 11px; }
+.rt-param input { width: 130px; padding: 4px 8px; border: 1px solid var(--border2, var(--border)); border-radius: 5px; font-size: 12px; background: var(--panel, #fff); color: inherit; }
 .rt-result {
   margin: 8px 0 0; padding: 8px 10px; max-height: 160px; overflow: auto;
-  background: var(--panel2, #f7f8fa); border-radius: 6px;
+  background: var(--panel2, var(--panel2)); border-radius: 6px;
   font-family: Consolas, monospace; font-size: 12px; white-space: pre-wrap;
 }
 .rt-acts { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
 button.sm { padding: 5px 12px; font-size: 12px; }
-.empty2 { color: var(--text3, #999); font-size: 13px; }
+.empty2 { color: var(--text3, var(--text3)); font-size: 13px; }
 </style>

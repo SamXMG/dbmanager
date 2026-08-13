@@ -7,13 +7,34 @@
 //   - data-action="close"   -> 关闭弹窗
 //   - data-action="remove"  -> 删除最近的行容器(.row2, 查询构建器条件行)
 //   - data-call="__xxx"     -> 调用 window.__xxx()(调用方自行挂载)
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, watch } from 'vue'
 import DOMPurify from 'dompurify'
 import { useUIStore } from '@/stores/ui'
 
 const ui = useUIStore()
 // 默认白名单净化: 内联事件(onclick 等)一律剔除, XSS 面最小化
 const safeHtml = computed(() => (ui.modal ? DOMPurify.sanitize(ui.modal) : ''))
+
+// 焦点陷阱(3.6 a11y): 弹窗打开时 Tab/Shift+Tab 在弹窗内循环, 不溢出到页面背景;
+// 不自动移入焦点(避免破坏弹窗内 autofocus 意图)
+function trapFocus(e: KeyboardEvent) {
+  if (e.key !== 'Tab') return
+  const mask = document.querySelector('.g-modal-mask')
+  if (!mask) return
+  const focusables = [...mask.querySelectorAll<HTMLElement>(
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+    .filter(el => !el.hasAttribute('disabled'))
+  if (!focusables.length) return
+  const first = focusables[0]
+  const last = focusables[focusables.length - 1]
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+}
+watch(() => ui.modal, (v) => {
+  if (v) document.addEventListener('keydown', trapFocus)
+  else document.removeEventListener('keydown', trapFocus)
+})
+onBeforeUnmount(() => document.removeEventListener('keydown', trapFocus))
 
 function onModalClick(e: MouseEvent) {
   const target = e.target as HTMLElement | null
@@ -69,18 +90,18 @@ function onModalClick(e: MouseEvent) {
 .g-modal :deep(h3) { margin: 0 0 12px; font-size: 16px; }
 .g-modal :deep(.acts) { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
 .g-modal :deep(.field) { margin-bottom: 8px; display: flex; flex-direction: column; gap: 4px; }
-.g-modal :deep(.field label) { font-size: 12px; color: var(--text2, #86909c); }
+.g-modal :deep(.field label) { font-size: 12px; color: var(--text2, var(--text3)); }
 .g-modal :deep(input[type="text"]),
 .g-modal :deep(input:not([type])),
 .g-modal :deep(input[type="number"]),
 .g-modal :deep(input[type="search"]),
 .g-modal :deep(select) {
-  padding: 5px 8px; border: 1px solid var(--border2, #e5e6eb); border-radius: 5px;
+  padding: 5px 8px; border: 1px solid var(--border2, var(--border)); border-radius: 5px;
   font-size: 13px; outline: none; background: var(--panel, #fff); color: inherit;
 }
 .g-modal :deep(.row2) { display: flex; gap: 8px; }
 .g-modal :deep(.row2 .field) { flex: 1; }
-.g-modal :deep(.empty2) { color: var(--text3, #999); font-size: 12px; padding: 8px 0; }
+.g-modal :deep(.empty2) { color: var(--text3, var(--text3)); font-size: 12px; padding: 8px 0; }
 .g-modal :deep(pre) { font-family: Consolas, monospace; }
 .g-modal :deep(button.sm), .g-modal :deep(button) { padding: 4px 12px; font-size: 12px; }
 </style>

@@ -155,8 +155,8 @@ function showCellDetail(col: string, v: unknown) {
     const t = String(w.__sqlCellDetail || '')
     navigator.clipboard?.writeText(t).then(() => ui.toast('已复制 ' + t.length + ' 字符')).catch(() => ui.toast('复制失败', true))
   }
-  ui.showModal(`<h3>${esc(col)} <span style="color:#86909c;font-weight:400;font-size:12px">(完整内容 ${full.length} 字符)</span></h3>
-    <pre style="max-height:60vh;overflow:auto;white-space:pre-wrap;word-break:break-all;background:#f7f8fa;border:1px solid #e5e6eb;padding:10px;border-radius:6px;margin:8px 0">${esc(full)}</pre>
+  ui.showModal(`<h3>${esc(col)} <span style="color:var(--text3);font-weight:400;font-size:12px">(完整内容 ${full.length} 字符)</span></h3>
+    <pre style="max-height:60vh;overflow:auto;white-space:pre-wrap;word-break:break-all;background:var(--panel2);border:1px solid var(--border);padding:10px;border-radius:6px;margin:8px 0">${esc(full)}</pre>
     <div class="acts"><button data-call="__copySqlCell">复制全文</button><button data-action="close">关闭</button></div>`)
 }
 
@@ -300,7 +300,7 @@ function tabLabel(t: { sql: string }): string {
 <style scoped>
 .sql-workbench { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 10px 14px; }
 .sql-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
-.sql-hint { color: var(--text3, #86909c); font-size: 12px; margin-left: auto; }
+.sql-hint { color: var(--text3, var(--text3)); font-size: 12px; margin-left: auto; }
 .sql-editor-box { flex: 0 0 30%; min-height: 110px; }
 
 /* 写模式按钮: 开=红底白字, 关=浅红 */
@@ -309,44 +309,44 @@ button.write-off { background: #fcebeb; color: #a32d2d; border-color: #f7c1c1; }
 
 /* 历史折叠头 */
 .hist-head { margin: 4px 0; }
-.hist-count { color: var(--text3, #86909c); font-size: 11px; margin-left: 4px; }
+.hist-count { color: var(--text3, var(--text3)); font-size: 11px; margin-left: 4px; }
 .sql-hist { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 8px; max-height: 220px; }
-.hist-search { flex: 0 0 auto; width: 240px; padding: 4px 8px; border: 1px solid var(--border2, #e5e6eb); border-radius: 5px; font-size: 12px; outline: none; background: var(--panel, #fff); color: inherit; }
+.hist-search { flex: 0 0 auto; width: 240px; padding: 4px 8px; border: 1px solid var(--border2, var(--border)); border-radius: 5px; font-size: 12px; outline: none; background: var(--panel, #fff); color: inherit; }
 .hist-items { display: flex; flex-wrap: wrap; gap: 4px; overflow-y: auto; align-content: flex-start; }
-.hist-group { flex-basis: 100%; font-size: 11px; color: var(--text3, #86909c); margin-top: 2px; }
-.hist-item { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 12px; background: var(--panel2, #f7f8fa); border: 1px solid var(--border, #e4e7ed); border-radius: 4px; cursor: default; }
+.hist-group { flex-basis: 100%; font-size: 11px; color: var(--text3, var(--text3)); margin-top: 2px; }
+.hist-item { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 12px; background: var(--panel2, var(--panel2)); border: 1px solid var(--border, var(--border)); border-radius: 4px; cursor: default; }
 .hist-item.fav { border-color: #f0c96b; background: #fffbea; }
 .hist-star { cursor: pointer; color: #f0a020; }
 .hist-text { cursor: pointer; max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: Consolas, monospace; }
-.hist-time { color: var(--text3, #86909c); font-size: 11px; }
-.hist-empty { color: var(--text3, #86909c); font-size: 12px; padding: 4px 0; }
+.hist-time { color: var(--text3, var(--text3)); font-size: 11px; }
+.hist-empty { color: var(--text3, var(--text3)); font-size: 12px; padding: 4px 0; }
 
 /* 多结果 tab */
-.sql-tabs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 6px 0 8px; border-bottom: 1px solid var(--border, #e4e7ed); margin-bottom: 8px; flex-shrink: 0; }
-.sql-tab { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; font-size: 12px; background: var(--panel3, #f2f3f5); border: 1px solid var(--border, #e4e7ed); border-radius: 4px; cursor: pointer; max-width: 280px; white-space: nowrap; overflow: hidden; color: var(--text, #1d2129); }
-.sql-tab.active { background: var(--primary, #165dff); border-color: var(--primary, #165dff); color: #fff; }
+.sql-tabs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 6px 0 8px; border-bottom: 1px solid var(--border, var(--border)); margin-bottom: 8px; flex-shrink: 0; }
+.sql-tab { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; font-size: 12px; background: var(--panel3, #f2f3f5); border: 1px solid var(--border, var(--border)); border-radius: 4px; cursor: pointer; max-width: 280px; white-space: nowrap; overflow: hidden; color: var(--text, var(--text)); }
+.sql-tab.active { background: var(--primary, var(--primary)); border-color: var(--primary, var(--primary)); color: #fff; }
 .sql-tab .x { color: inherit; opacity: .7; font-weight: 700; }
 .sql-tab .x:hover { opacity: 1; }
 .tab-spacer { flex: 1; }
-.tab-clear { font-size: 12px; color: var(--text3, #86909c); cursor: pointer; }
+.tab-clear { font-size: 12px; color: var(--text3, var(--text3)); cursor: pointer; }
 .tab-clear:hover { color: #f5222d; }
 
 /* 结果内过滤 */
 .sql-filter { display: flex; align-items: center; gap: 8px; padding: 4px 0 8px; flex-shrink: 0; }
-.sql-filter input { flex: 0 0 300px; padding: 5px 10px; border: 1px solid var(--border2, #e5e6eb); border-radius: 6px; font-size: 12px; outline: none; background: var(--panel, #fff); color: inherit; }
-.sql-filter input:focus { border-color: var(--primary, #165dff); }
-.sql-filter-info { font-size: 12px; color: var(--text3, #86909c); }
+.sql-filter input { flex: 0 0 300px; padding: 5px 10px; border: 1px solid var(--border2, var(--border)); border-radius: 6px; font-size: 12px; outline: none; background: var(--panel, #fff); color: inherit; }
+.sql-filter input:focus { border-color: var(--primary, var(--primary)); }
+.sql-filter-info { font-size: 12px; color: var(--text3, var(--text3)); }
 
 /* 结果表格: 容器已 overflow:auto; 表格 max-content 列宽自适应, 列多时横向滚动不压扁 */
-.gridwrap.sql-result { flex: 1; min-height: 0; overflow: auto; border: 1px solid var(--border, #e4e7ed); border-radius: 6px; }
+.gridwrap.sql-result { flex: 1; min-height: 0; overflow: auto; border: 1px solid var(--border, var(--border)); border-radius: 6px; }
 table.dg { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 13px; }
-.dg thead th { position: sticky; top: 0; background: var(--panel2, #f7f8fa); text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border, #e4e7ed); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; z-index: 1; }
+.dg thead th { position: sticky; top: 0; background: var(--panel2, var(--panel2)); text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border, var(--border)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; z-index: 1; }
 .dg td { padding: 4px 8px; border-bottom: 1px solid var(--border, #f0f1f3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; }
 .dg td.null { color: var(--text3, #bbb); font-style: italic; }
-.dg td.trunc { color: var(--primary, #165dff); cursor: pointer; }
+.dg td.trunc { color: var(--primary, var(--primary)); cursor: pointer; }
 .dg tbody tr:hover td { background: rgba(128, 128, 128, 0.05); }
-.loading-td { text-align: center; color: var(--text3, #999); padding: 16px !important; }
-.empty2 { color: var(--text3, #999); font-size: 13px; padding: 24px; text-align: center; }
+.loading-td { text-align: center; color: var(--text3, var(--text3)); padding: 16px !important; }
+.empty2 { color: var(--text3, var(--text3)); font-size: 13px; padding: 24px; text-align: center; }
 .sql-error { color: #f5222d; padding: 16px 20px; font-size: 13px; white-space: pre-wrap; }
 button.sm { padding: 4px 10px; font-size: 12px; }
 </style>

@@ -12,6 +12,7 @@ import config
 from config import (
     CONN_IDLE_TIMEOUT, DEFAULT_DRIVER, DEFAULT_PORT, ENGINE_CACHE,
     ENGINE_CACHE_MAX, LOCK, QUERY_TIMEOUT, TX_CONN,
+    DB_POOL_SIZE, DB_POOL_MAX_OVERFLOW, DB_POOL_TIMEOUT,
     _mysql_scheme, _odbc_drivers, _pick_mssql_driver,
 )
 
@@ -194,12 +195,19 @@ def get_engine(ci: dict):
         if t == "sqlite":
             # 复核 P1-8: SQLite 锁等待超时 30s(默认 5s 对慢事务不够), 防慢库永久占线程
             kw["connect_args"] = {"check_same_thread": False, "timeout": 30}
-        elif t == "mysql":
-            kw["connect_args"] = {"connect_timeout": 8}
-        elif t == "postgresql":
-            kw["connect_args"] = {"connect_timeout": 8}
-        elif t == "mssql":
-            kw["connect_args"] = {"timeout": 8}
+        else:
+            # 高并发挡板: 显式约束每个目标库的连接池并发上限与取连超时(覆盖 SQLAlchemy 默认 5/10/30)。
+            # pool_size+max_overflow = 单库最大并发连接; pool_timeout 控制池满时快速失败(抛 TimeoutError→上层转 5xx),
+            # 而非阻塞 30s 把请求线程占死。SQLite 用 SingletonThreadPool 不接受这些参数, 故仅非 sqlite 生效。
+            kw["pool_size"] = DB_POOL_SIZE
+            kw["max_overflow"] = DB_POOL_MAX_OVERFLOW
+            kw["pool_timeout"] = DB_POOL_TIMEOUT
+            if t == "mysql":
+                kw["connect_args"] = {"connect_timeout": 8}
+            elif t == "postgresql":
+                kw["connect_args"] = {"connect_timeout": 8}
+            elif t == "mssql":
+                kw["connect_args"] = {"timeout": 8}
         eng = create_engine(url, **kw)
         if t != "sqlite":
             _apply_query_timeout(eng, t)  # 查询超时落地(默认 30s)

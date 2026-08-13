@@ -7,7 +7,7 @@ export function confirmDanger(message: string, title = '确认操作'): Promise<
   const ui = useUIStore()
   return new Promise(resolve => {
     ui.showModal(`<h3>${esc(title)}</h3>
-      <p style="color:var(--text2,#86909c);font-size:13px;margin:8px 0 16px;white-space:pre-wrap">${esc(message)}</p>
+      <p style="color:var(--text2,var(--text3));font-size:13px;margin:8px 0 16px;white-space:pre-wrap">${esc(message)}</p>
       <div class="acts">
         <button class="sm" data-call="__cfCancel">取消</button>
         <button class="sm danger" style="background:#d54941;border-color:#d54941;color:#fff" data-call="__cfOk">确认执行</button>

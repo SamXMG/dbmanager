@@ -388,12 +388,12 @@ async function copyRow(i: number) {
 .datagrid { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 .dg-scroll { flex: 1; min-height: 0; overflow: auto; }
 table.dg { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 13px; table-layout: auto; }
-.dg thead th { position: sticky; top: 0; background: var(--panel2, #f7f8fa); text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border, #e4e7ed); cursor: pointer; user-select: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; z-index: 1; position: relative; }
-.dg thead th.sorted { color: var(--primary, #165dff); }
+.dg thead th { position: sticky; top: 0; background: var(--panel2, var(--panel2)); text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border, var(--border)); cursor: pointer; user-select: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; z-index: 1; position: relative; }
+.dg thead th.sorted { color: var(--primary, var(--primary)); }
 .dg .col-name { overflow: hidden; text-overflow: ellipsis; }
-.dg .sort { font-size: 10px; margin-left: 2px; color: #999; }
+.dg .sort { font-size: 10px; margin-left: 2px; color: var(--text3); }
 .dg .fbtn { font-size: 10px; margin-left: 4px; color: #bbb; cursor: pointer; }
-.dg .fbtn:hover, .dg .fbtn.on { color: var(--primary, #165dff); }
+.dg .fbtn:hover, .dg .fbtn.on { color: var(--primary, var(--primary)); }
 .th-resize { position: absolute; right: 0; top: 0; bottom: 0; width: 5px; cursor: col-resize; }
 .th-resize:hover { background: rgba(22, 93, 255, 0.35); }
 .dg td { padding: 4px 8px; border-bottom: 1px solid var(--border, #f0f1f3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; }
@@ -401,28 +401,28 @@ table.dg { width: max-content; min-width: 100%; border-collapse: collapse; font-
 .dg td.cell-num { text-align: right; font-variant-numeric: tabular-nums; }
 .dg td.cell-date { color: var(--text2, #666); }
 .dg td.cell-bool { text-align: center; }
-.dg td.rowidx { width: 44px; color: var(--text3, #999); font-size: 11px; text-align: right; user-select: none; }
+.dg td.rowidx { width: 44px; color: var(--text3, var(--text3)); font-size: 11px; text-align: right; user-select: none; }
 .dg th.rowidx { width: 44px; cursor: default; text-align: center; }
 .dg tbody tr:hover td { background: rgba(128,128,128,0.05); }
 .dg tbody tr.sel td { background: rgba(22,93,255,0.10); }
 .dg td.edit-cell { padding: 1px; }
-.dg td.edit-cell input { width: 100%; box-sizing: border-box; padding: 3px 6px; border: 1px solid var(--primary, #165dff); border-radius: 3px; font-size: 13px; background: var(--panel, #fff); color: inherit; }
-.loading-td { text-align: center; color: var(--text3, #999); padding: 16px !important; }
+.dg td.edit-cell input { width: 100%; box-sizing: border-box; padding: 3px 6px; border: 1px solid var(--primary, var(--primary)); border-radius: 3px; font-size: 13px; background: var(--panel, #fff); color: inherit; }
+.loading-td { text-align: center; color: var(--text3, var(--text3)); padding: 16px !important; }
 .vs-spacer td { padding: 0 !important; border: none !important; }
-.pager { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-top: 1px solid var(--border, #e4e7ed); font-size: 12px; color: var(--text2, #86909c); flex-shrink: 0; }
+.pager { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-top: 1px solid var(--border, var(--border)); font-size: 12px; color: var(--text2, var(--text3)); flex-shrink: 0; }
 .page-info { flex-shrink: 0; }
 .spacer { flex: 1; }
-.empty2 { color: var(--text3, #999); font-size: 13px; }
+.empty2 { color: var(--text3, var(--text3)); font-size: 13px; }
 button.sm { padding: 4px 10px; font-size: 12px; }
 select { padding: 3px 6px; font-size: 12px; }
 
 /* 列筛选面板 */
 .filter-pop {
   position: fixed; z-index: 9500; width: 220px;
-  background: var(--panel, #fff); border: 1px solid var(--border, #e4e7ed); border-radius: 8px;
+  background: var(--panel, #fff); border: 1px solid var(--border, var(--border)); border-radius: 8px;
   box-shadow: 0 6px 20px rgba(0,0,0,0.14); padding: 10px; font-size: 13px; display: flex; flex-direction: column; gap: 8px;
 }
-.fp-title { font-size: 12px; color: var(--text2, #86909c); font-weight: 600; }
-.filter-pop select, .filter-pop input { padding: 4px 8px; border: 1px solid var(--border2, #e5e6eb); border-radius: 5px; font-size: 13px; background: var(--panel, #fff); color: inherit; }
+.fp-title { font-size: 12px; color: var(--text2, var(--text3)); font-weight: 600; }
+.filter-pop select, .filter-pop input { padding: 4px 8px; border: 1px solid var(--border2, var(--border)); border-radius: 5px; font-size: 13px; background: var(--panel, #fff); color: inherit; }
 .fp-acts { display: flex; justify-content: flex-end; gap: 6px; }
 </style>

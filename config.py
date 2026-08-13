@@ -60,6 +60,11 @@ _ENV_MAP = {
     "DBM_SSL_KEY": ("server", "ssl_key", ""),
     "DBM_GATEWAY_TOKEN": ("server", "gateway_token", ""),
     "DBM_DEFAULT_CONN": ("server", "default_conn", ""),
+    # [concurrency] 高并发挡板(应对百级并发查询, 防 500 线程爆内存 + 连接池耗尽)
+    "DBM_REQUEST_WORKERS": ("concurrency", "request_workers", "64"),
+    "DBM_DB_POOL_SIZE": ("concurrency", "db_pool_size", "10"),
+    "DBM_DB_POOL_MAX_OVERFLOW": ("concurrency", "db_pool_max_overflow", "20"),
+    "DBM_DB_POOL_TIMEOUT": ("concurrency", "db_pool_timeout", "5"),
     # [auth]
     "DBM_DEFAULT_PWD": ("auth", "default_pwd", ""),
     "DBM_ALLOW_REGISTER": ("auth", "allow_register", ""),
@@ -124,6 +129,16 @@ SESSIONS = {}              # token -> (已解析连接, 创建时间); 密码仅
 SESSION_TTL = 12 * 3600    # 会话有效期 12 小时, 过期需重新连接
 CONN_IDLE_TIMEOUT = 1800   # 30 分钟闲置自动回收
 QUERY_TIMEOUT = 30         # 查询超时(秒)
+
+# 高并发挡板(应对数百级并发查询, 详见 docs/高并发应对方案):
+# REQUEST_WORKERS —— 处理请求的 OS 线程上限(有界线程池); 超额请求在池队列排队,
+#   不再像原生 ThreadingHTTPServer 那样每请求一线程无上限(500 并发≈4GB 栈内存)。
+# DB_POOL_SIZE / MAX_OVERFLOW / TIMEOUT —— 每个目标库 SQLAlchemy 连接池的并发上限与
+#   取连超时; 池满时快速失败(5xx)而非阻塞 30s 把线程占死。
+REQUEST_WORKERS = conf_int("DBM_REQUEST_WORKERS") or 64
+DB_POOL_SIZE = conf_int("DBM_DB_POOL_SIZE") or 10
+DB_POOL_MAX_OVERFLOW = conf_int("DBM_DB_POOL_MAX_OVERFLOW") or 20
+DB_POOL_TIMEOUT = conf_int("DBM_DB_POOL_TIMEOUT") or 5
 
 # 版本(语义化): 主版本.次版本.补丁; 发版时同步 frontend/package.json 与 CHANGELOG.md
 VERSION = "1.5.0"

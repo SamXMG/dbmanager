@@ -109,7 +109,7 @@ watch(() => uiStore.theme, t => {
   height: 100%;
   min-height: 120px;
   overflow: hidden;
-  border: 1px solid var(--border, #e4e7ed);
+  border: 1px solid var(--border, var(--border));
   border-radius: 6px;
 }
 </style>

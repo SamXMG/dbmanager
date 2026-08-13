@@ -13,6 +13,7 @@
 
 启动: python app.py
 """
+import concurrent.futures
 import http.server
 import os
 import re
@@ -41,7 +42,30 @@ class ResilientHTTPServer(http.server.ThreadingHTTPServer):
     其它异常（如 SSL 握手异常、被端口转发进来的异常流量）会穿透 serve_forever，
     使该监听线程退出，导致对应协议栈（IPv4 或 IPv6）悄无声息地停止 accept，
     外层主线程因另一个线程仍存活而不会退出进程，表现为“端口 LISTENING 却连不上”。
-    这里把 accept 阶段的异常全部吞掉，并在主循环里自动重启死掉的线程。"""
+    这里把 accept 阶段的异常全部吞掉，并在主循环里自动重启死掉的线程。
+
+    并发挡板（高并发应对方案）：原生 ThreadingHTTPServer 每请求新建一个 OS 线程且无上限，
+    500 并发会瞬间拉起 ~500 线程（仅栈内存就约 4GB）并被连接池卡死。这里覆盖
+    process_request，把请求投递到固定大小的有界线程池（config.REQUEST_WORKERS），
+    超额请求在池队列排队等待，而非无限拉线程；进程退出时优雅关闭线程池。"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        n = config.REQUEST_WORKERS or 64
+        self._req_executor = concurrent.futures.ThreadPoolExecutor(
+            max_workers=n, thread_name_prefix="dbm-req")
+
+    def process_request(self, request, client_address):
+        # 覆盖 ThreadingMixIn 默认的无界 thread.start()；投递到有界线程池，
+        # 由 process_request_thread 完成请求并 shutdown_request 关闭 socket。
+        self._req_executor.submit(self.process_request_thread, request, client_address)
+
+    def server_close(self):
+        try:
+            self._req_executor.shutdown(wait=False)
+        except Exception:
+            pass
+        super().server_close()
 
     def handle_request(self):
         try:

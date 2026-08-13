@@ -57,7 +57,7 @@ export async function openQueryBuilder() {
     try {
       const cols = await getColumns(s, t)
       const box = document.getElementById('qbCols')
-      if (box) box.innerHTML = cols.map(c => `<label style="display:block;padding:2px 6px;cursor:pointer"><input type="checkbox" value="${esc(c.name)}" checked> ${esc(c.name)} <span style="color:#86909c;font-size:11px">${esc(c.type || '')}</span></label>`).join('')
+      if (box) box.innerHTML = cols.map(c => `<label style="display:block;padding:2px 6px;cursor:pointer"><input type="checkbox" value="${esc(c.name)}" checked> ${esc(c.name)} <span style="color:var(--text3);font-size:11px">${esc(c.type || '')}</span></label>`).join('')
       const sc = document.getElementById('qbSortCol') as HTMLSelectElement
       if (sc) sc.innerHTML = '<option value="">无</option>' + cols.map(c => `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('')
     } catch { /* */ }
@@ -110,7 +110,7 @@ export function openImport(s?: string, t?: string) {
     <div class="field"><label>文件(CSV / XLSX)</label><input type="file" id="impFile" accept=".csv,.xlsx,.xls"></div>
     <div class="field"><label>导入方式</label><select id="impMode"><option value="insert">追加插入</option><option value="replace">清空后导入</option></select></div>
     <div id="impMap" style="max-height:200px;overflow:auto;border:1px solid #eee;border-radius:6px;padding:6px;margin-top:8px"></div>
-    <div id="impPrev" style="color:#86909c;font-size:12px;margin-top:6px"></div>
+    <div id="impPrev" style="color:var(--text3);font-size:12px;margin-top:6px"></div>
     <div class="acts"><button data-action="close">取消</button><button class="primary" data-call="__impRun" id="impGo">导入</button></div>`)
   const fileEl = document.getElementById('impFile') as HTMLInputElement
   const parseAndMap = async () => {
@@ -197,7 +197,7 @@ export function openGenData(s?: string, t?: string) {
   if (!sc || !tb) { ui.toast('请先打开目标表', true); return }
   ui.showModal(`<h3>生成测试数据 · ${esc(sc)}.${esc(tb)}</h3>
     <div class="field"><label>生成行数(上限 50000)</label><input id="gdRows" type="number" value="100" min="1" max="50000"></div>
-    <p style="color:#86909c;font-size:12px">按列类型智能生成(自增主键/只读列跳过)</p>
+    <p style="color:var(--text3);font-size:12px">按列类型智能生成(自增主键/只读列跳过)</p>
     <div class="acts"><button data-action="close">取消</button><button class="primary" data-call="__gdRun">生成</button></div>`)
   ;(window as unknown as Record<string, unknown>).__gdRun = async () => {
     const n = parseInt((document.getElementById('gdRows') as HTMLInputElement).value, 10) || 100
@@ -288,7 +288,7 @@ export async function openDbUsers() {
       return s + '</table>'
     }
     ui.showModal(`<h3>用户与权限</h3>
-      <div style="color:#86909c;font-size:12px;margin-bottom:6px">只读视图 — 登录 / 用户 / 角色 / 权限</div>
+      <div style="color:var(--text3);font-size:12px;margin-bottom:6px">只读视图 — 登录 / 用户 / 角色 / 权限</div>
       ${sec('服务器登录', d.logins, [['name', '登录名'], ['type', '类型'], ['disabled', '已禁用'], ['created', '创建日期'], ['host', '主机'], ['has_pwd', '有密码']])}
       ${sec('数据库用户', d.users, [['name', '用户名'], ['type', '类型'], ['default_schema', '默认架构'], ['login', '关联登录']])}
       ${sec('角色成员', d.roles, [['role', '角色'], ['member', '成员']])}

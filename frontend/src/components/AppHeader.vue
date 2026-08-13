@@ -148,7 +148,7 @@ async function logout() {
 }
 .stopped-card { text-align: center; }
 .stopped-card h3 { margin: 0 0 8px; }
-.stopped-card p { margin: 0; color: var(--text2, #86909c); }
+.stopped-card p { margin: 0; color: var(--text2, var(--text3)); }
 .right { display: flex; align-items: center; gap: 6px; }
 button.tx-on { background: #a32d2d; color: #fff; border-color: #a32d2d; }
 </style>

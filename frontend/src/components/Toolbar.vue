@@ -119,7 +119,7 @@ function pasteInsert() {
   const meta = tab.currentMeta
   if (!cur || !meta) return
   ui.showModal(`<h3>批量粘贴插入 · ${cur.s}.${cur.t}</h3>
-    <p style="color:#86909c;font-size:12px;margin:4px 0 8px">从 Excel/表格复制数据后粘贴到下方(第一行为列名, 或直接数据), 按列顺序映射</p>
+    <p style="color:var(--text3);font-size:12px;margin:4px 0 8px">从 Excel/表格复制数据后粘贴到下方(第一行为列名, 或直接数据), 按列顺序映射</p>
     <textarea id="piText" style="width:100%;height:140px;box-sizing:border-box;padding:8px;font-family:Consolas,monospace;font-size:12px" placeholder="粘贴 Excel 复制的单元格..."></textarea>
     <div class="acts"><button data-action="close">取消</button><button class="primary" id="piGo">导入 {{ meta.columns.length }} 列</button></div>`)
   setTimeout(() => {
@@ -302,8 +302,8 @@ async function redisDelKey() {
 </template>
 
 <style scoped>
-.toolbar { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-bottom: 1px solid var(--border, #e4e7ed); flex-shrink: 0; }
+.toolbar { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-bottom: 1px solid var(--border, var(--border)); flex-shrink: 0; }
 .spacer { flex: 1; }
-.count { font-size: 12px; color: var(--text2, #86909c); }
+.count { font-size: 12px; color: var(--text2, var(--text3)); }
 button.sm { padding: 4px 10px; font-size: 12px; }
 </style>

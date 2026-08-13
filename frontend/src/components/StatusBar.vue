@@ -41,10 +41,10 @@ const counts = computed(() => {
 </template>
 
 <style scoped>
-.status-bar { display: flex; align-items: center; gap: 14px; padding: 4px 12px; border-top: 1px solid var(--border, #e4e7ed); font-size: 12px; color: var(--text2, #86909c); flex-shrink: 0; }
+.status-bar { display: flex; align-items: center; gap: 14px; padding: 4px 12px; border-top: 1px solid var(--border, var(--border)); font-size: 12px; color: var(--text2, var(--text3)); flex-shrink: 0; }
 .st-item.obj { font-weight: 500; }
 .st-spacer { flex: 1; }
-.st-btn { padding: 2px 10px; font-size: 12px; border: 1px solid var(--border, #e4e7ed); background: var(--panel2, #f7f8fa); border-radius: 4px; cursor: pointer; color: var(--text2, #86909c); }
-.st-btn:hover { border-color: var(--primary, #165dff); color: var(--primary, #165dff); }
-.st-btn.active { background: var(--primary, #165dff); border-color: var(--primary, #165dff); color: #fff; }
+.st-btn { padding: 2px 10px; font-size: 12px; border: 1px solid var(--border, var(--border)); background: var(--panel2, var(--panel2)); border-radius: 4px; cursor: pointer; color: var(--text2, var(--text3)); }
+.st-btn:hover { border-color: var(--primary, var(--primary)); color: var(--primary, var(--primary)); }
+.st-btn.active { background: var(--primary, var(--primary)); border-color: var(--primary, var(--primary)); color: #fff; }
 </style>

@@ -213,7 +213,7 @@ async function openEr(s: string, t: string) {
     const tables = d.tables || [], rels = d.relations || []
     if (!tables.length) { ui.toast('无表数据', true); return }
     const svg = genErSvg(s, t, tables, rels)
-    ui.showModal(`<h3>ER 关系图 · ${esc(s ? s + '.' : '')}${esc(t)} <span style="color:#86909c;font-weight:400;font-size:12px">(${tables.length} 表 · ${rels.length} 关系)</span></h3>
+    ui.showModal(`<h3>ER 关系图 · ${esc(s ? s + '.' : '')}${esc(t)} <span style="color:var(--text3);font-weight:400;font-size:12px">(${tables.length} 表 · ${rels.length} 关系)</span></h3>
       <div style="overflow:auto;max-height:70vh">${svg}</div>
       <div class="acts"><button class="primary" data-action="close">关闭</button></div>`)
   } catch (e) { ui.toast('ER 图加载失败: ' + errMsg(e), true) }
@@ -239,14 +239,14 @@ function genErSvg(schema: string, name: string, tables: ErTable[], rels: ErRel[]
   ordered.forEach(t => {
     const p = pos[t.schema + '.' + t.name]
     const h = TH + t.columns.length * TDH
-    box += `<rect x="${p.x}" y="${p.y}" width="${TW}" height="${h}" rx="6" fill="var(--panel, #fff)" stroke="#86909c"/>`
-    box += `<rect x="${p.x}" y="${p.y}" width="${TW}" height="${TH}" rx="6" fill="#165dff" opacity="0.15"/>`
-    box += `<text x="${p.x + 8}" y="${p.y + 17}" font-size="12" font-weight="600" fill="var(--text, #1d2129)">${esc(t.name)}</text>`
+    box += `<rect x="${p.x}" y="${p.y}" width="${TW}" height="${h}" rx="6" fill="var(--panel, #fff)" stroke="var(--text3)"/>`
+    box += `<rect x="${p.x}" y="${p.y}" width="${TW}" height="${TH}" rx="6" fill="var(--primary)" opacity="0.15"/>`
+    box += `<text x="${p.x + 8}" y="${p.y + 17}" font-size="12" font-weight="600" fill="var(--text, var(--text))">${esc(t.name)}</text>`
     t.columns.forEach((c, ci) => {
       const y = p.y + TH + 14 + ci * TDH
       const isPk = t.pk.includes(c.name)
-      box += `<text x="${p.x + 8}" y="${y}" font-size="11" fill="${isPk ? '#f7ba1e' : 'var(--text2, #86909c)'}">${esc(c.name)}</text>`
-      box += `<text x="${p.x + TW - 8}" y="${y}" font-size="10" text-anchor="end" fill="var(--text3, #999)">${esc(String(c.type || '').split('(')[0])}</text>`
+      box += `<text x="${p.x + 8}" y="${y}" font-size="11" fill="${isPk ? '#f7ba1e' : 'var(--text2, var(--text3))'}">${esc(c.name)}</text>`
+      box += `<text x="${p.x + TW - 8}" y="${y}" font-size="10" text-anchor="end" fill="var(--text3, var(--text3))">${esc(String(c.type || '').split('(')[0])}</text>`
     })
   })
   let lines = ''
@@ -257,12 +257,12 @@ function genErSvg(schema: string, name: string, tables: ErTable[], rels: ErRel[]
     const x1 = from.x + TW, y1 = from.y + TH + 8
     const x2 = to.x, y2 = to.y + TH + 8
     const mx = (x1 + x2) / 2
-    lines += `<path d="M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}" fill="none" stroke="#165dff" stroke-width="1.2" marker-end="url(#erArrow)"/>`
+    lines += `<path d="M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}" fill="none" stroke="var(--primary)" stroke-width="1.2" marker-end="url(#erArrow)"/>`
     const lbl = (r.from_columns || []).map((c, i) => c + ' → ' + ((r.to_columns || [])[i] || '')).join(', ')
-    lines += `<text x="${mx}" y="${(y1 + y2) / 2 - 4}" font-size="10" fill="#165dff" text-anchor="middle">${esc(lbl)}</text>`
+    lines += `<text x="${mx}" y="${(y1 + y2) / 2 - 4}" font-size="10" fill="var(--primary)" text-anchor="middle">${esc(lbl)}</text>`
   })
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" style="width:100%;min-width:${W}px;background:var(--panel, #fff);border-radius:8px">
-    <defs><marker id="erArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#165dff"/></marker></defs>
+    <defs><marker id="erArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--primary)"/></marker></defs>
     ${box}${lines}</svg>`
 }
 
@@ -272,7 +272,7 @@ async function openTransfer(db: string, s: string, t: string) {
   const dbs = dbStore.databases.filter((d: string) => d && d !== cur)
   const opts = [cur, ...dbs]
   ui.showModal(`<h3>数据同步 · ${esc(s)}.${esc(t)}</h3>
-    <div style="color:#86909c;font-size:12px;margin-bottom:10px">源表数据复制到目标表(同名列交集, 目标自增主键由数据库生成)</div>
+    <div style="color:var(--text3);font-size:12px;margin-bottom:10px">源表数据复制到目标表(同名列交集, 目标自增主键由数据库生成)</div>
     <div class="field"><label>目标库</label><select id="trDb">${opts.map(d => `<option value="${esc(d)}" ${d === cur ? 'selected' : ''}>${esc(d)}</option>`).join('')}</select></div>
     <div class="field"><label>目标表(须已存在)</label><input id="trTable" placeholder="如 ${esc(t)}_copy"></div>
     <p style="color:#d4660a;font-size:12px">⚠ 源表全部数据将插入目标表</p>
@@ -297,7 +297,7 @@ async function openSchemaSync(s: string, t: string) {
   let conns: ConnMeta[] = []
   try { conns = await listConnections() } catch { /* */ }
   let html = `<h3>同步表数据 · ${esc(s)}.${esc(t)}</h3>
-    <div style="color:#86909c;font-size:12px;margin-bottom:10px">把当前连接中该表数据复制到目标连接的<b>同名表</b>(按同名列匹配)</div>`
+    <div style="color:var(--text3);font-size:12px;margin-bottom:10px">把当前连接中该表数据复制到目标连接的<b>同名表</b>(按同名列匹配)</div>`
   if (!conns.length) {
     html += '<div class="empty2">请先在「我的连接」中保存目标连接</div>'
   } else {
@@ -492,9 +492,9 @@ function openObj(db: string, s: string, name: string, type: string) {
 <style scoped>
 .obj-tree { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 .s-head { padding: 6px 8px; }
-.s-head input { width: 100%; box-sizing: border-box; padding: 5px 8px; border: 1px solid var(--border, #e4e7ed); border-radius: 6px; background: transparent; color: inherit; }
+.s-head input { width: 100%; box-sizing: border-box; padding: 5px 8px; border: 1px solid var(--border, var(--border)); border-radius: 6px; background: transparent; color: inherit; }
 .pinned-bar { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; align-items: center; }
-.pin-label { font-size: 11px; color: #86909c; margin-right: 2px; }
+.pin-label { font-size: 11px; color: var(--text3); margin-right: 2px; }
 .pin-item { display: inline-flex; align-items: center; gap: 3px; padding: 2px 6px; background: var(--bg-info, #e6f1fb); color: var(--color-info, #185fa5); border-radius: 10px; font-size: 12px; cursor: pointer; }
 .pin-item:hover { background: #d3e6f7; }
 .pin-item .x { font-weight: 700; opacity: 0.6; padding: 0 2px; }
@@ -505,15 +505,15 @@ function openObj(db: string, s: string, name: string, type: string) {
 .tnode.root { font-weight: 600; }
 .tnode.lvl1 { padding-left: 14px; }
 .tnode.lvl2 { padding-left: 28px; }
-.caret { font-size: 10px; color: #999; transition: transform .12s; display: inline-block; }
+.caret { font-size: 10px; color: var(--text3); transition: transform .12s; display: inline-block; }
 .caret.open { transform: rotate(90deg); }
-.loading { color: #999; font-size: 12px; }
+.loading { color: var(--text3); font-size: 12px; }
 .tbl-group-body { padding-left: 14px; }
 .grp { margin: 2px 0; }
-.grp-head { padding: 2px 8px; font-size: 12px; color: var(--text2, #86909c); }
+.grp-head { padding: 2px 8px; font-size: 12px; color: var(--text2, var(--text3)); }
 .grp-body { }
 .item { display: flex; align-items: center; gap: 6px; padding: 3px 10px; cursor: pointer; font-size: 13px; }
 .item:hover { background: rgba(128,128,128,0.08); }
-.item .ty { margin-left: auto; font-size: 11px; color: #999; flex-shrink: 0; }
-.empty2 { color: #999; font-size: 12px; padding: 6px 10px; }
+.item .ty { margin-left: auto; font-size: 11px; color: var(--text3); flex-shrink: 0; }
+.empty2 { color: var(--text3); font-size: 12px; padding: 6px 10px; }
 </style>
