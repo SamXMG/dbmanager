@@ -2,6 +2,11 @@
 
 本项目遵循[语义化版本](https://semver.org/lang/zh-CN/)。发版流程：更新 `config.py VERSION` 与 `frontend/package.json version` → 追加本节 → 打 tag `vX.Y.Z`（自动触发 Release 构建）。
 
+## [Unreleased] - 审计表清理(优化路线图 0.1)
+
+### 修复
+- **`audit_log` 表无保留上限(数据生命周期漏洞)**：SQLite 审计表仅 INSERT+查询、无限增长。`sqlitedb.py` 新增保留策略——行数超 `MAX_AUDIT_ROWS`(默认 100k) 自动删除最旧记录，每 `_AUDIT_PRUNE_EVERY`(100) 次写入触发一次 COUNT+DELETE(降频避免开销)，与文件 audit.log 10 代轮转对齐。新增 `tests/test_audit.py` 回归测试(上限保留/最旧删除/未超限不删)并接入 CI。
+
 ## [Unreleased] - 弹窗按钮 CSP 兼容修复
 
 ### 修复

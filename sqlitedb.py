@@ -385,8 +385,15 @@ def migrate_conns_json(json_path):
 
 # ----------------------------- 审计日志(可 SQL 查询) -----------------------------
 
+# 审计表保留上限(行, 优化路线图 0.1): 超上限自动清理最旧记录, 防无限增长(与文件 audit.log 10 代轮转对齐)
+MAX_AUDIT_ROWS = 100000
+# 清理降频: 每 N 次写入才触发一次 COUNT+DELETE(高频审计下避免额外开销)
+_AUDIT_PRUNE_EVERY = 100
+_AUDIT_COUNT = 0
+
+
 def audit_add(ip, action, detail="", user=""):
-    """追加一条审计记录(SQLite 表, 与 audit.log 文件双写)"""
+    """追加一条审计记录(SQLite 表, 与 audit.log 文件双写); 超 MAX_AUDIT_ROWS 自动清理最旧"""
     init_db()
     try:
         def _add(conn):
@@ -395,8 +402,31 @@ def audit_add(ip, action, detail="", user=""):
                          (time.strftime("%Y-%m-%d %H:%M:%S"),
                           ip or "", action or "", detail or "", user or "-"))
         _tx(_add)
+        _prune_audit()
     except Exception:
         pass  # 审计失败不影响主流程
+
+
+def _prune_audit():
+    """审计表保留上限清理(0.1): 行数超 MAX_AUDIT_ROWS 时删除最旧(id 最小)超出部分。
+    每 _AUDIT_PRUNE_EVERY 次写入执行一次, 避免每次写入都跑 COUNT+DELETE。"""
+    global _AUDIT_COUNT
+    _AUDIT_COUNT += 1
+    if _AUDIT_COUNT < _AUDIT_PRUNE_EVERY:
+        return
+    _AUDIT_COUNT = 0
+    try:
+        def _prune(conn):
+            cnt = conn.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0]
+            if cnt > MAX_AUDIT_ROWS:
+                row = conn.execute(
+                    "SELECT id FROM audit_log ORDER BY id DESC LIMIT 1 OFFSET ?",
+                    (MAX_AUDIT_ROWS,)).fetchone()
+                if row:
+                    conn.execute("DELETE FROM audit_log WHERE id <= ?", (row[0],))
+        _tx(_prune)
+    except Exception:
+        pass  # 清理失败不影响主流程
 
 
 def audit_query(user=None, action=None, limit=200, offset=0):

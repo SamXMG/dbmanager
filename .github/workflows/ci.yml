@@ -39,6 +39,8 @@ jobs:
         run: python tests/test_task_sched.py
         env:
           PYTHONPATH: .
+      - name: Run audit retention tests (audit_log 上限清理, 优化路线图 0.1)
+        run: python tests/test_audit.py
       - name: Run auth/LDAP unit tests (mock, 独立临时库)
         run: python tests/test_auth_ldap.py
       - name: HTTP full-chain smoke (real server + SQLite)
