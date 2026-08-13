@@ -2,6 +2,7 @@
 // 系统查询弹窗(仅 admin): 在程序内置 SQLite 上执行只读 SELECT
 // 可查系统用户 / 权限 / 连接 / 审计 / 调度任务; 白名单只读, 服务端强制 SELECT
 import { ref, onMounted } from 'vue'
+import Icon from '@/components/Icon.vue'
 import { errMsg } from '@/utils/err'
 import { sysQuery } from '@/api/account'
 
@@ -54,7 +55,7 @@ onMounted(() => { sql.value = SAMPLE[0].sql; run() })
       <div class="modal-box" style="max-width:860px">
         <div class="modal-header">
           <h3>系统查询（内置 SQLite 只读）</h3>
-          <button class="sm" @click="emit('close')">✕</button>
+          <button class="sm" @click="emit('close')"><Icon name="x" :size="14" /></button>
         </div>
         <div class="hint">对程序自身的 <code>dbmanager.db</code> 执行只读 SELECT，可查系统用户、连接权限、连接配置、审计日志、调度任务。仅管理员可用。</div>
         <div class="samples">
@@ -100,6 +101,6 @@ onMounted(() => { sql.value = SAMPLE[0].sql; run() })
 button { padding: 5px 14px; border: 1px solid var(--border); border-radius: 4px; background: var(--panel2); color: var(--text); cursor: pointer; font-size: 13px; }
 button.sm { padding: 3px 10px; font-size: 12px; }
 button.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
-.err-msg { color: #e54d42; font-size: 13px; }
-.ok-msg { color: #00b42a; font-size: 13px; }
+.err-msg { color: var(--danger); font-size: 13px; }
+.ok-msg { color: var(--success); font-size: 13px; }
 </style>

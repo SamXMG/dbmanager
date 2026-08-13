@@ -3,6 +3,7 @@
 // 对齐旧版 js/sql.js openAlter; 操作走 /api/alter, 完成后原地刷新(旧版是关掉重开, 这里更顺)
 // 外键/触发器保守策略: 生成 DDL 填入 SQL 工作台由用户确认执行(对齐旧版)
 import { computed, ref, watch } from 'vue'
+import Icon from '@/components/Icon.vue'
 import { errMsg } from '@/utils/err'
 import { useUIStore } from '@/stores/ui'
 import { useAuthStore } from '@/stores/auth'
@@ -303,7 +304,7 @@ const previewSql = computed(() => {
         <div v-else-if="tab === 'trigs'" class="td-body">
           <div class="td-list">
             <div v-for="r in trigs" :key="r.name" class="td-row">
-              <span class="td-main"><b>🔔 {{ r.name }}</b></span>
+              <span class="td-main"><b><Icon name="bell" :size="13" /> {{ r.name }}</b></span>
               <button class="sm" @click="sqlStore.newTrigger(target?.s || '', target?.t || '')">新建</button>
             </div>
             <div v-if="!trigs.length" class="empty2">该表暂无触发器</div>
@@ -339,13 +340,13 @@ const previewSql = computed(() => {
 .td-switch { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2, var(--text3)); }
 .td-switch select { padding: 4px 8px; border: 1px solid var(--border2, var(--border)); border-radius: 5px; font-size: 13px; background: var(--panel, #fff); color: inherit; max-width: 220px; }
 .td-head button { margin-left: auto; }
-.td-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border, var(--border)); flex-shrink: 0; }
+.td-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
 .td-tab { padding: 7px 16px; font-size: 13px; cursor: pointer; border-radius: 6px 6px 0 0; border: 1px solid transparent; border-bottom: none; color: var(--text2, var(--text3)); }
 .td-tab:hover { background: rgba(128, 128, 128, 0.06); }
-.td-tab.active { background: var(--panel, #fff); border-color: var(--border, var(--border)); color: var(--primary, var(--primary)); font-weight: 600; }
-.td-warn { padding: 6px 10px; margin: 8px 0 0; font-size: 12px; color: #d4660a; background: #fff7e6; border: 1px solid #ffd591; border-radius: 6px; flex-shrink: 0; }
+.td-tab.active { background: var(--panel, #fff); border-color: var(--border); color: var(--primary); font-weight: 600; }
+.td-warn { padding: 6px 10px; margin: 8px 0 0; font-size: 12px; color: var(--warning); background: var(--warning-bg); border: 1px solid var(--warning-solid); border-radius: 6px; flex-shrink: 0; }
 .td-body { flex: 1; min-height: 0; overflow: auto; padding: 10px 2px; }
-.td-list { max-height: 200px; overflow: auto; border: 1px solid var(--border, #eee); border-radius: 6px; }
+.td-list { max-height: 200px; overflow: auto; border: 1px solid var(--border); border-radius: 6px; }
 .td-row { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-bottom: 1px solid var(--border, #f5f6f8); }
 .td-row:last-child { border-bottom: none; }
 .td-main { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
@@ -358,8 +359,8 @@ const previewSql = computed(() => {
 .field label { font-size: 12px; color: var(--text2, var(--text3)); }
 .field.chk { justify-content: center; }
 .field input, .field select { padding: 5px 8px; border: 1px solid var(--border2, var(--border)); border-radius: 5px; font-size: 13px; outline: none; background: var(--panel, #fff); color: inherit; }
-.empty2 { color: var(--text3, var(--text3)); font-size: 12px; padding: 8px; }
-.td-preview { margin: 0; font-family: Consolas, monospace; font-size: 12px; color: var(--text, var(--text)); white-space: pre-wrap; background: var(--panel2, var(--panel2)); padding: 10px; border-radius: 6px; }
+.empty2 { color: var(--text3); font-size: 12px; padding: 8px; }
+.td-preview { margin: 0; font-family: Consolas, monospace; font-size: 12px; color: var(--text); white-space: pre-wrap; background: var(--panel2); padding: 10px; border-radius: 6px; }
 button.sm { padding: 4px 10px; font-size: 12px; }
-button.sm.danger { background: #fcebeb; color: #a32d2d; border-color: #f7c1c1; }
+button.sm.danger { background: var(--danger-bg); color: var(--danger-solid); border-color: var(--danger-bg); }
 </style>

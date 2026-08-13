@@ -67,15 +67,15 @@ watch(cur, async (v) => {
 </template>
 
 <style scoped>
-.props-panel { width: 240px; flex-shrink: 0; border-left: 1px solid var(--border, var(--border)); display: flex; flex-direction: column; min-height: 0; }
-.p-head { padding: 6px 10px; font-weight: 600; font-size: 13px; border-bottom: 1px solid var(--border, var(--border)); }
+.props-panel { width: 240px; flex-shrink: 0; border-left: 1px solid var(--border); display: flex; flex-direction: column; min-height: 0; }
+.p-head { padding: 6px 10px; font-weight: 600; font-size: 13px; border-bottom: 1px solid var(--border); }
 .p-body { flex: 1; overflow: auto; padding: 8px; }
 .p-item { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; font-size: 13px; }
 .p-item label { color: var(--text2, var(--text3)); }
 .p-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .p-sec { margin: 10px 0 4px; font-size: 12px; color: var(--text2, var(--text3)); font-weight: 600; }
 .p-tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
-.p-tbl th, .p-tbl td { padding: 3px 4px; border-bottom: 1px solid var(--border, #eee); text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.p-tbl th { color: var(--text3, var(--text3)); font-weight: 500; }
-.empty2 { color: var(--text3, var(--text3)); font-size: 12px; }
+.p-tbl th, .p-tbl td { padding: 3px 4px; border-bottom: 1px solid var(--border); text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.p-tbl th { color: var(--text3); font-weight: 500; }
+.empty2 { color: var(--text3); font-size: 12px; }
 </style>

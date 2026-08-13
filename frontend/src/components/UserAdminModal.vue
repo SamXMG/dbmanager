@@ -2,6 +2,7 @@
 // 账号管理弹窗: 用户列表/审批(自助注册)/新建/删除/改角色/细粒度权限(仅 admin)
 // 局域网一次性部署定位: 成员自助注册 -> 管理员在此审批放权; 权限按 连接/表 级配置
 import { ref, computed, onMounted } from 'vue'
+import Icon from '@/components/Icon.vue'
 import { errMsg } from '@/utils/err'
 import { confirmDanger } from '@/utils/confirm'
 import { listUsers, saveUser, deleteUser, approveUser, type UserInfo } from '@/api/account'
@@ -120,7 +121,7 @@ onMounted(refresh)
       <div class="modal-box" style="max-width:640px">
         <div class="modal-header">
           <h3>账号管理</h3>
-          <button class="sm" @click="emit('close')">✕</button>
+          <button class="sm" @click="emit('close')"><Icon name="x" :size="14" /></button>
         </div>
 
         <div v-if="msg" :class="msgErr ? 'err-msg' : 'ok-msg'" style="margin-bottom:8px">{{ msg }}</div>
@@ -186,16 +187,16 @@ onMounted(refresh)
 .chk { display: inline-flex; align-items: center; color: var(--text3); }
 .batch-bar { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 8px 10px; background: var(--panel3); border: 1px solid var(--border); border-radius: 6px; font-size: 13px; color: var(--text); }
 .status { font-size: 12px; padding: 1px 8px; border-radius: 10px; }
-.st-pending { background: #FAEEDA; color: #854F0B; }
-.st-active { background: #EAF3DE; color: #3B6D11; }
-.st-rejected { background: #FCEBEB; color: #A32D2D; }
+.st-pending { background: var(--warning-bg); color: var(--warning); }
+.st-active { background: var(--success-bg); color: var(--success); }
+.st-rejected { background: var(--danger-bg); color: var(--danger-solid); }
 .empty { font-size: 13px; color: var(--text3); padding: 6px 0; }
 .new-row { display: flex; align-items: center; gap: 8px; }
 input, select { padding: 5px 8px; border: 1px solid var(--border2); border-radius: 4px; background: var(--panel3); color: var(--text); font-size: 13px; }
-.err-msg { color: #e54d42; font-size: 13px; }
-.ok-msg { color: #00b42a; font-size: 13px; }
+.err-msg { color: var(--danger); font-size: 13px; }
+.ok-msg { color: var(--success); font-size: 13px; }
 button { padding: 5px 14px; border: 1px solid var(--border); border-radius: 4px; background: var(--panel2); color: var(--text); cursor: pointer; font-size: 13px; }
 button.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
 button.sm { padding: 4px 10px; font-size: 12px; }
-button.danger { background: #e54d42; color: #fff; border-color: #e54d42; }
+button.danger { background: var(--danger); color: #fff; border-color: var(--danger); }
 </style>

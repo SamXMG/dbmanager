@@ -101,7 +101,7 @@ function onModalClick(e: MouseEvent) {
 }
 .g-modal :deep(.row2) { display: flex; gap: 8px; }
 .g-modal :deep(.row2 .field) { flex: 1; }
-.g-modal :deep(.empty2) { color: var(--text3, var(--text3)); font-size: 12px; padding: 8px 0; }
+.g-modal :deep(.empty2) { color: var(--text3); font-size: 12px; padding: 8px 0; }
 .g-modal :deep(pre) { font-family: Consolas, monospace; }
 .g-modal :deep(button.sm), .g-modal :deep(button) { padding: 4px 12px; font-size: 12px; }
 </style>

@@ -2,6 +2,15 @@
 
 本项目遵循[语义化版本](https://semver.org/lang/zh-CN/)。发版流程：更新 `config.py VERSION` 与 `frontend/package.json version` → 追加本节 → 打 tag `vX.Y.Z`（自动触发 Release 构建）。
 
+## [Unreleased] - UI 主题/图标补全(优秀判定 P1) + IPv6 SSRF 兜底
+
+### 修复
+- **裸 hex 全量收口 CSS 变量（3.4 补全）**：新增语义 token `--danger/--danger-solid/--danger-bg/--success/--success-bg/--warning/--warning-bg/--warning-solid`（含深色值）；组件/layouts 82 处 + styles.css 规则体 67 处硬编码颜色收口；`var(--x, var(--x))` 冗余 fallback 95 处简化；SQL 语法色/placeholder/上下文菜单统一走 token。
+- **深色模式破损修复（3.6 补全）**：`.warn`/`.tx-bar`/`button.danger`/`button.primary:hover`/`#ececec` 边框改用语义 token，深色下不再浅底破图。
+- **图标统一**：`Icon.vue` 补 `star`/`alert` 图标；8 个弹窗 `✕` → `<Icon name="x">`；SqlWorkbench 收藏 ⭐/★/☆ → `star`；TableDesignerModal 🔔 → `bell`；全仓功能 emoji 清零。
+- **前端去重**：`request()` 内联鉴权头复用 `authHeaders()`；删除死依赖 `vue-virtual-scroller`（0 引用）。
+- **IPv6 SSRF 兜底（P2-1）**：`is_safe_server` 补 IPv6 链路本地 fe80::/10 拒绝、IPv4-mapped(::ffff:x.x.x.x) 元数据检查、zone 剥离；test_p0_security 增 5 个 IPv6 用例。
+
 ## [Unreleased] - 高并发背压补丁(评审 ①~④)
 
 ### 修复

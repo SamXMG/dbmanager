@@ -69,11 +69,11 @@ onBeforeUnmount(() => {
   max-width: 260px;
   padding: 4px;
   background: var(--panel, #fff);
-  border: 1px solid var(--border, var(--border));
+  border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14);
   font-size: 13px;
-  color: var(--text, var(--text));
+  color: var(--text);
   user-select: none;
 }
 .cm-item {
@@ -84,8 +84,8 @@ onBeforeUnmount(() => {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.cm-item:hover { background: var(--primary-bg, rgba(22, 93, 255, 0.08)); color: var(--primary, var(--primary)); }
-.cm-item.danger { color: #f5222d; }
-.cm-item.danger:hover { background: #fff1f0; color: #f5222d; }
-.cm-sep { height: 1px; margin: 4px 8px; background: var(--border, var(--border)); }
+.cm-item:hover { background: var(--primary-bg, rgba(22, 93, 255, 0.08)); color: var(--primary); }
+.cm-item.danger { color: var(--danger-solid); }
+.cm-item.danger:hover { background: var(--danger-bg); color: var(--danger-solid); }
+.cm-sep { height: 1px; margin: 4px 8px; background: var(--border); }
 </style>

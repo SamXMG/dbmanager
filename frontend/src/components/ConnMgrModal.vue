@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import Icon from '@/components/Icon.vue'
 import { errMsg } from '@/utils/err'
 import { confirmDanger } from '@/utils/confirm'
 import { useRouter } from 'vue-router'
@@ -7,7 +8,6 @@ import { useConnectionStore } from '@/stores/connection'
 import { useAuthStore } from '@/stores/auth'
 import { saveConnection, testConn, deleteConnection } from '@/api/connection'
 import { syncTablesFromConnection } from '@/stores/database'
-import Icon from '@/components/Icon.vue'
 
 const props = defineProps<{ show: boolean }>()
 const emit = defineEmits<{ close: [] }>()
@@ -156,7 +156,7 @@ onMounted(() => { connStore.refreshConnList() })
       <div class="modal-box" style="max-width:700px">
         <div class="modal-header">
           <h3>我的连接</h3>
-          <button class="sm" @click="emit('close')">✕</button>
+          <button class="sm" @click="emit('close')"><Icon name="x" :size="14" /></button>
         </div>
 
         <!-- 消息 -->
@@ -236,12 +236,12 @@ onMounted(() => { connStore.refreshConnList() })
 .field label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 3px; }
 .field input, .field select { width: 100%; padding: 6px 8px; border: 1px solid var(--border2); border-radius: 4px; background: var(--panel3); color: var(--text); font-size: 14px; box-sizing: border-box; }
 .row2 { display: flex; gap: 6px; }
-.err-msg { color: #e54d42; font-size: 13px; }
-.ok-msg { color: #00b42a; font-size: 13px; }
+.err-msg { color: var(--danger); font-size: 13px; }
+.ok-msg { color: var(--success); font-size: 13px; }
 .empty2 { color: var(--text3); font-size: 13px; padding: 16px 0; text-align: center; }
 button { padding: 6px 16px; border: 1px solid var(--border); border-radius: 4px; background: var(--panel2); color: var(--text); cursor: pointer; font-size: 13px; }
 button.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
 button.sm { padding: 4px 10px; font-size: 12px; }
-button.danger { color: #e54d42; border-color: #e54d42; }
+button.danger { color: var(--danger); border-color: var(--danger); }
 button:disabled { opacity: 0.6; cursor: not-allowed; }
 </style>

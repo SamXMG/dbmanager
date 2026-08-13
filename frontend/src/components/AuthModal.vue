@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import Icon from '@/components/Icon.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useConnectionStore } from '@/stores/connection'
 
@@ -97,7 +98,7 @@ async function doChangePwd() {
       <div class="modal-box" style="max-width:400px">
         <div class="modal-header">
           <h3>{{ view === 'login' ? '登录' : view === 'register' ? '注册' : props.force ? '修改密码（首次登录必须修改默认密码）' : '修改密码' }}</h3>
-          <button v-if="!props.force" class="sm" @click="emit('close')">✕</button>
+          <button v-if="!props.force" class="sm" @click="emit('close')"><Icon name="x" :size="14" /></button>
         </div>
 
         <!-- 登录视图 -->
@@ -141,8 +142,8 @@ async function doChangePwd() {
 .field { margin-bottom: 10px; }
 .field label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 3px; }
 .field input { width: 100%; padding: 6px 8px; border: 1px solid var(--border2); border-radius: 4px; background: var(--panel3); color: var(--text); font-size: 14px; box-sizing: border-box; }
-.err-msg { color: #e54d42; font-size: 13px; }
-.ok-msg { color: #00b42a; font-size: 13px; }
+.err-msg { color: var(--danger); font-size: 13px; }
+.ok-msg { color: var(--success); font-size: 13px; }
 .link-row { text-align: center; margin-top: 10px; font-size: 13px; color: var(--text2); }
 .link-row a { color: var(--primary); text-decoration: none; }
 .link-row a:hover { text-decoration: underline; }

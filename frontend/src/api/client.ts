@@ -87,14 +87,9 @@ export async function request<T = any>(
   if (opts.body && typeof opts.body === 'object' && !(opts.body instanceof FormData)) {
     headers['Content-Type'] = 'application/json'
   }
-  // 鉴权头注入(优先级: 会话 > 手动连接; 登录/公钥接口不注入)
+  // 鉴权头注入(优先级: 会话 > 手动连接; 登录/公钥接口不注入) — 复用 authHeaders() 单点
   const skipAuth = path.includes('/api/login') || path.includes('/api/pubkey')
-  if (!skipAuth) {
-    // 不再注入 X-User-Token: 浏览器会话统一由后端 HttpOnly Cookie(dbm_user)承载, 杜绝 XSS 令牌窃取(P0-4)
-    if (authState.session) headers['X-Session'] = authState.session
-    else if (authState.conn) headers['X-Conn'] = await buildConnHeader(authState.conn)
-    if (authState.gatewayToken) headers['X-Gateway-Token'] = authState.gatewayToken
-  }
+  if (!skipAuth) Object.assign(headers, await authHeaders())
   let body: BodyInit | null = null
   if (opts.body) {
     body = typeof opts.body === 'string'

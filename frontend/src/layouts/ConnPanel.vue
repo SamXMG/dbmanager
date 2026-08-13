@@ -312,13 +312,13 @@ onMounted(async () => {
 .conn-row { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 13px; }
 .conn-row:hover { background: var(--panel2); border-color: var(--primary); }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text3); flex-shrink: 0; }
-.dot.on { background: #52c41a; }
+.dot.on { background: var(--success); }
 .nm { font-weight: 600; white-space: nowrap; }
 .det { color: var(--text3); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
 .go { color: var(--primary); font-size: 12px; flex-shrink: 0; }
 .tip { font-size: 12px; color: var(--text3); margin-top: 4px; line-height: 1.5; }
-.err-msg { color: #e54d42; margin-top: 8px; font-size: 13px; }
-.ok-msg { color: #00b42a; margin-top: 8px; font-size: 13px; }
+.err-msg { color: var(--danger); margin-top: 8px; font-size: 13px; }
+.ok-msg { color: var(--success); margin-top: 8px; font-size: 13px; }
 button { padding: 6px 16px; border: 1px solid var(--border); border-radius: 4px; background: var(--panel2); color: var(--text); cursor: pointer; font-size: 13px; }
 button.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
 button:disabled { opacity: 0.6; cursor: not-allowed; }

@@ -90,6 +90,27 @@ def is_safe_server(srv: str) -> bool:
     # 0.0.0.0 作为目标地址无意义(监听通配), 视为非法
     if low == "0.0.0.0":
         return False
+    # IPv6 兜底 (优秀判定 P2-1): 与 IPv4 同策略——
+    # 链路本地 fe80::/10 ≈ 169.254(拒绝); ULA fc00::/7 ≈ RFC1918 内网(放行); 回环 ::1 放行;
+    # IPv4-mapped(::ffff:x.x.x.x) 检查映射的 IPv4 是否元数据/通配。
+    v6 = low.split("%", 1)[0].strip().strip("[]")
+    if ":" in v6:
+        try:
+            import ipaddress
+            ip = ipaddress.IPv6Address(v6)
+        except ValueError:
+            return True  # 非 IPv6 字面量(主机名:端口等), 走原放行逻辑
+        # 注意顺序: Python 的 is_private 对 IPv6 包含 fe80(链路本地), 必须先判 is_link_local
+        if ip.is_link_local:
+            return False
+        if ip.is_loopback or ip.is_private:
+            return True
+        if ip.ipv4_mapped is not None:
+            m4 = str(ip.ipv4_mapped)
+            if m4.startswith("169.254.") or m4 == "0.0.0.0":
+                return False
+            return True
+        return True  # 其余合法 IPv6 地址(如 2001:db8::1)放行
     return True
 
 

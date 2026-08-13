@@ -71,7 +71,7 @@ export async function openQueryBuilder() {
     if (box) box.insertAdjacentHTML('beforeend',
       `<div class="row2" style="margin-bottom:4px"><select class="qb-c">${cols.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('')}</select>` +
       `<select class="qb-op"><option value="=">=</option><option value="!=">!=</option><option value=">">&gt;</option><option value=">=">&gt;=</option><option value="<">&lt;</option><option value="<=">&lt;=</option><option value="LIKE">LIKE</option><option value="IN">IN</option><option value="IS NULL">IS NULL</option></select>` +
-      `<input class="qb-v" placeholder="值(IS NULL 可空)" style="flex:1"><button class="sm danger" data-action="remove">✕</button></div>`)
+      `<input class="qb-v" placeholder="值(IS NULL 可空)" style="flex:1"><button class="sm danger" data-action="remove" title="删除条件" aria-label="删除条件"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>`)
   }
   ;(window as unknown as Record<string, unknown>).__qbBuild = () => {
     const [s, t] = sel.value.split('\u0001')

@@ -42,6 +42,11 @@ def test_is_safe_server():
         ("169.254.169.254", False),   # 云元数据(经典 SSRF 靶标)
         ("169.254.1.1", False),        # 链路本地
         ("0.0.0.0", False),            # 监听通配, 非合法目标
+        ("fe80::1", False),            # IPv6 链路本地(P2-1 兜底)
+        ("fe80::1%eth0", False),       # IPv6 链路本地带 zone
+        ("::ffff:169.254.169.254", False),  # IPv4-mapped IPv6 元数据
+        ("fd00::1", True),             # IPv6 ULA 内网(放行)
+        ("::ffff:192.168.1.5", True),  # IPv4-mapped 内网(放行)
         ("http://169.254.169.254", False),
         ("http://192.168.1.1", False),
         ("/etc/passwd", False),

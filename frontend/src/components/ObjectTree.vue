@@ -241,12 +241,12 @@ function genErSvg(schema: string, name: string, tables: ErTable[], rels: ErRel[]
     const h = TH + t.columns.length * TDH
     box += `<rect x="${p.x}" y="${p.y}" width="${TW}" height="${h}" rx="6" fill="var(--panel, #fff)" stroke="var(--text3)"/>`
     box += `<rect x="${p.x}" y="${p.y}" width="${TW}" height="${TH}" rx="6" fill="var(--primary)" opacity="0.15"/>`
-    box += `<text x="${p.x + 8}" y="${p.y + 17}" font-size="12" font-weight="600" fill="var(--text, var(--text))">${esc(t.name)}</text>`
+    box += `<text x="${p.x + 8}" y="${p.y + 17}" font-size="12" font-weight="600" fill="var(--text)">${esc(t.name)}</text>`
     t.columns.forEach((c, ci) => {
       const y = p.y + TH + 14 + ci * TDH
       const isPk = t.pk.includes(c.name)
-      box += `<text x="${p.x + 8}" y="${y}" font-size="11" fill="${isPk ? '#f7ba1e' : 'var(--text2, var(--text3))'}">${esc(c.name)}</text>`
-      box += `<text x="${p.x + TW - 8}" y="${y}" font-size="10" text-anchor="end" fill="var(--text3, var(--text3))">${esc(String(c.type || '').split('(')[0])}</text>`
+      box += `<text x="${p.x + 8}" y="${y}" font-size="11" fill="${isPk ? 'var(--warning-solid)' : 'var(--text2, var(--text3))'}">${esc(c.name)}</text>`
+      box += `<text x="${p.x + TW - 8}" y="${y}" font-size="10" text-anchor="end" fill="var(--text3)">${esc(String(c.type || '').split('(')[0])}</text>`
     })
   })
   let lines = ''
@@ -275,7 +275,7 @@ async function openTransfer(db: string, s: string, t: string) {
     <div style="color:var(--text3);font-size:12px;margin-bottom:10px">源表数据复制到目标表(同名列交集, 目标自增主键由数据库生成)</div>
     <div class="field"><label>目标库</label><select id="trDb">${opts.map(d => `<option value="${esc(d)}" ${d === cur ? 'selected' : ''}>${esc(d)}</option>`).join('')}</select></div>
     <div class="field"><label>目标表(须已存在)</label><input id="trTable" placeholder="如 ${esc(t)}_copy"></div>
-    <p style="color:#d4660a;font-size:12px">⚠ 源表全部数据将插入目标表</p>
+    <p style="color:var(--warning);font-size:12px">⚠ 源表全部数据将插入目标表</p>
     <div class="acts"><button data-action="close">取消</button><button class="primary" id="trGo">开始同步</button></div>`)
   setTimeout(() => {
     const go = document.getElementById('trGo')
@@ -492,13 +492,13 @@ function openObj(db: string, s: string, name: string, type: string) {
 <style scoped>
 .obj-tree { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 .s-head { padding: 6px 8px; }
-.s-head input { width: 100%; box-sizing: border-box; padding: 5px 8px; border: 1px solid var(--border, var(--border)); border-radius: 6px; background: transparent; color: inherit; }
+.s-head input { width: 100%; box-sizing: border-box; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; background: transparent; color: inherit; }
 .pinned-bar { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; align-items: center; }
 .pin-label { font-size: 11px; color: var(--text3); margin-right: 2px; }
-.pin-item { display: inline-flex; align-items: center; gap: 3px; padding: 2px 6px; background: var(--bg-info, #e6f1fb); color: var(--color-info, #185fa5); border-radius: 10px; font-size: 12px; cursor: pointer; }
-.pin-item:hover { background: #d3e6f7; }
+.pin-item { display: inline-flex; align-items: center; gap: 3px; padding: 2px 6px; background: var(--primary-bg); color: var(--primary); border-radius: 10px; font-size: 12px; cursor: pointer; }
+.pin-item:hover { background: var(--primary-bg); filter: brightness(0.94); }
 .pin-item .x { font-weight: 700; opacity: 0.6; padding: 0 2px; }
-.pin-item .x:hover { opacity: 1; color: #d4660a; }
+.pin-item .x:hover { opacity: 1; color: var(--warning); }
 .list { flex: 1; overflow: auto; min-height: 0; }
 .tnode { display: flex; align-items: center; gap: 4px; padding: 3px 8px; cursor: pointer; font-size: 13px; }
 .tnode:hover { background: rgba(128,128,128,0.08); }

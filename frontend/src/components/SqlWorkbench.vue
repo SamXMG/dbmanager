@@ -2,6 +2,7 @@
 // SQL 工作台(阶段 4): 工具栏 + CodeMirror 编辑器 + 历史/收藏 + 多结果 tab + 结果内过滤 + 结果表格
 // 对齐旧版 js/sql.js 的 sqlView 全部功能(执行/格式化/解释/写模式/导出 CSV/导出 Excel/清空历史/看全文)
 import { computed, onMounted, ref } from 'vue'
+import Icon from '@/components/Icon.vue'
 import { errMsg } from '@/utils/err'
 import { confirmDanger } from '@/utils/confirm'
 import SqlEditor from '@/components/SqlEditor.vue'
@@ -225,10 +226,10 @@ function tabLabel(t: { sql: string }): string {
       <input v-model="histKw" class="hist-search" placeholder="搜索 SQL 历史..." title="按内容过滤历史/收藏" />
       <div class="hist-items">
         <template v-if="favItems.length">
-          <span class="hist-group">⭐ 收藏</span>
+          <span class="hist-group"><Icon name="star" :size="12" /> 收藏</span>
           <span v-for="x in favItems" :key="'f' + x.ts + x.sql" class="hist-item fav"
                 :title="x.sql">
-            <span class="hist-star" @click.stop="sqlStore.toggleFavorite(x.sql)">★</span>
+            <span class="hist-star" @click.stop="sqlStore.toggleFavorite(x.sql)"><Icon name="star" :size="12" /></span>
             <span class="hist-text" @click="useHist(x.sql)" @dblclick="useHist(x.sql, true)">{{ x.sql.length > 60 ? x.sql.slice(0, 60) + '…' : x.sql }}</span>
             <span v-if="x.ts" class="hist-time">{{ fmtHistTime(x.ts) }}</span>
           </span>
@@ -236,7 +237,7 @@ function tabLabel(t: { sql: string }): string {
         <template v-if="restItems.length">
           <span class="hist-group">历史</span>
           <span v-for="x in restItems" :key="'h' + x.ts + x.sql" class="hist-item" :title="x.sql">
-            <span class="hist-star" @click.stop="sqlStore.toggleFavorite(x.sql)">☆</span>
+            <span class="hist-star" @click.stop="sqlStore.toggleFavorite(x.sql)"><Icon name="star" :size="12" /></span>
             <span class="hist-text" @click="useHist(x.sql)" @dblclick="useHist(x.sql, true)">{{ x.sql.length > 60 ? x.sql.slice(0, 60) + '…' : x.sql }}</span>
             <span v-if="x.ts" class="hist-time">{{ fmtHistTime(x.ts) }}</span>
           </span>
@@ -300,53 +301,53 @@ function tabLabel(t: { sql: string }): string {
 <style scoped>
 .sql-workbench { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 10px 14px; }
 .sql-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
-.sql-hint { color: var(--text3, var(--text3)); font-size: 12px; margin-left: auto; }
+.sql-hint { color: var(--text3); font-size: 12px; margin-left: auto; }
 .sql-editor-box { flex: 0 0 30%; min-height: 110px; }
 
 /* 写模式按钮: 开=红底白字, 关=浅红 */
-button.write-on { background: #a32d2d; color: #fff; border-color: #a32d2d; }
-button.write-off { background: #fcebeb; color: #a32d2d; border-color: #f7c1c1; }
+button.write-on { background: var(--danger-solid); color: #fff; border-color: var(--danger-solid); }
+button.write-off { background: var(--danger-bg); color: var(--danger-solid); border-color: var(--danger-bg); }
 
 /* 历史折叠头 */
 .hist-head { margin: 4px 0; }
-.hist-count { color: var(--text3, var(--text3)); font-size: 11px; margin-left: 4px; }
+.hist-count { color: var(--text3); font-size: 11px; margin-left: 4px; }
 .sql-hist { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 8px; max-height: 220px; }
 .hist-search { flex: 0 0 auto; width: 240px; padding: 4px 8px; border: 1px solid var(--border2, var(--border)); border-radius: 5px; font-size: 12px; outline: none; background: var(--panel, #fff); color: inherit; }
 .hist-items { display: flex; flex-wrap: wrap; gap: 4px; overflow-y: auto; align-content: flex-start; }
-.hist-group { flex-basis: 100%; font-size: 11px; color: var(--text3, var(--text3)); margin-top: 2px; }
-.hist-item { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 12px; background: var(--panel2, var(--panel2)); border: 1px solid var(--border, var(--border)); border-radius: 4px; cursor: default; }
-.hist-item.fav { border-color: #f0c96b; background: #fffbea; }
-.hist-star { cursor: pointer; color: #f0a020; }
+.hist-group { flex-basis: 100%; font-size: 11px; color: var(--text3); margin-top: 2px; }
+.hist-item { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 12px; background: var(--panel2); border: 1px solid var(--border); border-radius: 4px; cursor: default; }
+.hist-item.fav { border-color: var(--warning-solid); background: var(--warning-bg); }
+.hist-star { cursor: pointer; color: var(--warning-solid); }
 .hist-text { cursor: pointer; max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: Consolas, monospace; }
-.hist-time { color: var(--text3, var(--text3)); font-size: 11px; }
-.hist-empty { color: var(--text3, var(--text3)); font-size: 12px; padding: 4px 0; }
+.hist-time { color: var(--text3); font-size: 11px; }
+.hist-empty { color: var(--text3); font-size: 12px; padding: 4px 0; }
 
 /* 多结果 tab */
-.sql-tabs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 6px 0 8px; border-bottom: 1px solid var(--border, var(--border)); margin-bottom: 8px; flex-shrink: 0; }
-.sql-tab { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; font-size: 12px; background: var(--panel3, #f2f3f5); border: 1px solid var(--border, var(--border)); border-radius: 4px; cursor: pointer; max-width: 280px; white-space: nowrap; overflow: hidden; color: var(--text, var(--text)); }
-.sql-tab.active { background: var(--primary, var(--primary)); border-color: var(--primary, var(--primary)); color: #fff; }
+.sql-tabs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 6px 0 8px; border-bottom: 1px solid var(--border); margin-bottom: 8px; flex-shrink: 0; }
+.sql-tab { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; font-size: 12px; background: var(--panel3, #f2f3f5); border: 1px solid var(--border); border-radius: 4px; cursor: pointer; max-width: 280px; white-space: nowrap; overflow: hidden; color: var(--text); }
+.sql-tab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
 .sql-tab .x { color: inherit; opacity: .7; font-weight: 700; }
 .sql-tab .x:hover { opacity: 1; }
 .tab-spacer { flex: 1; }
-.tab-clear { font-size: 12px; color: var(--text3, var(--text3)); cursor: pointer; }
-.tab-clear:hover { color: #f5222d; }
+.tab-clear { font-size: 12px; color: var(--text3); cursor: pointer; }
+.tab-clear:hover { color: var(--danger-solid); }
 
 /* 结果内过滤 */
 .sql-filter { display: flex; align-items: center; gap: 8px; padding: 4px 0 8px; flex-shrink: 0; }
 .sql-filter input { flex: 0 0 300px; padding: 5px 10px; border: 1px solid var(--border2, var(--border)); border-radius: 6px; font-size: 12px; outline: none; background: var(--panel, #fff); color: inherit; }
-.sql-filter input:focus { border-color: var(--primary, var(--primary)); }
-.sql-filter-info { font-size: 12px; color: var(--text3, var(--text3)); }
+.sql-filter input:focus { border-color: var(--primary); }
+.sql-filter-info { font-size: 12px; color: var(--text3); }
 
 /* 结果表格: 容器已 overflow:auto; 表格 max-content 列宽自适应, 列多时横向滚动不压扁 */
-.gridwrap.sql-result { flex: 1; min-height: 0; overflow: auto; border: 1px solid var(--border, var(--border)); border-radius: 6px; }
+.gridwrap.sql-result { flex: 1; min-height: 0; overflow: auto; border: 1px solid var(--border); border-radius: 6px; }
 table.dg { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 13px; }
-.dg thead th { position: sticky; top: 0; background: var(--panel2, var(--panel2)); text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border, var(--border)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; z-index: 1; }
+.dg thead th { position: sticky; top: 0; background: var(--panel2); text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; z-index: 1; }
 .dg td { padding: 4px 8px; border-bottom: 1px solid var(--border, #f0f1f3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; }
-.dg td.null { color: var(--text3, #bbb); font-style: italic; }
-.dg td.trunc { color: var(--primary, var(--primary)); cursor: pointer; }
+.dg td.null { color: var(--text3); font-style: italic; }
+.dg td.trunc { color: var(--primary); cursor: pointer; }
 .dg tbody tr:hover td { background: rgba(128, 128, 128, 0.05); }
-.loading-td { text-align: center; color: var(--text3, var(--text3)); padding: 16px !important; }
-.empty2 { color: var(--text3, var(--text3)); font-size: 13px; padding: 24px; text-align: center; }
-.sql-error { color: #f5222d; padding: 16px 20px; font-size: 13px; white-space: pre-wrap; }
+.loading-td { text-align: center; color: var(--text3); padding: 16px !important; }
+.empty2 { color: var(--text3); font-size: 13px; padding: 24px; text-align: center; }
+.sql-error { color: var(--danger-solid); padding: 16px 20px; font-size: 13px; white-space: pre-wrap; }
 button.sm { padding: 4px 10px; font-size: 12px; }
 </style>

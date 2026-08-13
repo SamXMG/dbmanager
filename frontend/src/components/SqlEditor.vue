@@ -50,9 +50,9 @@ const lightTheme = EditorView.theme({
   '.cm-scroller': { fontFamily: 'Consolas, "Cascadia Mono", monospace' },
 })
 const darkTheme = EditorView.theme({
-  '&': { height: '100%', fontSize: '13px', backgroundColor: '#1e1e1e', color: '#d4d4d4' },
+  '&': { height: '100%', fontSize: '13px', backgroundColor: '#1e1e1e', color: 'var(--border)' },
   '.cm-scroller': { fontFamily: 'Consolas, "Cascadia Mono", monospace' },
-  '.cm-gutters': { backgroundColor: '#252526', color: '#858585', border: 'none' },
+  '.cm-gutters': { backgroundColor: '#252526', color: 'var(--text3)', border: 'none' },
   '.cm-activeLine': { backgroundColor: 'rgba(255,255,255,0.05)' },
   '.cm-activeLineGutter': { backgroundColor: 'rgba(255,255,255,0.08)' },
 })
@@ -109,7 +109,7 @@ watch(() => uiStore.theme, t => {
   height: 100%;
   min-height: 120px;
   overflow: hidden;
-  border: 1px solid var(--border, var(--border));
+  border: 1px solid var(--border);
   border-radius: 6px;
 }
 </style>

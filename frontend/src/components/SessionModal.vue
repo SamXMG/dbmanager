@@ -2,6 +2,7 @@
 // 在线用户管理弹窗(仅 admin): 实时列表 + 一键踢下线(二次确认)
 // 显示: 用户名/角色/登录时间/来源IP/最后活跃/当前操作/会话数; 每 5s 自动刷新
 import { ref, onMounted, onUnmounted } from 'vue'
+import Icon from '@/components/Icon.vue'
 import { errMsg } from '@/utils/err'
 import { confirmDanger } from '@/utils/confirm'
 import { listSessions, kickSession, type SessionInfo } from '@/api/account'
@@ -62,7 +63,7 @@ onUnmounted(() => { if (timer) window.clearInterval(timer) })
       <div class="modal-box" style="max-width:720px">
         <div class="modal-header">
           <h3>在线用户（{{ sessions.length }}）</h3>
-          <button class="sm" @click="emit('close')">✕</button>
+          <button class="sm" @click="emit('close')"><Icon name="x" :size="14" /></button>
         </div>
         <div v-if="msg" :class="msgErr ? 'err-msg' : 'ok-msg'" style="margin-bottom:8px">{{ msg }}</div>
         <div class="hint">每 5 秒自动刷新。踢下线立即断开该用户所有会话（不可撤销，需二次确认）。</div>
@@ -103,12 +104,12 @@ onUnmounted(() => { if (timer) window.clearInterval(timer) })
 .sess-table .u { font-weight: 600; }
 .sess-table .path { max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
 .role { font-size: 11px; padding: 1px 8px; border-radius: 10px; }
-.r-admin { background: #FCEBEB; color: #A32D2D; }
-.r-write { background: #EAF3DE; color: #3B6D11; }
-.r-read { background: #EAF1F8; color: #2E5B8A; }
+.r-admin { background: var(--danger-bg); color: var(--danger-solid); }
+.r-write { background: var(--success-bg); color: var(--success); }
+.r-read { background: var(--success-bg); color: var(--primary); }
 button { padding: 5px 14px; border: 1px solid var(--border); border-radius: 4px; background: var(--panel2); color: var(--text); cursor: pointer; font-size: 13px; }
 button.sm { padding: 3px 10px; font-size: 12px; }
-button.danger { background: #e54d42; color: #fff; border-color: #e54d42; }
-.err-msg { color: #e54d42; font-size: 13px; }
-.ok-msg { color: #00b42a; font-size: 13px; }
+button.danger { background: var(--danger); color: #fff; border-color: var(--danger); }
+.err-msg { color: var(--danger); font-size: 13px; }
+.ok-msg { color: var(--success); font-size: 13px; }
 </style>

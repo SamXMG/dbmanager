@@ -4,6 +4,7 @@
 // 生效类型: instant=保存即生效(LDAP/注册/认证等运行时读取项), restart=需重启(host/port/ssl);
 // 支持「立即重启」按钮(admin), 重启期间服务短暂中断, 恢复后需重新登录
 import { ref, onMounted } from 'vue'
+import Icon from '@/components/Icon.vue'
 import { errMsg } from '@/utils/err'
 import { confirmDanger } from '@/utils/confirm'
 import { getConfigSettings, saveConfigSettings, restartServer, type ConfigSections } from '@/api/account'
@@ -90,7 +91,7 @@ onMounted(load)
       <div class="modal-box">
         <div class="modal-header">
           <h3>服务器配置</h3>
-          <button class="sm" @click="emit('close')">✕</button>
+          <button class="sm" @click="emit('close')"><Icon name="x" :size="14" /></button>
         </div>
         <div v-if="msg" :class="msgErr ? 'err-msg' : 'ok-msg'" style="margin-bottom:8px">{{ msg }}</div>
         <div class="hint">
@@ -156,16 +157,16 @@ onMounted(load)
 .cfg-item { display: flex; flex-direction: column; gap: 4px; }
 .cfg-item label { font-size: 12px; color: var(--text2); }
 .tag { font-size: 10px; padding: 1px 5px; border-radius: 8px; margin-left: 4px; font-weight: 400; }
-.tag-instant { background: #EAF3DE; color: #3B6D11; }
-.tag-restart { background: #FAEEDA; color: #854F0B; }
+.tag-instant { background: var(--success-bg); color: var(--success); }
+.tag-restart { background: var(--warning-bg); color: var(--warning); }
 .cfg-item input, .cfg-item select { width: 100%; box-sizing: border-box; padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--panel2); color: var(--text); font-size: 13px; }
 .cfg-item .tip { font-size: 11px; color: var(--text3); }
 .footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
 button { padding: 5px 14px; border: 1px solid var(--border); border-radius: 4px; background: var(--panel2); color: var(--text); cursor: pointer; font-size: 13px; }
 button.sm { padding: 3px 10px; font-size: 12px; }
-button.primary { background: #3b6d11; color: #fff; border-color: #3b6d11; }
-button.danger { background: #a32d2d; color: #fff; border-color: #a32d2d; }
-.err-msg { color: #e54d42; font-size: 13px; }
-.ok-msg { color: #00b42a; font-size: 13px; }
+button.primary { background: var(--success); color: #fff; border-color: var(--success); }
+button.danger { background: var(--danger-solid); color: #fff; border-color: var(--danger-solid); }
+.err-msg { color: var(--danger); font-size: 13px; }
+.ok-msg { color: var(--success); font-size: 13px; }
 @media (max-width: 560px) { .cfg-grid { grid-template-columns: 1fr; } }
 </style>

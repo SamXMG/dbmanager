@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import Icon from '@/components/Icon.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps<{ show: boolean }>()
@@ -28,7 +29,7 @@ async function doSubmit() {
       <div class="modal-box" style="max-width:400px">
         <div class="modal-header">
           <h3>公网访问验证</h3>
-          <button class="sm" @click="emit('close')">✕</button>
+          <button class="sm" @click="emit('close')"><Icon name="x" :size="14" /></button>
         </div>
         <p class="sub">需要输入网关令牌才能从公网访问本服务。</p>
         <div class="field">
@@ -51,8 +52,8 @@ async function doSubmit() {
 .field { margin-bottom: 10px; }
 .field label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 3px; }
 .field input { width: 100%; padding: 6px 8px; border: 1px solid var(--border2); border-radius: 4px; background: var(--panel3); color: var(--text); font-size: 14px; box-sizing: border-box; }
-.err-msg { color: #e54d42; font-size: 13px; }
-.ok-msg { color: #00b42a; font-size: 13px; }
+.err-msg { color: var(--danger); font-size: 13px; }
+.ok-msg { color: var(--success); font-size: 13px; }
 button { padding: 6px 16px; border: 1px solid var(--border); border-radius: 4px; background: var(--panel2); color: var(--text); cursor: pointer; font-size: 13px; }
 button.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
 button.sm { padding: 4px 10px; font-size: 12px; }

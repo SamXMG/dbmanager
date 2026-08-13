@@ -302,7 +302,7 @@ async function redisDelKey() {
 </template>
 
 <style scoped>
-.toolbar { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-bottom: 1px solid var(--border, var(--border)); flex-shrink: 0; }
+.toolbar { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
 .spacer { flex: 1; }
 .count { font-size: 12px; color: var(--text2, var(--text3)); }
 button.sm { padding: 4px 10px; font-size: 12px; }

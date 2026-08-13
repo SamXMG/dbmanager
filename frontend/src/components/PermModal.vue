@@ -2,6 +2,7 @@
 // 权限配置弹窗(连接/表级细粒度读写): 单用户或批量(多选用户)配置
 // 每连接: 读/写开关 + 表范围(全部表 | 指定白名单表 | 黑名单表), 支持拉取真实表名多选
 import { ref, reactive, computed, onMounted } from 'vue'
+import Icon from '@/components/Icon.vue'
 import { errMsg } from '@/utils/err'
 import { getUserPerms, saveUserPerms, fetchConnTables, type ConnPerm } from '@/api/account'
 
@@ -111,7 +112,7 @@ onMounted(async () => {
       <div class="modal-box" style="max-width:760px">
         <div class="modal-header">
           <h3>{{ title }}</h3>
-          <button class="sm" @click="emit('close')">✕</button>
+          <button class="sm" @click="emit('close')"><Icon name="x" :size="14" /></button>
         </div>
         <div v-if="msg" :class="msgErr ? 'err-msg' : 'ok-msg'" style="margin-bottom:8px">{{ msg }}</div>
         <div v-if="loading" class="empty">加载中...</div>
@@ -190,6 +191,6 @@ button.on { background: var(--primary); color: #fff; border-color: var(--primary
 .tbl-pick { display: flex; flex-wrap: wrap; gap: 6px 14px; max-height: 140px; overflow: auto; padding: 6px; background: var(--panel3); border: 1px solid var(--border); border-radius: 4px; }
 .tbl-pick .chk { font-size: 12px; }
 .foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
-.err-msg { color: #e54d42; font-size: 13px; }
-.ok-msg { color: #00b42a; font-size: 13px; }
+.err-msg { color: var(--danger); font-size: 13px; }
+.ok-msg { color: var(--success); font-size: 13px; }
 </style>
