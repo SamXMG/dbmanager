@@ -244,7 +244,7 @@ function genErSvg(schema: string, name: string, tables: ErTable[], rels: ErRel[]
     t.columns.forEach((c, ci) => {
       const y = p.y + TH + 14 + ci * TDH
       const isPk = t.pk.includes(c.name)
-      box += `<text x="${p.x + 8}" y="${y}" font-size="11" fill="${isPk ? '#f7ba1e' : 'var(--text2, #86909c)'}">${isPk ? '🔑 ' : ''}${esc(c.name)}</text>`
+      box += `<text x="${p.x + 8}" y="${y}" font-size="11" fill="${isPk ? '#f7ba1e' : 'var(--text2, #86909c)'}">${esc(c.name)}</text>`
       box += `<text x="${p.x + TW - 8}" y="${y}" font-size="10" text-anchor="end" fill="var(--text3, #999)">${esc(String(c.type || '').split('(')[0])}</text>`
     })
   })
@@ -401,7 +401,7 @@ function openObj(db: string, s: string, name: string, type: string) {
     <div class="s-head">
       <input v-model="filter" placeholder="搜索表/集合/键..." />
       <div v-if="pinnedList.length" class="pinned-bar">
-        <span class="pin-label">📌 固定</span>
+        <span class="pin-label"><Icon name="pin" :size="13"/> 固定</span>
         <span v-for="p in pinnedList" :key="p.db + '.' + p.s + '.' + p.t" class="pin-item"
               :title="p.db + '.' + p.s + '.' + p.t + ' (右键取消)'"
               @dblclick="openPinned(p)" @contextmenu.prevent="unpin(p, $event)">
@@ -427,7 +427,7 @@ function openObj(db: string, s: string, name: string, type: string) {
       <template v-else>
         <div class="tnode root" @contextmenu.prevent="onConnCtx($event)">
           <span class="caret" :class="{ open: dbStore.expanded.size > 0 }">▾</span>
-          <span>🔗 {{ connName }}</span>
+          <span><Icon name="link" :size="13"/> {{ connName }}</span>
         </div>
         <div v-if="!dbStore.databases.length" class="empty2" style="padding:8px 12px">
           无库信息(展开连接库: {{ connStore.conn?.database || '-' }})

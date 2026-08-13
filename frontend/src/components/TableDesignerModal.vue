@@ -100,7 +100,7 @@ async function modifyColumn(name: string) {
   const col = cols.value.find(c => c.name === name)
   const nt = window.prompt('输入新类型(如 NVARCHAR(100)):', col?.type || '')
   if (!nt) return
-  const nullable = window.confirm('保持可空? 确定=可空, 取消=NOT NULL')
+  const nullable = await confirmDanger('保持可空？点击确认=可空，取消=NOT NULL', '修改字段类型')
   await doAlter('modify_column', { name, type: nt.trim(), nullable })
 }
 async function dropColumn(name: string) {

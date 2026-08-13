@@ -11,6 +11,7 @@ import { importData, genData, schemaDiff, schemaSync, alterTable } from '@/api/s
 import { listConnections, type ConnMeta } from '@/api/connection'
 import { API_BASE, authHeaders } from '@/api/client'
 import { STORAGE_KEYS } from '@/constants/storage'
+import { confirmDanger } from '@/utils/confirm'
 
 const ui = useUIStore()
 const sqlStore = useSqlStore()
@@ -148,7 +149,7 @@ export function openImport(s?: string, t?: string) {
       header.forEach((h, i) => { const cn = mapping[i]; if (cn) o[cn] = r[i] !== undefined && r[i] !== '' ? r[i] : null })
       return o
     })
-    if (!confirm(`确认导入 ${data.length} 行到 ${sc}.${tb}？`)) return
+    if (!(await confirmDanger(`确认导入 ${data.length} 行到 ${sc}.${tb}？`, '导入数据'))) return
     try {
       const d = await importData({ s: sc, t: tb, columns: mapping.filter(Boolean) as string[], rows: data })
       ui.closeModal()
@@ -199,7 +200,7 @@ export function openGenData(s?: string, t?: string) {
     <div class="acts"><button data-action="close">取消</button><button class="primary" data-call="__gdRun">生成</button></div>`)
   ;(window as unknown as Record<string, unknown>).__gdRun = async () => {
     const n = parseInt((document.getElementById('gdRows') as HTMLInputElement).value, 10) || 100
-    if (!confirm(`确认生成 ${n} 行测试数据到 ${sc}.${tb}？`)) return
+    if (!(await confirmDanger(`确认生成 ${n} 行测试数据到 ${sc}.${tb}？`, '生成测试数据'))) return
     try {
       const d = await genData({ s: sc, t: tb, rows: n })
       ui.closeModal()
@@ -232,7 +233,7 @@ export function openRestore() {
   ;(window as unknown as Record<string, unknown>).__rsRun = async () => {
     const f = (document.getElementById('rsFile') as HTMLInputElement).files?.[0]
     if (!f) { ui.toast('请选择 SQL 文件', true); return }
-    if (!confirm('确认还原？将执行文件中的全部 SQL(不可撤销)!')) return
+    if (!(await confirmDanger('确认还原？将执行文件中的全部 SQL(不可撤销)!', '还原备份'))) return
     try {
       const sql = await f.text()
       const d = await import('@/api/schema').then(m => m.restore({ sql }))
