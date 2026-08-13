@@ -14,7 +14,7 @@ import threading
 
 # 基础路径(所有模块共用, 各模块据此定位同目录文件)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-INDEX_FILE = os.path.join(BASE_DIR, "index.html")
+# INDEX_FILE(旧前端入口)已随双前端退役删除(路线图 1.2)
 SERVERS = []  # 由 app.run() 赋值(IPv4/IPv6 监听实例), 供 shutdown 接口读取
 
 # SQLite 连接数据库路径沙箱根(防 ../../ 逃逸读取/创建系统文件)。
@@ -110,11 +110,8 @@ HOST = conf("DBM_HOST")
 PORT = conf_int("DBM_PORT")
 LOCK = threading.Lock()
 
-# 前端静态资源: 子目录 -> (目录名, Content-Type); 仅白名单扁平文件
-STATIC_DIRS = {
-    "/css/": ("css", "text/css; charset=utf-8"),
-    "/js/": ("js", "application/javascript; charset=utf-8"),
-}
+# 前端静态资源(双前端退役, 路线图 1.2): 旧 js/ css/ 已删除, 唯一入口为 Vue3 构建产物
+STATIC_DIRS = {}
 
 # Vue3 迁移版(frontend/ 子目录, 与旧前端并存; /v2 入口 serve 其构建产物)
 VUE_DIST_DIR = os.path.join(BASE_DIR, "frontend", "dist")

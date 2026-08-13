@@ -2,6 +2,14 @@
 
 本项目遵循[语义化版本](https://semver.org/lang/zh-CN/)。发版流程：更新 `config.py VERSION` 与 `frontend/package.json version` → 追加本节 → 打 tag `vX.Y.Z`（自动触发 Release 构建）。
 
+## [Unreleased] - 双前端退役(优化路线图 1.2)
+
+### 重构
+- **旧版原生前端彻底移除**：删除 `js/`(5 文件)、`css/style.css`、根 `index.html`；`handler.py`/`config.py` 移除 STATIC_DIRS 静态分发、`/js/`·`/css/` 鉴权豁免、`index.html` dist 兜底
+- **唯一入口为 Vue3 构建产物** `frontend/dist`（`/` 与 `/v2` 均服务该产物）；未构建时返回 **503 明确提示**（不再静默降级旧版）
+- `Dockerfile` 同步移除旧前端 COPY；README 更新（目录结构/开发/说明段落）
+- 验证：单测 5 项 + e2e 8 项全绿；`/` 200、旧 `/js/`·`/css/` 不再服务
+
 ## [Unreleased] - 前端类型契约收口(优化路线图 2.1)
 
 ### 重构

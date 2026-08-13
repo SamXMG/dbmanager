@@ -40,11 +40,8 @@ COPY app.py config.py crypto.py dbcore.py handler.py ops.py store.py tunnel.py a
      scanner.py handler_security.py ./
 COPY services ./services
 COPY routes ./routes
-COPY css ./css
-COPY js ./js
-COPY index.html ./
 
-# 前端构建产物(阶段1)
+# 前端构建产物(阶段1); 旧 js/ css/ index.html 已随双前端退役删除(路线图 1.2)
 COPY --from=fe /fe/dist ./frontend/dist
 
 # 运行时数据目录(连接配置/密钥/日志)

@@ -117,8 +117,7 @@ store.py        连接配置持久化
 config.py       配置与共享状态（dbmanager.conf 读取，优先级 环境变量 > 配置 > 默认）
 task_sched.py   调度任务（定时备份，tasks 存 SQLite）
 logging_conf.py 结构化日志（控制台 + logs/dbmanager.log 轮转）
-frontend/       Vue3 迁移版前端（Vite + TS + Pinia + CodeMirror 6）
-index.html+js/  旧版原生前端（迁移完成前并存，访问 /v2 用新版）
+frontend/       Vue3 前端（Vite + TS + Pinia + CodeMirror 6，唯一入口；构建产物 frontend/dist）
 docs/           设计文档 / 迁移差距清单
 tests/          单测 + 端到端脚本
 logs/           审计日志(audit.log) + 运行日志(dbmanager.log)
@@ -134,9 +133,9 @@ python tests/test_auth_ldap.py    # 认证/LDAP 单测
 python tests/test_task_sched.py   # 调度任务单测
 # 端到端(需先启动服务): tests/e2e_*.py
 
-# 前端(迁移版 /v2)
+# 前端(Vue3, 唯一入口)
 cd frontend && npm install
-npm run build                      # 产物 frontend/dist, 后端 /v2 自动读取
+npm run build                      # 产物 frontend/dist, 后端 / 与 /v2 自动读取
 npx tsc --noEmit                   # 类型检查
 ```
 
@@ -169,8 +168,8 @@ npx tsc --noEmit                   # 类型检查
 ## 说明
 
 - LICENSE：**Apache License 2.0 开源**，可自由使用/修改/再分发（含商用），详见根目录 `LICENSE`
-- 旧版前端（`index.html` + `js/`）已不再是默认入口（`/` 直接服务 Vue3 构建产物），
-  仅作为前端未构建时的开发兜底保留，后续将彻底移除
+- 前端已收口为 Vue3 单入口（`frontend/dist` 构建产物；`/` 与 `/v2` 均服务该产物）。
+  旧版原生前端（`index.html` + `js/` + `css/`）已彻底移除；未构建前端时服务返回 503 提示（`cd frontend && npm run build`）
 
 ## 贡献
 

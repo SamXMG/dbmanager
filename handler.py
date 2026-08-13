@@ -29,7 +29,7 @@ import sqlitedb  # 程序数据(SQLite): 用户/权限/连接/审计/任务
 
 logger = logging.getLogger("handler")
 from config import (
-    DEFAULT_PORT, HOST, PORT, SESSIONS, SESSION_TTL, STATIC_DIRS, conf,
+    DEFAULT_PORT, HOST, PORT, SESSIONS, SESSION_TTL, conf,
 )
 from crypto import maybe_decrypt_pwd, rsa_public_pem
 from dbcore import _norm_db_type, test_connection
@@ -359,14 +359,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if _gateway_allowed(self):
             return False
         path, _ = self._parse()
-        if path in ("/", "/index.html"):
+        if path == "/":
             return False  # 允许加载 UI 外壳，由前端 /api/config 触发验证弹窗
         # 静态资源与前端入口(UI 外壳, 不含业务数据) + 网关状态查询: 放行以渲染验证弹窗
         if path.startswith("/v2"):
             return False
-        for _prefix in STATIC_DIRS:
-            if path.startswith(_prefix):
-                return False
         if path.startswith("/assets/"):   # Vue3 构建产物资源(前端收口后默认入口引用)
             return False
         if path.startswith("/api/gateway/"):
@@ -381,14 +378,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if not auth.auth_enabled():
             return False
         path, _ = self._parse()
-        if path in ("/", "/index.html"):
+        if path == "/":
             return False
         # 静态资源与前端入口(登录页外壳, 不含业务数据): 未登录必须可加载, 否则登录 UI 无法渲染
         if path.startswith("/v2"):
             return False
-        for _prefix in STATIC_DIRS:
-            if path.startswith(_prefix):
-                return False
         if path.startswith("/assets/"):   # Vue3 构建产物资源(默认入口引用, 401 会导致白屏)
             return False
         if path in ("/api/config", "/api/pubkey", "/api/login", "/api/register", "/api/logout",
@@ -408,7 +402,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return False
         path, _ = self._parse()
         # 静态资源与前端外壳必须放行: 未改密用户刷新页面时若 JS/CSS 403, 改密 UI 无法渲染(白屏)
-        if path in ("/", "/index.html") or path.startswith(("/v2", "/css/", "/js/", "/assets/")):
+        if path in ("/", "/index.html") or path.startswith(("/v2", "/assets/")):
             return False
         if path in ("/api/password", "/api/logout", "/api/config", "/api/pubkey",
                     "/api/login", "/api/gateway/login", "/api/gateway/status",
@@ -512,7 +506,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if path in PERM_EXEMPT:
             return False
         if path.startswith(("/api/users", "/api/sessions", "/api/gateway/",
-                            "/assets/", "/v2", "/css/", "/js/")):
+                            "/assets/", "/v2")):
             return False
         # 会话连接优先; 连接管理页(无会话)跳过
         try:
@@ -638,37 +632,19 @@ class Handler(http.server.BaseHTTPRequestHandler):
         try:
             if self._guards(write=False):
                 return
-            # 静态资源(css/js): 仅白名单子目录下的扁平文件, 防目录穿越
-            for prefix, (subdir, ctype) in STATIC_DIRS.items():
-                if path.startswith(prefix):
-                    rel = path[len(prefix):]
-                    if rel and ".." not in rel and "/" not in rel and "\\" not in rel:
-                        fpath = os.path.join(config.BASE_DIR, subdir, rel)
-                        if os.path.isfile(fpath):
-                            with open(fpath, "rb") as _f:
-                                data = _f.read()
-                            self.send_response(200)
-                            self.send_header("Content-Type", ctype)
-                            self.send_header("Cache-Control", "no-store")
-                            self.send_header("X-Content-Type-Options", "nosniff")
-                            self.send_header("Content-Length", str(len(data)))
-                            self.end_headers()
-                            self.wfile.write(data)
-                            return
-            if path in ("/", "/index.html"):
-                try:
-                    # 前端收口: 默认入口指向 Vue3 构建产物(frontend/dist);
-                    # dist 缺失时回退旧版 index.html(开发环境未构建的兜底, 不白屏)
-                    if os.path.exists(config.VUE_INDEX_FILE):
+            if path == "/":
+                # 双前端退役(路线图 1.2): 唯一入口为 Vue3 构建产物(frontend/dist);
+                # 未构建时明确 503 提示(不再静默回退已删除的旧前端)
+                if os.path.exists(config.VUE_INDEX_FILE):
+                    try:
                         with open(config.VUE_INDEX_FILE, "r", encoding="utf-8") as _f:
                             self._send_html(200, _f.read())
-                    else:
-                        with open(config.INDEX_FILE, "r", encoding="utf-8") as _f:
-                            self._send_html(200, _f.read())
-                except FileNotFoundError:
-                    self._send_html(404, "index.html not found")
+                    except FileNotFoundError:
+                        self._send_html(503, "frontend not built (run: cd frontend && npm install && npm run build)")
+                else:
+                    self._send_html(503, "frontend not built (run: cd frontend && npm install && npm run build)")
                 return
-            # /v2 保留兼容(迁移期入口); / 已优先 Vue3, 旧前端 js/ 目录保留供回退
+            # /v2 保留兼容(迁移期入口)
             if path in ("/v2", "/v2/", "/v2/index.html"):
                 try:
                     with open(config.VUE_INDEX_FILE, "r", encoding="utf-8") as _f:
