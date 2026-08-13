@@ -59,7 +59,7 @@ describe('GenericModal 事件委托: 按钮可关闭弹窗', () => {
   it('data-action="remove" 删除条件行容器', async () => {
     const ui = useUIStore()
     const w = mount(GenericModal, { global: { stubs: { teleport: true } } })
-    ui.showModal('<div class="row2"><button data-action="remove">✕</button></div>')
+    ui.showModal('<div class="row2"><button data-action="remove">移除</button></div>')
     await flushPromises()
     await w.find('.g-modal button').trigger('click')
     await flushPromises()

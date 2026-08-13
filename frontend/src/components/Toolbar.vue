@@ -268,7 +268,7 @@ async function redisTtl() {
 async function redisDelKey() {
   const cur = tab.current
   if (!cur) return
-  if (!await confirmDanger(`⚠️ 将删除整个键 "${cur.t}"，该键下所有数据不可恢复！\n确定继续吗？`)) return
+  if (!await confirmDanger(`[危险] 将删除整个键 "${cur.t}"，该键下所有数据不可恢复！\n确定继续吗？`)) return
   try {
     await redisAlter('drop', {})
     ui.toast('已删除键 ' + cur.t)
