@@ -2,6 +2,7 @@
 // 系统查询弹窗(仅 admin): 在程序内置 SQLite 上执行只读 SELECT
 // 可查系统用户 / 权限 / 连接 / 审计 / 调度任务; 白名单只读, 服务端强制 SELECT
 import { ref, onMounted } from 'vue'
+import { errMsg } from '@/utils/err'
 import { sysQuery } from '@/api/account'
 
 const emit = defineEmits<{ close: [] }>()
@@ -34,7 +35,7 @@ async function run() {
     rows.value = r.rows || []
     cols.value = rows.value.length ? Object.keys(rows.value[0]) : []
     showInfo(`查询完成：${rows.value.length} 行`)
-  } catch (e) { showInfo((e as Error).message, true); rows.value = []; cols.value = [] }
+  } catch (e) { showInfo(errMsg(e), true); rows.value = []; cols.value = [] }
   loading.value = false
 }
 

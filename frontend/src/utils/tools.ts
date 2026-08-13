@@ -1,6 +1,7 @@
 // 工具向导集(阶段5 批2): 查询构建器/数据导入/测试数据/备份还原/schema对比/DB用户权限/数据字典导出
 // 弹窗走 ui.showModal + setTimeout 绑 onclick 模式(对齐 Toolbar.addRow/pasteInsert)
 import { useUIStore } from '@/stores/ui'
+import { errMsg } from '@/utils/err'
 import { useSqlStore } from '@/stores/sql'
 import { useConnectionStore } from '@/stores/connection'
 import { useDatabaseStore } from '@/stores/database'
@@ -134,7 +135,7 @@ export function openImport(s?: string, t?: string) {
         `<select id="impMap_${i}" style="flex:1">${cols.map(c => `<option value="${esc(c.name)}" ${c.name === h ? 'selected' : ''}>${esc(c.name)} (${esc(c.type || '')})</option>`).join('')}</select></div>`).join('')
       const prev = document.getElementById('impPrev')
       if (prev) prev.textContent = `文件 ${rows.length} 行 × ${header.length} 列 → 目标表 ${cols.length} 列`
-    } catch (e) { ui.toast('解析失败: ' + (e as Error).message, true) }
+    } catch (e) { ui.toast('解析失败: ' + errMsg(e), true) }
   }
   fileEl.addEventListener('change', parseAndMap)
   ;(window as unknown as Record<string, unknown>).__impRun = async () => {
@@ -154,7 +155,7 @@ export function openImport(s?: string, t?: string) {
       const d = await importData({ s: sc, t: tb, columns: mapping.filter(Boolean) as string[], rows: data })
       ui.closeModal()
       ui.toast('已导入 ' + (d as { affected?: number }).affected + ' 行')
-    } catch (e) { ui.toast('导入失败: ' + (e as Error).message, true) }
+    } catch (e) { ui.toast('导入失败: ' + errMsg(e), true) }
   }
 }
 
@@ -205,7 +206,7 @@ export function openGenData(s?: string, t?: string) {
       const d = await genData({ s: sc, t: tb, rows: n })
       ui.closeModal()
       ui.toast('已生成 ' + (d as { inserted?: number }).inserted + ' 行')
-    } catch (e) { ui.toast('生成失败: ' + (e as Error).message, true) }
+    } catch (e) { ui.toast('生成失败: ' + errMsg(e), true) }
   }
 }
 
@@ -221,7 +222,7 @@ export async function openBackup() {
     const m = cd.match(/filename="?([^";]+)"?/)
     downloadBlob(blob, m ? m[1] : 'backup.sql')
     ui.toast('备份已下载')
-  } catch (e) { ui.toast('备份失败: ' + (e as Error).message, true) }
+  } catch (e) { ui.toast('备份失败: ' + errMsg(e), true) }
 }
 /** 还原: 上传 SQL 脚本 -> /api/restore(危险, 双确认) */
 export function openRestore() {
@@ -239,7 +240,7 @@ export function openRestore() {
       const d = await import('@/api/schema').then(m => m.restore({ sql }))
       ui.closeModal()
       ui.toast('还原完成: 成功' + (d as { executed?: unknown[] }).executed?.length + ' / 失败' + (d as { failed?: unknown[] }).failed?.length)
-    } catch (e) { ui.toast('还原失败: ' + (e as Error).message, true) }
+    } catch (e) { ui.toast('还原失败: ' + errMsg(e), true) }
   }
 }
 
@@ -263,7 +264,7 @@ export async function openSchemaDiff(s: string, t: string) {
       if (out) out.innerHTML = diff.length
         ? diff.map(x => '<div style="padding:3px 0;border-bottom:1px solid #f5f6f8">' + esc(x) + '</div>').join('')
         : '<div class="empty2">无差异(结构一致)</div>'
-    } catch (e) { ui.toast('对比失败: ' + (e as Error).message, true) }
+    } catch (e) { ui.toast('对比失败: ' + errMsg(e), true) }
   }
 }
 
@@ -294,8 +295,8 @@ export async function openDbUsers() {
       ${sec('显式权限', d.permissions, [['grantee', '授权对象'], ['permission', '权限'], ['state', '状态'], ['object', '对象']])}
       <div class="acts"><button class="primary" data-action="close">关闭</button></div>`)
   } catch (e) {
-    ui.toast('加载用户权限失败: ' + (e as Error).message, true)
-    ui.showModal(`<h3>用户与权限</h3><div class="empty2" style="padding:20px">加载失败: ${esc((e as Error).message)}</div><div class="acts"><button data-action="close">关闭</button></div>`)
+    ui.toast('加载用户权限失败: ' + errMsg(e), true)
+    ui.showModal(`<h3>用户与权限</h3><div class="empty2" style="padding:20px">加载失败: ${esc(errMsg(e))}</div><div class="acts"><button data-action="close">关闭</button></div>`)
   }
 }
 
@@ -307,7 +308,7 @@ export async function exportSchemaDoc() {
     if (!r.ok) throw new Error('导出失败')
     downloadBlob(await r.blob(), 'data_dictionary.md')
     ui.toast('已导出数据字典')
-  } catch (e) { ui.toast('导出失败: ' + (e as Error).message, true) }
+  } catch (e) { ui.toast('导出失败: ' + errMsg(e), true) }
 }
 
 // ---- 内部工具 ----
@@ -337,7 +338,7 @@ export function openRenameTable(s: string, t: string) {
     try {
       await alterTable({ s, t, action: 'rename_table', payload: { new_name } })
       ui.closeModal(); ui.toast('已重命名: ' + t + ' → ' + new_name)
-    } catch (e) { ui.toast('重命名失败: ' + (e as Error).message, true) }
+    } catch (e) { ui.toast('重命名失败: ' + errMsg(e), true) }
   }
 }
 
@@ -358,7 +359,7 @@ export function openCopyTable(s: string, t: string) {
     try {
       const d = await alterTable({ s, t, action: 'copy_table', payload: { new_name, with_data } })
       ui.closeModal(); ui.toast('已复制 → ' + ((d as { new_table?: string }).new_table || new_name) + (with_data ? '(含数据)' : '(仅结构)'))
-    } catch (e) { ui.toast('复制失败: ' + (e as Error).message, true) }
+    } catch (e) { ui.toast('复制失败: ' + errMsg(e), true) }
   }
 }
 
@@ -385,7 +386,7 @@ export function openMaintainTable(s: string, t: string) {
         ? '<pre style="margin:0;white-space:pre-wrap">' + esc(JSON.stringify(rows, null, 2)) + '</pre>'
         : '<pre style="margin:0;color:#86900c">操作完成(无返回行, 多数 DDL 维护操作无输出)</pre>'
       ui.toast('维护完成')
-    } catch (e) { ui.toast('维护失败: ' + (e as Error).message, true) }
+    } catch (e) { ui.toast('维护失败: ' + errMsg(e), true) }
   }
 }
 
@@ -401,7 +402,7 @@ export function openNewTable(db: string, s: string) {
     try {
       await alterTable({ s, t: name, action: 'create_table', payload: {} })
       ui.closeModal(); ui.toast('已创建表 ' + name)
-    } catch (e) { ui.toast('创建失败: ' + (e as Error).message, true) }
+    } catch (e) { ui.toast('创建失败: ' + errMsg(e), true) }
   }
 }
 

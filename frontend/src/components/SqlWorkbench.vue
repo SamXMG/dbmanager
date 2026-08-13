@@ -2,6 +2,7 @@
 // SQL 工作台(阶段 4): 工具栏 + CodeMirror 编辑器 + 历史/收藏 + 多结果 tab + 结果内过滤 + 结果表格
 // 对齐旧版 js/sql.js 的 sqlView 全部功能(执行/格式化/解释/写模式/导出 CSV/导出 Excel/清空历史/看全文)
 import { computed, onMounted, ref } from 'vue'
+import { errMsg } from '@/utils/err'
 import { confirmDanger } from '@/utils/confirm'
 import SqlEditor from '@/components/SqlEditor.vue'
 import { useSqlStore } from '@/stores/sql'
@@ -31,11 +32,11 @@ async function onExec() {
     const tabs = await sqlStore.exec()
     if (tabs.length && tabs[0].error) ui.toast('SQL 执行失败: ' + tabs[0].error, true)
   } catch (e) {
-    ui.toast('SQL 执行失败: ' + (e as Error).message, true)
+    ui.toast('SQL 执行失败: ' + errMsg(e), true)
   }
 }
 async function onExplain() {
-  try { await sqlStore.explain() } catch (e) { ui.toast('EXPLAIN 失败: ' + (e as Error).message, true) }
+  try { await sqlStore.explain() } catch (e) { ui.toast('EXPLAIN 失败: ' + errMsg(e), true) }
 }
 function onFormat() {
   const before = sqlStore.sqlText
@@ -73,7 +74,7 @@ async function exportXlsx() {
   try {
     await exportSqlXlsx(tab.columns, tab.rows || [])
     ui.toast('已导出 ' + (tab.rows?.length || 0) + ' 行')
-  } catch (e) { ui.toast('导出失败: ' + (e as Error).message, true) }
+  } catch (e) { ui.toast('导出失败: ' + errMsg(e), true) }
 }
 
 // ---- 结果渲染 ----

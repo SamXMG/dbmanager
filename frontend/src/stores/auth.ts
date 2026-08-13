@@ -1,6 +1,7 @@
 // 账号 store(P0-4 加固: 令牌仅由后端 HttpOnly Cookie(dbm_user)承载, 前端不再持有/注入 X-User-Token;
 // 刷新后登录态经 /api/config 的 auth_user 恢复; 彻底杜绝 XSS 通过 JS 读取/重放令牌)
 import { defineStore } from 'pinia'
+import { errMsg } from '@/utils/err'
 import { login, register, changePwd, gatewayLogin } from '@/api/account'
 import { authState, request } from '@/api/client'
 
@@ -31,14 +32,14 @@ export const useAuthStore = defineStore('auth', {
       try {
         const r = await login(username, password)
         if (r.ok && r.token) {
-          this.token = r.token; this.role = r.role as any; this.name = r.user || username
+          this.token = r.token; this.role = r.role as 'read' | 'write' | 'admin'; this.name = r.user || username
           this.mustChangePwd = !!r.must_change_pwd   // 默认账号 → 强制改密
           // 令牌仅由后端 HttpOnly Cookie(dbm_user)承载, 前端不再持有/注入令牌(P0-4: 杜绝 XSS 窃取)
           return { ok: true }
         }
         return { ok: false, error: '登录失败' }
-      } catch (e: any) {
-        return { ok: false, error: e.message || '登录失败' }
+      } catch (e: unknown) {
+        return { ok: false, error: errMsg(e, '登录失败') }
       }
     },
 
@@ -47,7 +48,7 @@ export const useAuthStore = defineStore('auth', {
       try {
         const cfg = await request<{ auth_user?: string | null; auth_role?: string | null; must_change_pwd?: boolean }>('/api/config')
         if (cfg.auth_user) {
-          this.role = (cfg.auth_role as any) || 'read'
+          this.role = (cfg.auth_role || 'read') as 'read' | 'write' | 'admin'
           this.name = cfg.auth_user
           this.mustChangePwd = !!cfg.must_change_pwd
         } else {
@@ -63,8 +64,8 @@ export const useAuthStore = defineStore('auth', {
       try {
         const r = await register(username, password)
         return { ok: true, message: r.message }
-      } catch (e: any) {
-        return { ok: false, error: e.message || '注册失败' }
+      } catch (e: unknown) {
+        return { ok: false, error: errMsg(e, '注册失败') }
       }
     },
 
@@ -74,8 +75,8 @@ export const useAuthStore = defineStore('auth', {
         await changePwd(oldPwd, newPwd)
         this.mustChangePwd = false   // 强制改密完成
         return { ok: true, message: '密码已更新' }
-      } catch (e: any) {
-        return { ok: false, error: e.message || '改密失败' }
+      } catch (e: unknown) {
+        return { ok: false, error: errMsg(e, '改密失败') }
       }
     },
 
@@ -85,8 +86,8 @@ export const useAuthStore = defineStore('auth', {
         await gatewayLogin(token)
         authState.gatewayToken = token
         return { ok: true }
-      } catch (e: any) {
-        return { ok: false, error: e.message || '网关令牌错误' }
+      } catch (e: unknown) {
+        return { ok: false, error: errMsg(e, '网关令牌错误') }
       }
     },
 

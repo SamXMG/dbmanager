@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // 调度任务管理弹窗(P2-2): 定时备份任务列表 + 新建/启停/删除/立即执行
 import { onMounted, ref } from 'vue'
+import { errMsg } from '@/utils/err'
 import { confirmDanger } from '@/utils/confirm'
 import { useUIStore } from '@/stores/ui'
 import { useConnectionStore } from '@/stores/connection'
@@ -24,7 +25,7 @@ async function load() {
   try {
     const d = await listTasks()
     tasks.value = d.tasks || []
-  } catch (e) { ui.toast('加载失败: ' + (e as Error).message, true) }
+  } catch (e) { ui.toast('加载失败: ' + errMsg(e), true) }
   finally { loading.value = false }
 }
 onMounted(async () => {
@@ -49,11 +50,11 @@ async function onCreate() {
     showForm.value = false
     fName.value = ''
     await load()
-  } catch (e) { ui.toast('创建失败: ' + (e as Error).message, true) }
+  } catch (e) { ui.toast('创建失败: ' + errMsg(e), true) }
 }
 async function onToggle(t: TaskInfo) {
   try { await toggleTask(t.id, !t.enabled); await load() }
-  catch (e) { ui.toast('操作失败: ' + (e as Error).message, true) }
+  catch (e) { ui.toast('操作失败: ' + errMsg(e), true) }
 }
 async function onRun(t: TaskInfo) {
   if (!await confirmDanger(`确认立即执行任务「${t.name}」备份？`)) return
@@ -62,12 +63,12 @@ async function onRun(t: TaskInfo) {
     if (d.error) ui.toast('执行失败: ' + d.error, true)
     else ui.toast('备份完成: ' + (d.file || ''))
     await load()
-  } catch (e) { ui.toast('执行失败: ' + (e as Error).message, true) }
+  } catch (e) { ui.toast('执行失败: ' + errMsg(e), true) }
 }
 async function onDelete(t: TaskInfo) {
   if (!await confirmDanger(`确认删除任务「${t.name}」？`)) return
   try { await deleteTask(t.id); await load() }
-  catch (e) { ui.toast('删除失败: ' + (e as Error).message, true) }
+  catch (e) { ui.toast('删除失败: ' + errMsg(e), true) }
 }
 </script>
 

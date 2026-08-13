@@ -4,6 +4,7 @@
 // 生效类型: instant=保存即生效(LDAP/注册/认证等运行时读取项), restart=需重启(host/port/ssl);
 // 支持「立即重启」按钮(admin), 重启期间服务短暂中断, 恢复后需重新登录
 import { ref, onMounted } from 'vue'
+import { errMsg } from '@/utils/err'
 import { confirmDanger } from '@/utils/confirm'
 import { getConfigSettings, saveConfigSettings, restartServer, type ConfigSections } from '@/api/account'
 
@@ -43,7 +44,7 @@ async function load() {
     const r = await getConfigSettings()
     sections.value = r.sections || {}
     configFile.value = r.config_file || ''
-  } catch (e) { showInfo('读取失败: ' + (e as Error).message, true) }
+  } catch (e) { showInfo('读取失败: ' + errMsg(e), true) }
   loading.value = false
 }
 
@@ -56,7 +57,7 @@ async function doSave() {
     } else {
       showInfo(r.message || '已保存并即时生效')
     }
-  } catch (e) { showInfo((e as Error).message, true) }
+  } catch (e) { showInfo(errMsg(e), true) }
   saving.value = false
 }
 
@@ -66,7 +67,7 @@ async function doRestart() {
   try {
     const r = await restartServer()
     showInfo(r.message || '重启中…')
-  } catch (e) { showInfo((e as Error).message, true) }
+  } catch (e) { showInfo(errMsg(e), true) }
   // 服务重启后本页会话失效: 延迟提示并关闭弹窗
   setTimeout(() => emit('close'), 2500)
   setTimeout(() => { window.location.reload() }, 3000)

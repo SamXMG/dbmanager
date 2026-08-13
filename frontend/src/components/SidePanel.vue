@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // 左侧栏(对齐旧版侧边栏): 我的连接(点击切换) + 面包屑 + 对象树
 import { computed } from 'vue'
+import { errMsg } from '@/utils/err'
 import ObjectTree from '@/components/ObjectTree.vue'
 import { useConnectionStore } from '@/stores/connection'
 import { useDatabaseStore } from '@/stores/database'
@@ -30,8 +31,8 @@ async function switchConn(name: string) {
     await connStore.connectAndGo({ name })
     syncTablesFromConnection()
     if (router.currentRoute.value.path !== '/main') router.push('/main')
-  } catch (e: any) {
-    console.warn('切换连接失败:', e.message)
+  } catch (e: unknown) {
+    console.warn('切换连接失败:', errMsg(e))
   }
 }
 </script>

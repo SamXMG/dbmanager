@@ -2,6 +2,7 @@
 // 存储过程/函数/触发器编辑器(阶段5 批3): 打开源码 -> 编辑 -> 保存重建/执行(参数收集)/删除
 // 对齐旧版 procBar + openRoutine
 import { computed, ref, watch } from 'vue'
+import { errMsg } from '@/utils/err'
 import { confirmDanger } from '@/utils/confirm'
 import { useUIStore } from '@/stores/ui'
 import { getRoutineSource, getRoutineParams } from '@/api/database'
@@ -37,7 +38,7 @@ watch(() => ui.routine, async (r) => {
       params.value = ps || []
     } catch { params.value = [] }
   } catch (e) {
-    ui.toast('加载失败: ' + (e as Error).message, true)
+    ui.toast('加载失败: ' + errMsg(e), true)
   } finally {
     loading.value = false
   }
@@ -53,7 +54,7 @@ async function doSave() {
     const d = await saveRoutine({ s: r.s, name: r.name, kind: r.kind, source: source.value })
     ui.toast('已保存' + ((d as { message?: string }).message ? ': ' + (d as { message?: string }).message : ''))
   } catch (e) {
-    ui.toast('保存失败: ' + (e as Error).message, true)
+    ui.toast('保存失败: ' + errMsg(e), true)
   } finally {
     saving.value = false
   }
@@ -81,7 +82,7 @@ async function doExecute() {
       execResult.value = d.message || '执行成功'
     }
   } catch (e) {
-    execResult.value = '执行失败: ' + (e as Error).message
+    execResult.value = '执行失败: ' + errMsg(e)
   } finally {
     executing.value = false
   }
@@ -96,7 +97,7 @@ async function doDrop() {
     ui.toast('已删除')
     ui.closeRoutine()
   } catch (e) {
-    ui.toast('删除失败: ' + (e as Error).message, true)
+    ui.toast('删除失败: ' + errMsg(e), true)
   }
 }
 </script>

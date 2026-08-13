@@ -3,6 +3,7 @@
 // 数据源 useDatabaseStore; 展开库懒加载 /api/objects; 双击对象开 tab
 // 阶段5: 右键补全 表设计器/新建触发器/ER关系图/数据同步/结构同步(对齐旧版 tableCtxMenu)
 import { computed, ref } from 'vue'
+import { errMsg } from '@/utils/err'
 import { confirmDanger } from '@/utils/confirm'
 import Icon from '@/components/Icon.vue'
 import { useDatabaseStore, type DbObjects } from '@/stores/database'
@@ -190,7 +191,7 @@ function onConnCtx(e: MouseEvent) {
         dbStore.loadTables([], dbs || [])
         for (const db of dbStore.databases) await dbStore.loadObjects(db, true)
         ui.toast('已刷新')
-      } catch (e) { ui.toast('刷新失败: ' + (e as Error).message, true) }
+      } catch (e) { ui.toast('刷新失败: ' + errMsg(e), true) }
     }},
   ])
 }
@@ -215,7 +216,7 @@ async function openEr(s: string, t: string) {
     ui.showModal(`<h3>ER 关系图 · ${esc(s ? s + '.' : '')}${esc(t)} <span style="color:#86909c;font-weight:400;font-size:12px">(${tables.length} 表 · ${rels.length} 关系)</span></h3>
       <div style="overflow:auto;max-height:70vh">${svg}</div>
       <div class="acts"><button class="primary" data-action="close">关闭</button></div>`)
-  } catch (e) { ui.toast('ER 图加载失败: ' + (e as Error).message, true) }
+  } catch (e) { ui.toast('ER 图加载失败: ' + errMsg(e), true) }
 }
 
 function genErSvg(schema: string, name: string, tables: ErTable[], rels: ErRel[]): string {
@@ -286,7 +287,7 @@ async function openTransfer(db: string, s: string, t: string) {
         const d = await transferData({ s, t, to_db: toDb, to_t: toT })
         ui.closeModal()
         ui.toast('已同步 ' + (d.transferred ?? 0) + ' 行数据')
-      } catch (e) { ui.toast('同步失败: ' + (e as Error).message, true) }
+      } catch (e) { ui.toast('同步失败: ' + errMsg(e), true) }
     }
   }, 0)
 }
@@ -318,7 +319,7 @@ async function openSchemaSync(s: string, t: string) {
         const d = await syncTable({ src, dst: { name: dstName }, schema: s, table: t, mode })
         ui.closeModal()
         ui.toast('同步完成: 复制 ' + (d as { synced?: number }).synced + ' 行')
-      } catch (e) { ui.toast('同步失败: ' + (e as Error).message, true) }
+      } catch (e) { ui.toast('同步失败: ' + errMsg(e), true) }
     }
   }, 0)
 }
@@ -331,7 +332,7 @@ async function genInsertSql(db: string, s: string, t: string) {
     const dbType = connStore.conn?.db_type || 'mysql'
     const q = (n: string) => quoteIdent(dbType, n)
     copyText(`INSERT INTO ${q(s)}.${q(t)} (${cols.map(c => q(c.name)).join(', ')}) VALUES (${cols.map(() => '?').join(', ')});`)
-  } catch (e) { ui.toast('生成失败: ' + (e as Error).message, true) }
+  } catch (e) { ui.toast('生成失败: ' + errMsg(e), true) }
 }
 
 // 搜索平铺(已加载对象)

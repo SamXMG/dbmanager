@@ -2,6 +2,7 @@
 // 账号管理弹窗: 用户列表/审批(自助注册)/新建/删除/改角色/细粒度权限(仅 admin)
 // 局域网一次性部署定位: 成员自助注册 -> 管理员在此审批放权; 权限按 连接/表 级配置
 import { ref, computed, onMounted } from 'vue'
+import { errMsg } from '@/utils/err'
 import { confirmDanger } from '@/utils/confirm'
 import { listUsers, saveUser, deleteUser, approveUser, type UserInfo } from '@/api/account'
 import { useUIStore } from '@/stores/ui'
@@ -40,7 +41,7 @@ async function refresh() {
     // 清理已删除用户的勾选
     const names = new Set(users.value.map(u => u.username))
     for (const k of Object.keys(selected.value)) if (!names.has(k)) delete selected.value[k]
-  } catch (e) { msg.value = (e as Error).message; msgErr.value = true }
+  } catch (e) { msg.value = errMsg(e); msgErr.value = true }
   loading.value = false
 }
 
@@ -54,7 +55,7 @@ async function doApprove(username: string) {
     await approveUser(username, pendingRole.value[username] || 'read', 'approve')
     showInfo('已批准 ' + username)
     refresh()
-  } catch (e) { showInfo((e as Error).message, true) }
+  } catch (e) { showInfo(errMsg(e), true) }
 }
 
 async function doReject(username: string) {
@@ -63,7 +64,7 @@ async function doReject(username: string) {
     await approveUser(username, 'read', 'reject')
     showInfo('已拒绝 ' + username)
     refresh()
-  } catch (e) { showInfo((e as Error).message, true) }
+  } catch (e) { showInfo(errMsg(e), true) }
 }
 
 async function doSaveNew() {
@@ -73,7 +74,7 @@ async function doSaveNew() {
     showInfo('账号已创建')
     newName.value = ''; newPwd.value = ''
     refresh()
-  } catch (e) { showInfo((e as Error).message, true) }
+  } catch (e) { showInfo(errMsg(e), true) }
 }
 
 async function doChangeRole(username: string, role: string) {
@@ -81,7 +82,7 @@ async function doChangeRole(username: string, role: string) {
     await saveUser({ username, role })
     showInfo('已更新 ' + username + ' 角色')
     refresh()
-  } catch (e) { showInfo((e as Error).message, true) }
+  } catch (e) { showInfo(errMsg(e), true) }
 }
 
 async function doDelete(username: string) {
@@ -90,7 +91,7 @@ async function doDelete(username: string) {
     await deleteUser(username)
     showInfo('已删除 ' + username)
     refresh()
-  } catch (e) { showInfo((e as Error).message, true) }
+  } catch (e) { showInfo(errMsg(e), true) }
 }
 
 /** 单用户权限配置入口 */

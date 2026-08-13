@@ -2,6 +2,15 @@
 
 本项目遵循[语义化版本](https://semver.org/lang/zh-CN/)。发版流程：更新 `config.py VERSION` 与 `frontend/package.json version` → 追加本节 → 打 tag `vX.Y.Z`（自动触发 Release 构建）。
 
+## [Unreleased] - 前端类型契约收口(优化路线图 2.1)
+
+### 重构
+- **全仓 `any` 清零(22 处)**：
+  - 16 处 `catch (e: any)` → `catch (e: unknown)` + 统一 `errMsg(e, fallback)` 收窄（新增 `utils/err.ts`，79 处 `e.message`/`(e as Error).message` 收敛）
+  - `as any` 消除：`auth.ts` role 断言改字面量联合、`database.ts` 用 `tables[0]?.schema`（TableInfo 已有 schema）、`ConnPanel` `delete` 用可选化断言、`main.ts` window 挂载改 `Record<string, unknown>`
+  - `ConnPanel.vue` 与 UI ref 同名冲突用别名导入解决
+- 验证：vue-tsc 0 错、vitest 23/23
+
 ## [Unreleased] - handler 拆分 + CI lock 消费(优化路线图 1.1/1.3)
 
 ### 重构

@@ -2,6 +2,7 @@
 // 在线用户管理弹窗(仅 admin): 实时列表 + 一键踢下线(二次确认)
 // 显示: 用户名/角色/登录时间/来源IP/最后活跃/当前操作/会话数; 每 5s 自动刷新
 import { ref, onMounted, onUnmounted } from 'vue'
+import { errMsg } from '@/utils/err'
 import { confirmDanger } from '@/utils/confirm'
 import { listSessions, kickSession, type SessionInfo } from '@/api/account'
 
@@ -46,7 +47,7 @@ async function doKick(u: SessionInfo) {
     const r = await kickSession(u.user)
     showInfo(r.message || '已踢下线')
     refresh()
-  } catch (e) { showInfo((e as Error).message, true) }
+  } catch (e) { showInfo(errMsg(e), true) }
   kicking.value = ''
 }
 

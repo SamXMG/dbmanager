@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // 顶栏: 连接信息/用户/角色/主题切换/事务(真实现: 开关+提交/回滚)/停止服务
 import { ref, computed, defineAsyncComponent } from 'vue'
+import { errMsg } from '@/utils/err'
 import { useRouter } from 'vue-router'
 import { useConnectionStore } from '@/stores/connection'
 import { useAuthStore } from '@/stores/auth'
@@ -61,14 +62,14 @@ async function doCommit() {
   try {
     await txCommit(tabStore.activeId ?? 0)
     ui.toast('事务已提交')
-  } catch (e) { ui.toast('提交失败: ' + (e as Error).message, true) }
+  } catch (e) { ui.toast('提交失败: ' + errMsg(e), true) }
 }
 
 async function doRollback() {
   try {
     await txRollback(tabStore.activeId ?? 0)
     ui.toast('已回滚所有修改')
-  } catch (e) { ui.toast('回滚失败: ' + (e as Error).message, true) }
+  } catch (e) { ui.toast('回滚失败: ' + errMsg(e), true) }
 }
 
 // P1-10: 停服改 SPA 内状态遮罩(原 document.body.innerHTML 暴力清空整个 SPA, 破坏路由/状态)

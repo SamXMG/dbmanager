@@ -2,6 +2,7 @@
 // 数据浏览工具栏: 刷新/新增行/删除选中/粘贴插入/复制选中/导出 CSV(整表·选中)/统计/Redis 键操作
 // (对齐旧版工具栏; Redis 连接显示 新建键/TTL/删除键)
 import { computed } from 'vue'
+import { errMsg } from '@/utils/err'
 import { confirmDanger } from '@/utils/confirm'
 import { useGridStore } from '@/stores/grid'
 import { useTabStore } from '@/stores/tab'
@@ -142,7 +143,7 @@ function pasteInsert() {
         ui.closeModal()
         ui.toast('已导入 ' + (d as { affected?: number }).affected + ' 行')
         grid.loadData(1)
-      } catch (e) { ui.toast('导入失败: ' + (e as Error).message, true) }
+      } catch (e) { ui.toast('导入失败: ' + errMsg(e), true) }
     }
   }, 0)
 }
@@ -235,7 +236,7 @@ function redisNewKey() {
         await redisAlter('create', { type, value, ttl: ttl ? parseInt(ttl, 10) : 0 })
         ui.closeModal()
         ui.toast('已创建键 ' + name)
-      } catch (e) { ui.toast('创建失败: ' + (e as Error).message, true) }
+      } catch (e) { ui.toast('创建失败: ' + errMsg(e), true) }
     }
   }, 0)
 }
@@ -260,7 +261,7 @@ async function redisTtl() {
         await redisAlter('set_ttl', { ttl: parseInt(v, 10) })
         ui.closeModal()
         ui.toast('TTL 已更新')
-      } catch (e) { ui.toast('设置失败: ' + (e as Error).message, true) }
+      } catch (e) { ui.toast('设置失败: ' + errMsg(e), true) }
     }
   }, 0)
 }
@@ -272,7 +273,7 @@ async function redisDelKey() {
     await redisAlter('drop', {})
     ui.toast('已删除键 ' + cur.t)
     tab.closeTab(tab.activeId ?? -1)
-  } catch (e) { ui.toast('删除失败: ' + (e as Error).message, true) }
+  } catch (e) { ui.toast('删除失败: ' + errMsg(e), true) }
 }
 </script>
 

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { errMsg } from '@/utils/err'
 import { confirmDanger } from '@/utils/confirm'
 import { useRouter } from 'vue-router'
 import { useConnectionStore } from '@/stores/connection'
@@ -109,8 +110,8 @@ async function doSave() {
     await connStore.refreshConnList()
     formVisible.value = false
     msg.value = '已保存连接 ' + name; msgErr.value = false
-  } catch (e: any) {
-    msg.value = e.message || '保存失败'; msgErr.value = true
+  } catch (e: unknown) {
+    msg.value = errMsg(e, '保存失败'); msgErr.value = true
   } finally { loading.value = false }
 }
 
@@ -119,8 +120,8 @@ async function doDelete(name: string) {
   try {
     await connStore.deleteConn(name)
     msg.value = '已删除 ' + name; msgErr.value = false
-  } catch (e: any) {
-    msg.value = e.message || '删除失败'; msgErr.value = true
+  } catch (e: unknown) {
+    msg.value = errMsg(e, '删除失败'); msgErr.value = true
   }
 }
 
@@ -131,8 +132,8 @@ async function doConnect(name: string) {
     syncTablesFromConnection() // 表数据同步到树 store
     emit('close')
     setTimeout(() => router.push('/main'), 200)
-  } catch (e: any) {
-    msg.value = e.message || '连接失败'; msgErr.value = true
+  } catch (e: unknown) {
+    msg.value = errMsg(e, '连接失败'); msgErr.value = true
   } finally { loading.value = false }
 }
 
@@ -141,8 +142,8 @@ async function doTest(name: string) {
     const r = await testConn({ name })
     msg.value = r.ok ? `✓ ${r.message || '连接成功'}` : `✗ ${r.error || '连接失败'}`
     msgErr.value = !r.ok
-  } catch (e: any) {
-    msg.value = e.message || '测试失败'; msgErr.value = true
+  } catch (e: unknown) {
+    msg.value = errMsg(e, '测试失败'); msgErr.value = true
   }
 }
 

@@ -2,6 +2,7 @@
 // 权限配置弹窗(连接/表级细粒度读写): 单用户或批量(多选用户)配置
 // 每连接: 读/写开关 + 表范围(全部表 | 指定白名单表 | 黑名单表), 支持拉取真实表名多选
 import { ref, reactive, computed, onMounted } from 'vue'
+import { errMsg } from '@/utils/err'
 import { getUserPerms, saveUserPerms, fetchConnTables, type ConnPerm } from '@/api/account'
 
 const props = defineProps<{ show: boolean; usernames: string[] }>()
@@ -36,7 +37,7 @@ async function loadTables(name: string) {
     if (r.ok === false) showInfo(r.error || '拉取表列表失败', true)
     else allTables.value[name] = r.tables || []
     expanded.value[name] = true
-  } catch (e) { showInfo((e as Error).message, true) }
+  } catch (e) { showInfo(errMsg(e), true) }
   fetching.value = ''
 }
 
@@ -83,7 +84,7 @@ async function doSave() {
     showInfo(r.message || '已保存')
     emit('saved')
     setTimeout(() => emit('close'), 800)
-  } catch (e) { showInfo((e as Error).message, true) }
+  } catch (e) { showInfo(errMsg(e), true) }
   loading.value = false
 }
 
@@ -99,7 +100,7 @@ onMounted(async () => {
         else perms[c] = { read: true, write: false, tables: [], deny_tables: [] }
       }
     }
-  } catch (e) { showInfo((e as Error).message, true) }
+  } catch (e) { showInfo(errMsg(e), true) }
   loading.value = false
 })
 </script>

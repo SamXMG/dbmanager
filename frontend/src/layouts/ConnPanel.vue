@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { errMsg as toErrMsg } from '@/utils/err'
 import { useRouter } from 'vue-router'
 import { useConnectionStore } from '@/stores/connection'
 import { useAuthStore } from '@/stores/auth'
@@ -114,8 +115,8 @@ async function doConnect() {
     syncTablesFromConnection() // 表数据同步到树 store
     successMsg.value = '连接成功'
     setTimeout(() => router.push('/main'), 300)
-  } catch (e: any) {
-    errMsg.value = e.message || '连接失败'
+  } catch (e: unknown) {
+    errMsg.value = toErrMsg(e, '连接失败')
   } finally {
     loading.value = false
   }
@@ -127,8 +128,8 @@ async function doTest() {
     const r = await testConn(buildPayload())
     if (r.ok) successMsg.value = '✓ ' + (r.message || '连接成功')
     else errMsg.value = '✗ ' + (r.error || '连接失败')
-  } catch (e: any) {
-    errMsg.value = e.message || '测试失败'
+  } catch (e: unknown) {
+    errMsg.value = toErrMsg(e, '测试失败')
   }
 }
 
@@ -138,11 +139,11 @@ async function loadDbs() {
   if (!server.value.trim() || !uid.value.trim()) { errMsg.value = '请先填服务器与账号'; return }
   try {
     const payload = buildPayload()
-    delete (payload as any).database
+    delete (payload as { database?: unknown }).database
     dbList.value = await listDatabases(payload)
     successMsg.value = `已加载 ${dbList.value.length} 个数据库`
-  } catch (e: any) {
-    errMsg.value = e.message || '加载失败'
+  } catch (e: unknown) {
+    errMsg.value = toErrMsg(e, '加载失败')
   }
 }
 
@@ -168,8 +169,8 @@ async function doQuickConnect(name: string) {
     syncTablesFromConnection() // 表数据同步到树 store
     successMsg.value = '连接成功: ' + name
     setTimeout(() => router.push('/main'), 300)
-  } catch (e: any) {
-    errMsg.value = e.message || '连接失败'
+  } catch (e: unknown) {
+    errMsg.value = toErrMsg(e, '连接失败')
   } finally {
     loading.value = false
   }

@@ -28,7 +28,7 @@ export const useDatabaseStore = defineStore('database', {
       this.tables = tables || []
       const connStore = useConnectionStore()
       const cur = connStore.conn?.database
-        || ((tables || [])[0] && (tables as any[])[0].schema)
+        || (tables || [])[0]?.schema
         || ''
       // 库列表: 连接库优先 + /api/databases 全部去重; 无则回退 schema 推导
       let dbs: string[] = []
@@ -46,7 +46,8 @@ export const useDatabaseStore = defineStore('database', {
     async loadObjects(db: string, force = false): Promise<DbObjects | null> {
       const connStore = useConnectionStore()
       const cur = connStore.conn?.database
-        || ((this.tables[0] && (this.tables[0] as any).schema) || '')
+        || this.tables[0]?.schema
+        || ''
       if (db === cur) {
         // 连接库: 内存数据, 不请求
         const obj: DbObjects = { tables: this.tables, routines: this.routines }

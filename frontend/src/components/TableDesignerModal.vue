@@ -3,6 +3,7 @@
 // 对齐旧版 js/sql.js openAlter; 操作走 /api/alter, 完成后原地刷新(旧版是关掉重开, 这里更顺)
 // 外键/触发器保守策略: 生成 DDL 填入 SQL 工作台由用户确认执行(对齐旧版)
 import { computed, ref, watch } from 'vue'
+import { errMsg } from '@/utils/err'
 import { useUIStore } from '@/stores/ui'
 import { useAuthStore } from '@/stores/auth'
 import { useConnectionStore } from '@/stores/connection'
@@ -73,7 +74,7 @@ async function loadAll() {
     } catch { rels.value = [] }
     trigs.value = dbStore.routines.filter(r => r.type === 'Trigger' && (r.schema || '') === d.s)
   } catch (e) {
-    ui.toast('加载表结构失败: ' + (e as Error).message, true)
+    ui.toast('加载表结构失败: ' + errMsg(e), true)
   } finally {
     loading.value = false
   }
@@ -136,7 +137,7 @@ async function doAlter(action: string, payload: Record<string, unknown>) {
     if (at) at.meta = null
     await loadAll()
   } catch (e) {
-    ui.toast('DDL 失败: ' + (e as Error).message, true)
+    ui.toast('DDL 失败: ' + errMsg(e), true)
   }
 }
 
