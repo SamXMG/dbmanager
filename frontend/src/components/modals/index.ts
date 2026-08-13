@@ -19,6 +19,7 @@ import ColumnStatsModal from './ColumnStatsModal.vue'
 import CellDetailModal from './CellDetailModal.vue'
 import RedisKeyModal from './RedisKeyModal.vue'
 import RedisTtlModal from './RedisTtlModal.vue'
+import ExportModal from './ExportModal.vue'
 import ERDiagramModal from './ERDiagramModal.vue'
 import ResultChartModal from './ResultChartModal.vue'
 import ExplainPlanModal from './ExplainPlanModal.vue'
@@ -42,6 +43,7 @@ export const modalRegistry: Record<string, Component> = {
   CellDetailModal,
   RedisKeyModal,
   RedisTtlModal,
+  ExportModal,
   ERDiagramModal,
   ResultChartModal,
   ExplainPlanModal,

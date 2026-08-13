@@ -7,7 +7,6 @@ import { confirmDanger } from '@/utils/confirm'
 import { useGridStore } from '@/stores/grid'
 import { useTabStore } from '@/stores/tab'
 import { useAuthStore } from '@/stores/auth'
-import { API_BASE, authState } from '@/api/client'
 import { useUIStore } from '@/stores/ui'
 import { useConnectionStore } from '@/stores/connection'
 import { alterTable } from '@/api/schema'
@@ -50,13 +49,11 @@ async function deleteRows() {
   ui.toast(ok ? '已删除' : '删除失败', !ok)
 }
 
-/** 导出 CSV(走后端下载) */
-function exportCsv() {
+/** 导出(格式选择弹窗: CSV/JSON/XML/SQL-INSERT/XLSX, 功能深度①) */
+function exportData() {
   const cur = tab.current
   if (!cur) return
-  const where = grid.buildWhere()
-  const url = `${API_BASE}/api/export?s=${encodeURIComponent(cur.s)}&t=${encodeURIComponent(cur.t)}&where=${encodeURIComponent(where)}&fmt=csv`
-  window.open(url, '_blank')
+  ui.openModal('ExportModal', { s: cur.s, t: cur.t })
 }
 
 /** 复制选中行(TSV 带表头) */
@@ -149,7 +146,7 @@ async function redisDelKey() {
             title="复制选中行(TSV 带表头)">复制选中</button>
     <button class="sm" @click="exportSelected" :disabled="!grid.selectedRows.size"
             title="导出选中行为 CSV">导出选中</button>
-    <button class="sm" @click="exportCsv">导出 CSV</button>
+    <button class="sm" @click="exportData">导出</button>
     <button class="sm" @click="showStats">统计</button>
     <template v-if="isRedis">
       <button v-if="canWrite" class="sm" @click="redisNewKey" title="新建 Redis 键">新建键</button>

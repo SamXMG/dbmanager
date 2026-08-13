@@ -21,12 +21,17 @@ jobs:
       - name: Install dependencies (consumes requirements.lock, 路线图 1.3)
         run: pip install -r requirements.lock pyflakes ruff mypy pytest
       # pyodbc/oracledb 依赖按平台条件安装(requirements.lock 已声明);
-      # 测试只使用 SQLite, 无需真实数据库驱动
+      # 本 job 的单测/e2e 只使用 SQLite, 无需真实数据库驱动;
+      # 真实 MySQL/PostgreSQL 由独立 job backend-multidb 用 service container 背书
       - name: Static check (ruff F+E9, 与 pyflakes 语义对齐)
         shell: bash
         run: |
           ruff check --select F,E9 . 2>&1 | tail -20
           python -m pyflakes *.py routes/*.py services/*.py tests/*.py 2>&1 | grep -i "undefined" && exit 1 || exit 0
+      - name: Format check (ruff format, 纯增量门禁, 存量未对齐前不阻断)
+        continue-on-error: true   # 52 个文件尚未 ruff 格式化, 先作信号不阻断发版
+        shell: bash
+        run: ruff format --check .
       - name: Type check (mypy, 路线图 1.3: 先 non-blocking, 存量标注收敛后转阻断)
         continue-on-error: true
         run: mypy scanner.py handler_security.py services/core.py config.py dbcore.py
@@ -61,6 +66,61 @@ jobs:
         run: |
           pip install pip-audit
           pip-audit -r requirements.lock --timeout 60
+
+  backend-multidb:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: rootpw
+          MYSQL_DATABASE: dbm_test
+          MYSQL_USER: dbm
+          MYSQL_PASSWORD: dbm
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -prootpw"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: dbm_test
+          POSTGRES_USER: dbm
+          POSTGRES_PASSWORD: dbm
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U dbm -d dbm_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies (consumes requirements.lock)
+        run: pip install -r requirements.lock pytest
+      - name: Wait for databases (端口就绪后再测)
+        run: |
+          for port in 3306 5432; do
+            echo "waiting for 127.0.0.1:$port ..."
+            for i in $(seq 1 30); do
+              if (echo > /dev/tcp/127.0.0.1/$port) 2>/dev/null; then
+                echo "port $port ready"; break
+              fi
+              sleep 1
+            done
+          done
+          sleep 3
+      - name: Multi-DB core path tests (MySQL + PostgreSQL)
+        env:
+          DBM_TEST_MYSQL_URL: mysql+pymysql://dbm:dbm@127.0.0.1:3306/dbm_test
+          DBM_TEST_PG_URL: postgresql+pg8000://dbm:dbm@127.0.0.1:5432/dbm_test
+        run: python -m pytest tests/multidb_core.py -q
 
   frontend:
     runs-on: ubuntu-latest

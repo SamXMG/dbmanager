@@ -130,7 +130,7 @@ def parse_xlsx_import(data):
     return aligned[0], aligned[1:]   # 首行表头, 其余数据
 
 def export_data(ci, schema, table, where, fmt="csv"):
-    """导出表数据为 CSV(带 BOM, Excel 兼容)或 JSON, 受 where 过滤"""
+    """导出表数据为 CSV(带 BOM, Excel 兼容)/JSON/XML/SQL-INSERT/XLSX, 受 where 过滤"""
     cols = get_columns(ci, schema, table)
     col_names = [c["name"] for c in cols]
     t = get_table_obj(ci, schema, table)
@@ -145,8 +145,41 @@ def export_data(ci, schema, table, where, fmt="csv"):
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 table + ".xlsx")
     if fmt == "json":
-        content = json.dumps(rows, ensure_ascii=False, default=str)
+        content = json.dumps(rows, ensure_ascii=False, default=str, indent=2)
         return content, "application/json; charset=utf-8", table + ".json"
+    if fmt == "xml":
+        # XML 行式导出: <rows><row><col>值</col>...</row></rows>, 值经 XML 转义
+        _esc = lambda s: (str(s).replace("&", "&amp;").replace("<", "&lt;")
+                          .replace(">", "&gt;").replace('"', "&quot;").replace("'", "&apos;"))
+        buf = io.StringIO()
+        buf.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+        buf.write("<rows>\n")
+        for r in rows:
+            buf.write("  <row>\n")
+            for cn in col_names:
+                v = py_to_json(r.get(cn))
+                buf.write('    <%s>%s</%s>\n' % (cn, _esc("" if v is None else v), cn))
+            buf.write("  </row>\n")
+        buf.write("</rows>\n")
+        return buf.getvalue(), "application/xml; charset=utf-8", table + ".xml"
+    if fmt == "sql":
+        # SQL-INSERT 导出: 完整 INSERT 语句(含表名/列名方言引用), 可回放
+        db_type = (ci.get("db_type") or "mysql").lower()
+        tbl = _qi(db_type, schema) + "." + _qi(db_type, table) if schema else _qi(db_type, table)
+        buf = io.StringIO()
+        cols_sql = ", ".join(_qi(db_type, c) for c in col_names)
+        for r in rows:
+            vals = []
+            for cn in col_names:
+                v = py_to_json(r.get(cn))
+                if v is None:
+                    vals.append("NULL")
+                elif isinstance(v, (int, float)) and not isinstance(v, bool):
+                    vals.append(str(v))
+                else:
+                    vals.append("'" + str(v).replace("'", "''") + "'")
+            buf.write("INSERT INTO %s (%s) VALUES (%s);\n" % (tbl, cols_sql, ", ".join(vals)))
+        return buf.getvalue(), "application/sql; charset=utf-8", table + ".sql"
     buf = io.StringIO()
     for i, cn in enumerate(col_names):
         if i:
