@@ -228,6 +228,10 @@ class BodyTooLarge(Exception):
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
+    # 请求级超时(高并发评审补丁 ②): BaseHTTPRequestHandler 默认 None(无超时),
+    # 慢速客户端(slowloris)可占住 worker 无限期。30s 内未读完 header/body 即断连。
+    timeout = 30
+
     def log_message(self, fmt, *args):
         if conf("DBM_LOG"):
             try:

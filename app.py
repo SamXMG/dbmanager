@@ -44,25 +44,69 @@ class ResilientHTTPServer(http.server.ThreadingHTTPServer):
     外层主线程因另一个线程仍存活而不会退出进程，表现为“端口 LISTENING 却连不上”。
     这里把 accept 阶段的异常全部吞掉，并在主循环里自动重启死掉的线程。
 
-    并发挡板（高并发应对方案）：原生 ThreadingHTTPServer 每请求新建一个 OS 线程且无上限，
-    500 并发会瞬间拉起 ~500 线程（仅栈内存就约 4GB）并被连接池卡死。这里覆盖
-    process_request，把请求投递到固定大小的有界线程池（config.REQUEST_WORKERS），
-    超额请求在池队列排队等待，而非无限拉线程；进程退出时优雅关闭线程池。"""
+    并发挡板（高并发应对方案评审补丁 2026-08-13）：
+    - 原生 ThreadingHTTPServer 每请求新建一个 OS 线程且无上限（500 并发≈4GB 栈内存）。
+      覆盖 process_request 把请求投递到固定大小线程池（config.REQUEST_WORKERS）。
+    - 有界队列 + 背压：信号量(REQUEST_QUEUE)限制排队上限，过载立即 503（客户端马上
+      知道失败，而非无限排队耗尽内存）；杜绝 SimpleQueue 无界堆积。
+    - accept 队列调大(request_queue_size=128)：TCP 层先排队，避免 500 并发 SYN 被 RST。"""
+
+    # TCP accept 背压(stdlib 默认仅 5): 高并发 SYN 先在内核队列排队, 而非被 RST
+    request_queue_size = 128
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         n = config.REQUEST_WORKERS or 64
         self._req_executor = concurrent.futures.ThreadPoolExecutor(
             max_workers=n, thread_name_prefix="dbm-req")
+        # 有界排队闸门: 允许排队的请求数上限(线程数*8), 超限立即 503(背压)
+        q = getattr(config, "REQUEST_QUEUE", None) or max(n * 8, 128)
+        self._req_sem = threading.BoundedSemaphore(q)
 
     def process_request(self, request, client_address):
-        # 覆盖 ThreadingMixIn 默认的无界 thread.start()；投递到有界线程池，
-        # 由 process_request_thread 完成请求并 shutdown_request 关闭 socket。
-        self._req_executor.submit(self.process_request_thread, request, client_address)
+        # 覆盖 ThreadingMixIn 默认的无界 thread.start()；投递到有界线程池。
+        # 信号量拿不到 -> 服务已过载: 立即 503(客户端快速失败), 不占线程/内存。
+        if not self._req_sem.acquire(blocking=False):
+            try:
+                request.sendall(
+                    b"HTTP/1.0 503 Service Unavailable\r\n"
+                    b"Content-Type: text/plain\r\nContent-Length: 16\r\n"
+                    b"Connection: close\r\n\r\nserver overloaded")
+            except Exception:
+                pass
+            try:
+                request.shutdown(socket.SHUT_RDWR)
+            except Exception:
+                pass
+            try:
+                request.close()
+            except Exception:
+                pass
+            return
+        try:
+            self._req_executor.submit(self._process_bounded, request, client_address)
+        except Exception:
+            # 线程池已关闭等异常: 释放闸门并关连接, 不能把异常留在 accept 循环
+            self._req_sem.release()
+            try:
+                request.close()
+            except Exception:
+                pass
+
+    def _process_bounded(self, request, client_address):
+        """线程池 worker: 处理请求后必须释放信号量闸门。"""
+        try:
+            self.process_request_thread(request, client_address)
+        finally:
+            try:
+                self._req_sem.release()
+            except Exception:
+                pass
 
     def server_close(self):
         try:
-            self._req_executor.shutdown(wait=False)
+            # cancel_futures: 取消队列中未执行的任务, 避免退出时排队任务继续被 atexit join
+            self._req_executor.shutdown(wait=False, cancel_futures=True)
         except Exception:
             pass
         super().server_close()
@@ -290,6 +334,19 @@ def run():
                 s.server_close()
             except Exception:
                 pass
+        # 退出不卡死(高并发评审补丁 ④): ThreadPoolExecutor worker 非 daemon,
+        # 且 concurrent.futures 注册了 atexit _python_exit(join 全部 worker)。
+        # server_close 已 cancel_futures 取消排队任务; 给正在执行的任务 2s 收尾,
+        # 然后强制 _exit(0) 绕开 atexit join, 避免 Ctrl+C 时因慢查询悬挂。
+        try:
+            time.sleep(2)
+        except Exception:
+            pass
+        try:
+            import os as _os
+            _os._exit(0)
+        except Exception:
+            pass
 
 if __name__ == "__main__":
     run()

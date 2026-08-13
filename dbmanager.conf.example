@@ -68,3 +68,17 @@ ldap_binddn =
 ldap_bindpw =
 # 用户名属性(AD 默认 sAMAccountName; OpenLDAP 常用 uid)
 ldap_attr = sAMAccountName
+
+# ===================== [concurrency] 高并发挡板(可选, 默认已安全) =====================
+# 处理请求的最大 OS 线程数(有界线程池)。500 并发时: 64 执行 + 其余排队/快速失败。
+# 机器核/内存富余可调大; 别设过大(失去挡板意义)。
+request_workers = 64
+# 排队上限(背压): 在跑线程外最多允许这么多请求排队, 超过立即 503 快速失败。
+# 留空=自动(线程数*8, 下限 128)。调小=更早拒绝; 调大=更宽容(但内存占用上升)。
+request_queue =
+# 单目标库连接池: 常驻连接数 / 峰值额外连接 / 池满取连超时(秒)。
+# 单库并发上限 = db_pool_size + db_pool_max_overflow; 池满等 pool_timeout 秒后 5xx。
+# 注意: SQLite 单连接串行(不适用这些参数), 高并发打同一 sqlite 库会排队。
+db_pool_size = 10
+db_pool_max_overflow = 20
+db_pool_timeout = 5

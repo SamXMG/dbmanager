@@ -2,6 +2,16 @@
 
 本项目遵循[语义化版本](https://semver.org/lang/zh-CN/)。发版流程：更新 `config.py VERSION` 与 `frontend/package.json version` → 追加本节 → 打 tag `vX.Y.Z`（自动触发 Release 构建）。
 
+## [Unreleased] - 高并发背压补丁(评审 ①~④)
+
+### 修复
+- **有界队列 + 过载 503 背压**：`ResilientHTTPServer` 加信号量闸门（容量 = `REQUEST_QUEUE`，默认线程数×8 下限 128），超过排队上限的请求立即返回 503（而非无界队列耗尽内存、客户端无限等待）。
+- **slowloris 防护**：`Handler.timeout = 30`（请求级超时，慢速连接 30s 断连，不再占死 worker）。
+- **TCP accept 背压**：`request_queue_size` 5 → 128（高并发 SYN 先在内核队列排队，而非被 RST）。
+- **退出不卡死**：`server_close` 用 `cancel_futures=True` 取消排队任务 + 主循环退出时 2s 宽限后 `os._exit(0)`，绕开 `concurrent.futures` atexit 对非 daemon worker 的无限 join（Ctrl+C 不再悬挂）。
+- 新配置 `DBM_REQUEST_QUEUE`（`[concurrency] request_queue`），`dbmanager.conf.example` 同步。
+- 新增 `tests/test_concurrency.py`（背压 503 / 正常路径不误报 / 超时 / accept 队列 / 容量自动计算 5 项）。
+
 ## [Unreleased] - 设计 Token 收口 + 无障碍达标(优化路线图 3.4/3.6)
 
 ### UI

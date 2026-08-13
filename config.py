@@ -62,6 +62,7 @@ _ENV_MAP = {
     "DBM_DEFAULT_CONN": ("server", "default_conn", ""),
     # [concurrency] 高并发挡板(应对百级并发查询, 防 500 线程爆内存 + 连接池耗尽)
     "DBM_REQUEST_WORKERS": ("concurrency", "request_workers", "64"),
+    "DBM_REQUEST_QUEUE": ("concurrency", "request_queue", ""),
     "DBM_DB_POOL_SIZE": ("concurrency", "db_pool_size", "10"),
     "DBM_DB_POOL_MAX_OVERFLOW": ("concurrency", "db_pool_max_overflow", "20"),
     "DBM_DB_POOL_TIMEOUT": ("concurrency", "db_pool_timeout", "5"),
@@ -133,9 +134,12 @@ QUERY_TIMEOUT = 30         # 查询超时(秒)
 # 高并发挡板(应对数百级并发查询, 详见 docs/高并发应对方案):
 # REQUEST_WORKERS —— 处理请求的 OS 线程上限(有界线程池); 超额请求在池队列排队,
 #   不再像原生 ThreadingHTTPServer 那样每请求一线程无上限(500 并发≈4GB 栈内存)。
+# REQUEST_QUEUE —— 排队上限(有界背压, 评审补丁): 在跑线程数外最多允许这么多请求排队,
+#   超过立即 503 快速失败(客户端马上知道, 而非无界队列耗尽内存)。空=自动(线程数*8, 下限 128)。
 # DB_POOL_SIZE / MAX_OVERFLOW / TIMEOUT —— 每个目标库 SQLAlchemy 连接池的并发上限与
 #   取连超时; 池满时快速失败(5xx)而非阻塞 30s 把线程占死。
 REQUEST_WORKERS = conf_int("DBM_REQUEST_WORKERS") or 64
+REQUEST_QUEUE = conf_int("DBM_REQUEST_QUEUE") or 0
 DB_POOL_SIZE = conf_int("DBM_DB_POOL_SIZE") or 10
 DB_POOL_MAX_OVERFLOW = conf_int("DBM_DB_POOL_MAX_OVERFLOW") or 20
 DB_POOL_TIMEOUT = conf_int("DBM_DB_POOL_TIMEOUT") or 5
