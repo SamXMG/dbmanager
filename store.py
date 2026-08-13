@@ -38,6 +38,7 @@ def list_connections():
             "has_pwd": bool(c.get("pwd_enc")),
             "visible_to": c.get("visible_to") or [],   # 内网 ACL: 可见用户列表(空=所有人)
             "mode": c.get("mode", ""),                  # read_only: 生产库强制只读标记
+            "owner": c.get("owner", ""),                # 创建者用户名(P1-7 归属校验; 老连接为空=兼容)
         })
     return out
 
@@ -61,6 +62,8 @@ def save_connection(conn):
         # 内网 ACL: 可见用户列表(空=所有人); mode=read_only 生产库强制只读(仅 admin 可设)
         "visible_to": conn.get("visible_to") or [],
         "mode": "read_only" if conn.get("mode") == "read_only" else "",
+        # 归属(P1-7): 记录创建者用户名, 供删除/修改校验; 老连接无此字段视为公共(空)
+        "owner": (conn.get("owner") or "").strip(),
     }
     # SSH 隧道配置: 密码同样加密存储(密钥路径明文)
     t = conn.get("tunnel")

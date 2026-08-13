@@ -2,6 +2,7 @@
 // 在线用户管理弹窗(仅 admin): 实时列表 + 一键踢下线(二次确认)
 // 显示: 用户名/角色/登录时间/来源IP/最后活跃/当前操作/会话数; 每 5s 自动刷新
 import { ref, onMounted, onUnmounted } from 'vue'
+import { confirmDanger } from '@/utils/confirm'
 import { listSessions, kickSession, type SessionInfo } from '@/api/account'
 
 const emit = defineEmits<{ close: [] }>()
@@ -39,7 +40,7 @@ function relTime(ts: number): string {
 
 async function doKick(u: SessionInfo) {
   // 二次确认: 踢下线不可撤销
-  if (!confirm(`确认将用户「${u.user}」强制下线？\n其当前所有会话（${u.sessions} 个）将被立即断开，重新登录前无法使用。`)) return
+  if (!await confirmDanger(`确认将用户「${u.user}」强制下线？\n其当前所有会话（${u.sessions} 个）将被立即断开，重新登录前无法使用。`)) return
   kicking.value = u.user
   try {
     const r = await kickSession(u.user)

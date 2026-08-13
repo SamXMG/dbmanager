@@ -4,13 +4,14 @@ import json
 import urllib.request
 import urllib.error
 import sqlite3
-import tempfile
 import os
 import time
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import sqlitedb   # 用于备份/恢复用户数据(改密流程影响同服务连跑的后续 e2e)
 
 BASE = 'http://127.0.0.1:8770'
-TMP = tempfile.gettempdir()
-DB = os.path.join(TMP, 'dbm_st5b_%s.db' % int(time.time()))
+DB = 'dbm_st5b_%s.db' % int(time.time())   # 项目根相对路径(P0-3 沙箱)
 PASS, FAIL = [], []
 
 def check(name, cond, extra=''):
@@ -42,8 +43,16 @@ c.execute("INSERT INTO emp (name, dept) VALUES ('张三', '研发')")
 c.execute("INSERT INTO emp (name, dept) VALUES ('李四', '销售')")
 c.commit(); c.close()
 
-st, d = req('POST', '/api/login', {'username': 'admin', 'password': 'admin123'})
+ADM_PWD = os.environ.get('DBM_DEFAULT_PWD') or 'admin123'
+# 备份用户数据: 改密流程(must_change_pwd)会改 admin 口令, 结尾恢复以免影响同服务连跑的后续 e2e
+_USERS_BAK = sqlitedb.users_load()
+st, d = req('POST', '/api/login', {'username': 'admin', 'password': ADM_PWD})
 tok = d.get('token', '')
+# 强制改密(P0-1)适配: 非默认口令起库时 admin 首登须改密, 否则业务接口 403
+if d.get('must_change_pwd'):
+    st2, _ = req('POST', '/api/password', {'old_password': ADM_PWD, 'new_password': 'E2eAdmin@2026'}, tok=tok)
+    check('admin 首次改密', st2 == 200, str(st2))
+
 check('admin 登录', st == 200 and tok, str(st))
 st, d = req('POST', '/api/connect', {'db_type': 'sqlite', 'database': DB}, tok=tok)
 check('连接', st == 200 and d.get('ok'), str(st))
@@ -93,6 +102,10 @@ check('routine/save 返回 error', st in (200, 500) and 'error' in d, str(st) + 
 st, d = req('GET', '/api/routine/source?s=main&name=p1&kind=Procedure', tok=tok, session=ss)
 check('routine/source 路由通', st == 200, str(st))
 
+
+# 恢复原始用户数据(防影响同服务连跑的后续 e2e)
+if _USERS_BAK is not None:
+    sqlitedb.users_save(_USERS_BAK)
 print('\n===== 批2-6 端到端: %d PASS / %d FAIL =====' % (len(PASS), len(FAIL)))
 if FAIL:
     print('失败项:', FAIL)

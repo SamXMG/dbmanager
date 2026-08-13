@@ -42,17 +42,12 @@ const dbType = computed(() => connStore.conn?.db_type || 'mysql')
 const isSqlite = computed(() => (dbType.value || '').toLowerCase() === 'sqlite')
 const canEdit = computed(() => auth.canWrite && !isSqlite.value)
 
+// P1-9 去重: esc/quoteIdent 统一从 utils/sqlIdent.ts 导入(原组件内本地定义删除)
+import { esc, quoteIdent } from '@/utils/sqlIdent'
+import { confirmDanger } from '@/utils/confirm'
+
 // 方言标识引用
-function q(name: string): string {
-  const t = dbType.value.toLowerCase()
-  if (t === 'mssql') return '[' + name + ']'
-  if (t === 'mysql' || t === 'mariadb' || t === 'oceanbase' || t === 'tidb') return '`' + name + '`'
-  return '"' + name + '"'
-}
-function esc(s: unknown): string {
-  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
-}
+function q(name: string): string { return quoteIdent(dbType.value, name) }
 
 // 同库表列表(对象切换下拉)
 const dbTables = computed(() => {
@@ -109,7 +104,7 @@ async function modifyColumn(name: string) {
   await doAlter('modify_column', { name, type: nt.trim(), nullable })
 }
 async function dropColumn(name: string) {
-  if (!window.confirm('确认删除字段 ' + name + '? 该操作不可逆!')) return
+  if (!await confirmDanger('确认删除字段 ' + name + '? 该操作不可逆!', '删除字段')) return
   await doAlter('drop_column', { name })
 }
 
@@ -123,7 +118,7 @@ async function addIndex() {
   if (d) newIdx.value = { name: '', columns: '', unique: false }
 }
 async function dropIndex(name: string) {
-  if (!window.confirm('确认删除索引 ' + name + '?')) return
+  if (!await confirmDanger('确认删除索引 ' + name + '?', '删除索引')) return
   await doAlter('drop_index', { name })
 }
 
@@ -162,10 +157,10 @@ function addForeignKey() {
     ' FOREIGN KEY (' + q(col.trim()) + ') REFERENCES ' + refParts + ' (' + q(refCol.trim()) + ');'
   toSqlEditor(sql)
 }
-function dropFk(name: string) {
+async function dropFk(name: string) {
   const d = target.value
   if (!d) return
-  if (!window.confirm('确认删除外键 ' + name + '?')) return
+  if (!await confirmDanger('确认删除外键 ' + name + '?', '删除外键')) return
   toSqlEditor('ALTER TABLE ' + q(d.s) + '.' + q(d.t) + ' DROP CONSTRAINT ' + q(name) + ';')
 }
 

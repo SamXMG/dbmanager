@@ -23,7 +23,7 @@ from ops import (
     export_data, export_schema_doc, gen_data, get_columns, get_data,
     get_databases, get_er_data, get_indexes, get_relations, get_routine_params,
     get_routine_source, get_routines, get_tables, get_users_privs, import_data,
-    mutate, parse_xlsx_import, restore_sql, rollback_transaction, run_sql,
+    mutate, mutate_batch_delete, parse_xlsx_import, restore_sql, rollback_transaction, run_sql,
     save_routine, stats_column, sync_table, transfer_data,
 )
 from store import (
@@ -137,6 +137,19 @@ def handle_post(handler, path, q):
                     d = mutate(conn, "POST", b["s"], b["t"], b, use_tx, b.get("tx_id", ""))
                     handler._send_json(200, d)
                     handler._audit_action( "row_insert", "%s.%s" % (b["s"], b["t"]))
+                    return True
+    if path == "/api/rows/delete":
+                    # 批量删除(P1-9): keys=主键值数组, 单请求删除多行(前端原 N 次串行 DELETE /api/row)
+                    conn = handler._resolve_conn()
+                    b = handler._body()
+                    keys = b.get("keys") or []
+                    if not keys or len(keys) > 5000:
+                        handler._send_json(400, {"error": "keys 需为 1-5000 条主键数组"})
+                        return True
+                    use_tx = b.get("transaction", False)
+                    d = mutate_batch_delete(conn, b["s"], b["t"], keys, use_tx, b.get("tx_id", ""))
+                    handler._send_json(200, d)
+                    handler._audit_action( "row_delete_batch", "%s.%s x%d" % (b["s"], b["t"], len(keys)))
                     return True
     if path == "/api/transaction/commit":
                     conn = handler._resolve_conn()

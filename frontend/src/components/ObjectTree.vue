@@ -3,6 +3,8 @@
 // 数据源 useDatabaseStore; 展开库懒加载 /api/objects; 双击对象开 tab
 // 阶段5: 右键补全 表设计器/新建触发器/ER关系图/数据同步/结构同步(对齐旧版 tableCtxMenu)
 import { computed, ref } from 'vue'
+import { confirmDanger } from '@/utils/confirm'
+import Icon from '@/components/Icon.vue'
 import { useDatabaseStore, type DbObjects } from '@/stores/database'
 import { useConnectionStore } from '@/stores/connection'
 import { useTabStore } from '@/stores/tab'
@@ -41,22 +43,13 @@ function unpin(p: { db: string; s: string; t: string }, e: MouseEvent) {
 const connName = computed(() =>
   (connStore.conn && (connStore.conn.name || connStore.conn.server || connStore.conn.database)) || '连接')
 
-const OBJ_ICON: Record<string, string> = { Table: '📋', View: '👁️', Procedure: 'ƒ', Function: 'ƒ', Trigger: '🔔' }
+const OBJ_ICON: Record<string, string> = { Table: 'table', View: 'view', Procedure: 'code', Function: 'code', Trigger: 'bell' }
 
-/** 方言列引用(对齐旧 quoteIdent): mysql `col` / mssql [col] / 其他 "col" */
-function quoteIdent(dbType: string, name: string): string {
-  const t = (dbType || '').toLowerCase()
-  if (t === 'mssql') return '[' + name + ']'
-  if (t === 'mysql' || t === 'mariadb' || t === 'oceanbase' || t === 'tidb') return '`' + name + '`'
-  return '"' + name + '"'
-}
+// P1-9 去重: esc/quoteIdent 统一从 utils/sqlIdent.ts 导入(原组件内本地定义删除)
+import { esc, quoteIdent } from '@/utils/sqlIdent'
 async function copyText(t: string) {
   try { await navigator.clipboard.writeText(t); ui.toast('已复制: ' + t.slice(0, 60)) }
   catch { ui.toast('复制失败(浏览器限制)', true) }
-}
-function esc(s: unknown): string {
-  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 }
 
 /** 表/视图/过程/函数/触发器 右键菜单(Navicat 化) */
@@ -89,17 +82,17 @@ function onTableCtx(e: MouseEvent, db: string, s: string, t: string, type: strin
     { label: '复制表...', fn: () => openCopyTable(s, t) },
     { label: '维护表(检查/优化/分析/修复)', fn: () => openMaintainTable(s, t) },
     { label: '清空表(保留自增)', danger: true, fn: async () => {
-      if (!confirm(`清空表 ${fullName}？\n保留自增(下次插入从原值继续)`)) return
+      if (!await confirmDanger(`清空表 ${fullName}？\n保留自增(下次插入从原值继续)`)) return
       await execAlter(s, t, 'clear_table', {})
       ui.toast('已清空'); dbStore.loadObjects(db, true)
     }},
     { label: '截断表(重置自增)', danger: true, fn: async () => {
-      if (!confirm(`截断表 ${fullName}？\n清空全部行并重置自增(SQLite 用 DELETE 模拟)`)) return
+      if (!await confirmDanger(`截断表 ${fullName}？\n清空全部行并重置自增(SQLite 用 DELETE 模拟)`)) return
       await execAlter(s, t, 'truncate_table', {})
       ui.toast('已截断'); dbStore.loadObjects(db, true)
     }},
     { label: '删除表', danger: true, fn: async () => {
-      if (!confirm(`⚠ 删除表 ${fullName}？\n该操作不可恢复！`)) return
+      if (!await confirmDanger(`⚠ 删除表 ${fullName}？\n该操作不可恢复！`)) return
       await execAlter(s, t, 'drop_table', {})
       ui.toast('已删除'); dbStore.loadObjects(db, true)
     }},
@@ -318,7 +311,7 @@ async function openSchemaSync(s: string, t: string) {
       const dstName = (document.getElementById('syncDst') as HTMLSelectElement).value
       const mode = (document.getElementById('syncMode') as HTMLSelectElement).value
       if (!dstName) { ui.toast('请选择目标连接', true); return }
-      if (!confirm(`确认将 ${s}.${t} 同步到「${dstName}」(${mode === 'replace' ? '清空目标后复制' : '追加'})?`)) return
+      if (!await confirmDanger(`确认将 ${s}.${t} 同步到「${dstName}」(${mode === 'replace' ? '清空目标后复制' : '追加'})?`)) return
       const conn = connStore.conn
       const src = conn && conn.name ? { name: conn.name } : conn || {}
       try {
@@ -377,11 +370,11 @@ function typeGroups(db: string, schema: string | null) {
   const views = inSch(obj.tables).filter(t => t.type === 'View')
   const routines = inSch(obj.routines || [])
   return [
-    { label: '表', items: tables, icon: '📋' },
-    { label: '视图', items: views, icon: '👁️' },
-    { label: '存储过程', items: routines.filter(r => r.type === 'Procedure'), icon: 'ƒ' },
-    { label: '函数', items: routines.filter(r => r.type === 'Function'), icon: 'ƒ' },
-    { label: '触发器', items: routines.filter(r => r.type === 'Trigger'), icon: '🔔' },
+    { label: '表', items: tables, icon: 'table' },
+    { label: '视图', items: views, icon: 'view' },
+    { label: '存储过程', items: routines.filter(r => r.type === 'Procedure'), icon: 'code' },
+    { label: '函数', items: routines.filter(r => r.type === 'Function'), icon: 'code' },
+    { label: '触发器', items: routines.filter(r => r.type === 'Trigger'), icon: 'bell' },
   ]
 }
 
@@ -424,7 +417,7 @@ function openObj(db: string, s: string, name: string, type: string) {
              :title="it.db + '.' + (it.s ? it.s + '.' : '') + it.name"
              @dblclick="openObj(it.db, it.s, it.name, it.type)"
              @contextmenu="onTableCtx($event, it.db, it.s, it.name, it.type)">
-          <span>{{ OBJ_ICON[it.type] || '📋' }} {{ it.s && it.s !== it.db ? it.s + '.' : '' }}{{ it.name }}</span>
+          <span><Icon :name="OBJ_ICON[it.type] || 'table'" :size="13" /> {{ it.s && it.s !== it.db ? it.s + '.' : '' }}{{ it.name }}</span>
           <span class="ty">{{ it.type }}</span>
         </div>
         <div v-if="!flatItems.length" class="empty2">无匹配对象</div>
@@ -443,7 +436,7 @@ function openObj(db: string, s: string, name: string, type: string) {
         <template v-for="db in dbStore.databases" :key="db">
           <div class="tnode lvl1" @click="toggleDb(db)" @contextmenu.prevent="onDbCtx($event, db)">
             <span class="caret" :class="{ open: dbStore.expanded.has(db) }">▾</span>
-            <span>🗄️ {{ db }}</span>
+            <span><Icon name="database" :size="14" /> {{ db }}</span>
             <span v-if="loadingDb === db" class="loading">…</span>
           </div>
 
@@ -451,14 +444,14 @@ function openObj(db: string, s: string, name: string, type: string) {
             <!-- 无 schema 层(MySQL) -->
             <template v-if="!dbSchemas(db).length">
               <div v-for="g in typeGroups(db, null)" :key="g.label" class="grp">
-                <div class="grp-head">{{ g.icon }} {{ g.label }} ({{ g.items.length }})</div>
+                <div class="grp-head"><Icon :name="g.icon" :size="13" /> {{ g.label }} ({{ g.items.length }})</div>
                 <div v-if="g.items.length" class="grp-body">
                   <div v-for="t in g.items" :key="t.name" class="item"
                        :title="db + '.' + (t.schema ? t.schema + '.' : '') + t.name"
-                       @dblclick="openObj(db, t.schema || '', t.name, (t as any).type || 'Table')"
-                       @contextmenu="onTableCtx($event, db, t.schema || '', t.name, (t as any).type || 'Table')">
-                    <span>{{ (t as any).type === 'View' ? '👁️' : '📋' }} {{ t.name }}</span>
-                    <span class="ty">{{ (t as any).type || 'Table' }}</span>
+                       @dblclick="openObj(db, t.schema || '', t.name, (t.type || 'Table'))"
+                       @contextmenu="onTableCtx($event, db, t.schema || '', t.name, (t.type || 'Table'))">
+                    <span><Icon :name="t.type === 'View' ? 'view' : 'table'" :size="13" /> {{ t.name }}</span>
+                    <span class="ty">{{ (t.type || 'Table') }}</span>
                   </div>
                 </div>
                 <div v-else class="empty2" style="padding:2px 12px">无</div>
@@ -469,17 +462,17 @@ function openObj(db: string, s: string, name: string, type: string) {
               <template v-for="sch in dbSchemas(db)" :key="sch">
                 <div class="tnode lvl2">
                   <span class="caret open">▾</span>
-                  <span>📁 {{ sch }}</span>
+                  <span><Icon name="folder" :size="13" /> {{ sch }}</span>
                 </div>
                 <div class="tbl-group-body">
                   <div v-for="g in typeGroups(db, sch)" :key="g.label" class="grp">
-                    <div class="grp-head">{{ g.icon }} {{ g.label }} ({{ g.items.length }})</div>
+                    <div class="grp-head"><Icon :name="g.icon" :size="13" /> {{ g.label }} ({{ g.items.length }})</div>
                     <div v-if="g.items.length" class="grp-body">
                       <div v-for="t in g.items" :key="t.name" class="item"
-                           @dblclick="openObj(db, sch === '(默认)' ? '' : sch, t.name, (t as any).type || 'Table')"
-                           @contextmenu="onTableCtx($event, db, sch === '(默认)' ? '' : sch, t.name, (t as any).type || 'Table')">
-                        <span>{{ (t as any).type === 'View' ? '👁️' : '📋' }} {{ t.name }}</span>
-                        <span class="ty">{{ (t as any).type || 'Table' }}</span>
+                           @dblclick="openObj(db, sch === '(默认)' ? '' : sch, t.name, (t.type || 'Table'))"
+                           @contextmenu="onTableCtx($event, db, sch === '(默认)' ? '' : sch, t.name, (t.type || 'Table'))">
+                        <span><Icon :name="t.type === 'View' ? 'view' : 'table'" :size="13" /> {{ t.name }}</span>
+                        <span class="ty">{{ (t.type || 'Table') }}</span>
                       </div>
                     </div>
                     <div v-else class="empty2" style="padding:2px 12px">无</div>

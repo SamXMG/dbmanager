@@ -1,5 +1,5 @@
 // SQL 工作台 API(阶段 4): 执行/解释 + 结果导出(xlsx 走后端 blob)
-import { post, authState, buildConnHeader, API_BASE } from './client'
+import { post, authHeaders, API_BASE } from './client'
 
 export interface SqlResult {
   sql?: string
@@ -29,11 +29,8 @@ export async function exportSqlXlsx(
   rows: Record<string, unknown>[],
   filename = 'query_result.xlsx',
 ): Promise<void> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (authState.userToken) headers['X-User-Token'] = authState.userToken
-  if (authState.session) headers['X-Session'] = authState.session
-  else if (authState.conn) headers['X-Conn'] = await buildConnHeader(authState.conn)
-  if (authState.gatewayToken) headers['X-Gateway-Token'] = authState.gatewayToken
+  // P1-9 去重: 统一走 client.authHeaders()
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', ...(await authHeaders()) }
   const r = await fetch(API_BASE + '/api/export/sql', {
     method: 'POST', headers,
     body: JSON.stringify({ columns, rows }),

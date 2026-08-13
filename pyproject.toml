@@ -1,0 +1,29 @@
+# DB Manager 后端工程化配置(P1-6): ruff 静态检查 + black 格式 + mypy 类型
+# 使用: pip install -r requirements-dev.txt(或 pip install ruff black mypy) 后
+#   ruff check .            # 静态检查(当前门禁: F undefined/未用 + E9 语法)
+#   black --check .         # 格式检查(逐步收敛后可加 --check 门禁)
+#   mypy app.py handler.py  # 类型检查(增量推进)
+[tool.ruff]
+line-length = 120
+# 门禁规则: F=pyflakes 等价(未定义/未用导入), E9=语法错误。
+# 风格类(E/W)与 lint 类(I/UP 等)暂不强制, 避免存量代码全红; 随重构逐步放开。
+select = ["F", "E9"]
+target-version = "py310"
+
+[tool.ruff.per-file-ignores]
+# 测试文件允许未用导入/断言式风格
+"tests/*" = ["F401"]
+
+[tool.black]
+line-length = 120
+target-version = ["py310"]
+skip-string-normalization = true
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+check_untyped_defs = false
+disallow_untyped_defs = false
+warn_unused_ignores = false
+# 存量代码未全量标注, 先只对增量模块严格; 后续可收窄 exclude
+exclude = "(tests/|js/|frontend/)"

@@ -10,7 +10,7 @@ export const API_BASE = typeof window !== 'undefined'
 export const authState = {
   session: null as string | null,        // X-Session 服务端会话
   conn: null as Record<string, unknown> | null, // X-Conn 手动连接(含明文密码)
-  userToken: null as string | null,      // X-User-Token 账号登录
+  userToken: null as string | null,      // 预留(令牌现仅由 HttpOnly Cookie 承载, 不再用于头注入)
   gatewayToken: null as string | null,   // X-Gateway-Token 公网访问
   onUnauthorized: null as (() => void) | null, // 401 require_login 回调(弹登录)
   onMustChangePwd: null as (() => void) | null, // 403 must_change_pwd 回调(弹强制改密)
@@ -54,6 +54,15 @@ export async function buildConnHeader(c: Record<string, unknown>): Promise<strin
   return btoa(bin)
 }
 
+/** 统一鉴权头构建(P1-9 去重): 会话 > 手动连接 > 网关; 令牌仅由 HttpOnly Cookie 承载, 不再注入 X-User-Token(P0-4) */
+export async function authHeaders(): Promise<Record<string, string>> {
+  const h: Record<string, string> = {}
+  if (authState.session) h['X-Session'] = authState.session
+  else if (authState.conn) h['X-Conn'] = await buildConnHeader(authState.conn)
+  if (authState.gatewayToken) h['X-Gateway-Token'] = authState.gatewayToken
+  return h
+}
+
 // 请求体: 若有 pwd 字段则 RSA 加密
 export async function encBody(obj: Record<string, unknown> | null): Promise<string | null> {
   if (!obj) return null
@@ -81,7 +90,7 @@ export async function request<T = any>(
   // 鉴权头注入(优先级: 会话 > 手动连接; 登录/公钥接口不注入)
   const skipAuth = path.includes('/api/login') || path.includes('/api/pubkey')
   if (!skipAuth) {
-    if (authState.userToken) headers['X-User-Token'] = authState.userToken
+    // 不再注入 X-User-Token: 浏览器会话统一由后端 HttpOnly Cookie(dbm_user)承载, 杜绝 XSS 令牌窃取(P0-4)
     if (authState.session) headers['X-Session'] = authState.session
     else if (authState.conn) headers['X-Conn'] = await buildConnHeader(authState.conn)
     if (authState.gatewayToken) headers['X-Gateway-Token'] = authState.gatewayToken
@@ -117,7 +126,8 @@ export async function request<T = any>(
     throw new Error(d.error || '无权限执行该操作')
   }
   const d = await r.json().catch(() => ({}))
-  if (d.error) throw new Error(d.error)
+  // P0-5: 4xx/5xx 一律 reject(原先 500 无 error 字段时静默当成功返回 {}, 掩盖服务端故障)
+  if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status))
   return d as T
 }
 

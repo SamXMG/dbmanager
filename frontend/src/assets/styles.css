@@ -1332,3 +1332,17 @@
     .cloud-tip b {
       color: var(--primary);
     }
+
+/* ================= P1-10: 无障碍基础原语 ================= */
+/* 键盘焦点可见(替代默认 outline:none 裸样式) */
+:focus-visible {
+  outline: 2px solid var(--primary, #165dff);
+  outline-offset: 1px;
+}
+/* 减少动态效果偏好: 用户要求减弱动画时禁用过渡/动画 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

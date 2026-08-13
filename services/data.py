@@ -191,6 +191,58 @@ def mutate(ci, method, schema, table, body, use_tx=False, tx_key=""):
     _clear_count_cache(conn_hash(ci), schema, table)
     return {"ok": True, "affected": affected}
 
+def mutate_batch_delete(ci, schema, table, keys, use_tx=False, tx_key=""):
+    """批量删除(P1-9): 一次请求删除多行(keys=主键值数组, 每项 {col:val}),
+    单事务内循环执行 DELETE, 替代前端 N 次串行 /api/row, 消除请求放大。
+    与 mutate 相同的参数化构建(无字符串拼接), 主键定位语义与单行删除一致。"""
+    if (ci.get("db_type") or "") == "mongodb":
+        from dbcore import get_mongo
+        coll = get_mongo(ci)[schema][table]
+        ids = [k.get("_id") for k in (keys or []) if k.get("_id")]
+        r = coll.delete_many({"_id": {"$in": [_mongo_oid(i) for i in ids]}}) if ids else coll.delete_many({})
+        return {"ok": True, "affected": r.deleted_count}
+    if (ci.get("db_type") or "") == "redis":
+        from dbcore import get_redis
+        r = get_redis(ci)
+        n = 0
+        for k in (keys or []):
+            n += r.delete(k.get("name") or k.get("key") or "")
+        return {"ok": True, "affected": n}
+    pk = get_pk(ci, schema, table)
+    cols = get_columns(ci, schema, table)
+    t = get_table_obj(ci, schema, table)
+    engine = get_engine(ci)
+    total = 0
+
+    def _run(conn):
+        nonlocal total
+        for orig in (keys or []):
+            if pk:
+                where_cols, where_vals = pk, [orig.get(p) for p in pk]
+            else:
+                where_cols = [c["name"] for c in cols]
+                where_vals = [orig.get(c["name"]) for c in cols]
+            conds = [t.c[wc] == (None if wv is None else wv) for wc, wv in zip(where_cols, where_vals)]
+            wc_expr = and_(*conds) if conds else sa_true()
+            total += conn.execute(delete(t).where(wc_expr)).rowcount
+
+    if use_tx:
+        conn = get_connection(ci, use_tx=True, tx_key=tx_key)
+        try:
+            _run(conn)
+        except Exception:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+            raise
+    else:
+        with engine.connect() as conn:
+            _run(conn)
+            conn.commit()
+    _clear_count_cache(conn_hash(ci), schema, table)
+    return {"ok": True, "affected": total}
+
 def commit_transaction(ci, tx_key=""):
     key = (conn_hash(ci), tx_key or "")
     with LOCK:

@@ -33,6 +33,22 @@ except ImportError:
     logging.error("=" * 64)
     raise SystemExit(1)
 
+def _lock_key_file(path):
+    """私有密钥文件限权(P1-8): Linux/Mac 用 chmod 600; Windows chmod 无效, 改 icacls
+    移除继承并仅授当前用户(防同机其他用户读私钥)。任何失败静默(限权失败不阻断启动)。"""
+    try:
+        if sys.platform.startswith("win"):
+            import getpass
+            import subprocess
+            user = os.environ.get("USERNAME") or getpass.getuser()
+            subprocess.run(
+                ["icacls", path, "/inheritance:r", "/grant:r", "%s:F" % user],
+                check=False, capture_output=True, timeout=15)
+        else:
+            os.chmod(path, 0o600)
+    except Exception:
+        pass
+
 def _key_file():
     return os.path.join(config.BASE_DIR, ".dbm_key")
 
@@ -50,10 +66,7 @@ def _load_key():
     key = secrets.token_bytes(32)
     with open(kf, "wb") as _f:
         _f.write(base64.b64encode(key))
-    try:
-        os.chmod(kf, 0o600)
-    except Exception:
-        pass
+    _lock_key_file(kf)
     return key
 
 def _use_dpapi():
@@ -134,10 +147,7 @@ def _load_rsa_key():
     try:
         with open(kf, "wb") as _f:
             _f.write(key.export_key("PEM"))
-        try:
-            os.chmod(kf, 0o600)   # 复核 P0-R3: 私钥仅本用户可读(Linux/Mac 同机防提权读)
-        except Exception:
-            pass
+        _lock_key_file(kf)   # 复核 P0-R3/P1-8: 私钥仅本用户可读(Linux/Mac chmod 600, Windows icacls)
     except Exception:
         pass
     return key

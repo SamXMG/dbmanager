@@ -4,6 +4,7 @@
 // 生效类型: instant=保存即生效(LDAP/注册/认证等运行时读取项), restart=需重启(host/port/ssl);
 // 支持「立即重启」按钮(admin), 重启期间服务短暂中断, 恢复后需重新登录
 import { ref, onMounted } from 'vue'
+import { confirmDanger } from '@/utils/confirm'
 import { getConfigSettings, saveConfigSettings, restartServer, type ConfigSections } from '@/api/account'
 
 const emit = defineEmits<{ close: [] }>()
@@ -60,7 +61,7 @@ async function doSave() {
 }
 
 async function doRestart() {
-  if (!confirm('确认立即重启服务？\n重启期间服务将中断约 2~3 秒，恢复后需要重新登录。\n（用于使 host/port/HTTPS 等配置生效）')) return
+  if (!await confirmDanger('确认立即重启服务？\n重启期间服务将中断约 2~3 秒，恢复后需要重新登录。\n（用于使 host/port/HTTPS 等配置生效）')) return
   restarting.value = true
   try {
     const r = await restartServer()

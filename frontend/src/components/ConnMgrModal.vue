@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { confirmDanger } from '@/utils/confirm'
 import { useRouter } from 'vue-router'
 import { useConnectionStore } from '@/stores/connection'
 import { useAuthStore } from '@/stores/auth'
@@ -113,7 +114,7 @@ async function doSave() {
 }
 
 async function doDelete(name: string) {
-  if (!confirm(`确认删除连接「${name}」？`)) return
+  if (!await confirmDanger(`确认删除连接「${name}」？`)) return
   try {
     await connStore.deleteConn(name)
     msg.value = '已删除 ' + name; msgErr.value = false

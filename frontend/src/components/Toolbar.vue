@@ -2,6 +2,7 @@
 // 数据浏览工具栏: 刷新/新增行/删除选中/粘贴插入/复制选中/导出 CSV(整表·选中)/统计/Redis 键操作
 // (对齐旧版工具栏; Redis 连接显示 新建键/TTL/删除键)
 import { computed } from 'vue'
+import { confirmDanger } from '@/utils/confirm'
 import { useGridStore } from '@/stores/grid'
 import { useTabStore } from '@/stores/tab'
 import { useAuthStore } from '@/stores/auth'
@@ -27,7 +28,7 @@ function refresh() { grid.loadData() }
 async function loadAll() {
   const cur = tab.current
   if (!cur) return
-  if (!confirm(`确认加载 ${cur.s}.${cur.t} 全部数据？(上限 5 万行, 可能较慢)`)) return
+  if (!await confirmDanger(`确认加载 ${cur.s}.${cur.t} 全部数据？(上限 5 万行, 可能较慢)`)) return
   const n = await grid.loadAll()
   ui.toast('已加载 ' + n + ' 行')
 }
@@ -59,7 +60,7 @@ async function addRow() {
 /** 删除选中行 */
 async function deleteRows() {
   if (!grid.selectedRows.size) { ui.toast('请先选中行', true); return }
-  if (!confirm(`确认删除选中的 ${grid.selectedRows.size} 行？`)) return
+  if (!await confirmDanger(`确认删除选中的 ${grid.selectedRows.size} 行？`)) return
   const ok = await grid.deleteSelected()
   ui.toast(ok ? '已删除' : '删除失败', !ok)
 }
@@ -133,7 +134,7 @@ function pasteInsert() {
         cols.forEach((c, i) => { if (r[i] !== undefined && r[i] !== '') o[c] = r[i] })
         return o
       })
-      if (!confirm(`确认插入 ${mapped.length} 行到 ${cur.s}.${cur.t}？`)) return
+      if (!await confirmDanger(`确认插入 ${mapped.length} 行到 ${cur.s}.${cur.t}？`)) return
       try {
         const payload: Record<string, unknown> = { s: cur.s, t: cur.t, columns: cols, rows: mapped }
         if (ui.transactionMode) payload.transaction = true
@@ -266,7 +267,7 @@ async function redisTtl() {
 async function redisDelKey() {
   const cur = tab.current
   if (!cur) return
-  if (!confirm(`⚠️ 将删除整个键 "${cur.t}"，该键下所有数据不可恢复！\n确定继续吗？`)) return
+  if (!await confirmDanger(`⚠️ 将删除整个键 "${cur.t}"，该键下所有数据不可恢复！\n确定继续吗？`)) return
   try {
     await redisAlter('drop', {})
     ui.toast('已删除键 ' + cur.t)

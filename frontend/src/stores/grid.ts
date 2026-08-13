@@ -1,7 +1,7 @@
 // 网格 store(阶段 3 完整): 分页数据/排序/筛选/行选中/单元格编辑
 // 对应旧前端 js/grid.js 的全局状态与操作; 阶段5补全: 事务传递/列类型/批量粘贴
 import { defineStore } from 'pinia'
-import { getData, insertRow, updateRow, deleteRow, type DataResp } from '@/api/data'
+import { getData, insertRow, updateRow, batchDeleteRows, type DataResp } from '@/api/data'
 import { useTabStore } from '@/stores/tab'
 import { useConnectionStore } from '@/stores/connection'
 import { useUIStore } from '@/stores/ui'
@@ -27,13 +27,9 @@ export interface GridSnapshot {
   filters: Record<string, GridFilter>
 }
 
-/** 方言列引用(对齐旧 quoteIdent): mysql `col` / mssql [col] / 其他 "col" */
-export function quoteIdent(dbType: string, name: string): string {
-  const t = (dbType || '').toLowerCase()
-  if (t === 'mssql') return '[' + name + ']'
-  if (t === 'mysql' || t === 'mariadb' || t === 'oceanbase' || t === 'tidb') return '`' + name + '`'
-  return '"' + name + '"'
-}
+// P1-9: 方言列引用统一收口到 utils/sqlIdent.ts(原本地定义删除, 防三处方言规则漂移)
+import { quoteIdent } from '@/utils/sqlIdent'
+export { quoteIdent }
 
 export function quoteSql(v: string): string { return "'" + String(v).replace(/'/g, "''") + "'" }
 
@@ -270,17 +266,17 @@ export const useGridStore = defineStore('grid', {
       }
     },
 
-    /** 删除选中行(DELETE /api/row) */
+    /** 删除选中行(P1-9): 批量接口一次请求删除(POST /api/rows/delete), 替代原 N 次串行 DELETE */
     async deleteSelected(): Promise<boolean> {
       const cur = this._cur()
       if (!cur || !this.selectedRows.size) return false
       try {
-        const idxs = [...this.selectedRows].sort((a, b) => b - a)
-        for (const i of idxs) {
-          const row = this.rows[i]
-          if (!row) continue
-          await deleteRow({ s: cur.s, t: cur.t, key: this._pkValues(row), ...this._txPayload() })
-        }
+        const keys = [...this.selectedRows]
+          .sort((a, b) => b - a)
+          .map(i => this._pkValues(this.rows[i]))
+          .filter(k => Object.keys(k).length)
+        if (!keys.length) return false
+        await batchDeleteRows({ s: cur.s, t: cur.t, keys, ...this._txPayload() } as never)
         this.selectedRows = new Set()
         await this.loadData()
         return true
@@ -302,15 +298,15 @@ export const useGridStore = defineStore('grid', {
       return Object.keys(pk).length ? pk : { ...row }
     },
 
-    /** 流式加载全部行(每批 2000, 上限 50000; 虚拟滚动渲染) */
+    /** 流式加载全部行(每批 2000, 上限 50000; 虚拟滚动渲染; P1-9: 分批直接 append 到 rows, 免临时大数组) */
     async loadAll(): Promise<number> {
       const cur = this._cur()
       if (!cur) return 0
       const MAX = 50000, BATCH = 2000
-      let all: Record<string, unknown>[] = []
       let page = 1
       this.loading = true
       try {
+        const acc: Record<string, unknown>[] = []
         for (; page < 60; page++) {
           const d: DataResp = await getData({
             s: cur.s, t: cur.t, page, size: BATCH,
@@ -318,15 +314,15 @@ export const useGridStore = defineStore('grid', {
           })
           if (page === 1) this.columns = d.columns || []
           const rows = d.rows || []
-          all = all.concat(rows)
-          if (all.length >= MAX || rows.length < BATCH) break
+          acc.push(...rows)
+          if (acc.length >= MAX || rows.length < BATCH) break
         }
-        this.rows = all
-        this.total = all.length
+        this.rows = acc
+        this.total = acc.length
         this.page = 1
         this.pageSize = BATCH
         this.selectedRows = new Set()
-        return all.length
+        return acc.length
       } finally {
         this.loading = false
       }

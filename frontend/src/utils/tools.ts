@@ -9,7 +9,8 @@ import { useAuthStore } from '@/stores/auth'
 import { getColumns, type Column } from '@/api/database'
 import { importData, genData, schemaDiff, schemaSync, alterTable } from '@/api/schema'
 import { listConnections, type ConnMeta } from '@/api/connection'
-import { authState, buildConnHeader, API_BASE } from '@/api/client'
+import { API_BASE, authHeaders } from '@/api/client'
+import { STORAGE_KEYS } from '@/constants/storage'
 
 const ui = useUIStore()
 const sqlStore = useSqlStore()
@@ -18,16 +19,9 @@ const dbStore = useDatabaseStore()
 const tabStore = useTabStore()
 const auth = useAuthStore()
 
-export function esc(s: unknown): string {
-  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
-}
-export function qident(dbType: string, name: string): string {
-  const t = (dbType || '').toLowerCase()
-  if (t === 'mssql') return '[' + name + ']'
-  if (t === 'mysql' || t === 'mariadb' || t === 'oceanbase' || t === 'tidb') return '`' + name + '`'
-  return '"' + name + '"'
-}
+// P1-9 去重: esc/quoteIdent 统一收口到 sqlIdent.ts(单点维护方言规则), 此处 re-export 保持旧引用兼容
+import { esc, quoteIdent, qident } from '@/utils/sqlIdent'
+export { esc, quoteIdent, qident }
 function dbType(): string { return connStore.conn?.db_type || 'mysql' }
 function downloadBlob(blob: Blob, filename: string) {
   const a = document.createElement('a')
@@ -165,11 +159,8 @@ export function openImport(s?: string, t?: string) {
 
 /** 上传 xlsx 到后端解析(原始二进制, 带鉴权头) */
 async function uploadXlsx(file: File): Promise<{ header: string[]; rows: string[][] }> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/octet-stream' }
-  if (authState.userToken) headers['X-User-Token'] = authState.userToken
-  if (authState.session) headers['X-Session'] = authState.session
-  else if (authState.conn) headers['X-Conn'] = await buildConnHeader(authState.conn)
-  if (authState.gatewayToken) headers['X-Gateway-Token'] = authState.gatewayToken
+  // P1-9 去重: 统一走 client.authHeaders()
+  const headers: Record<string, string> = { 'Content-Type': 'application/octet-stream', ...(await authHeaders()) }
   const r = await fetch(API_BASE + '/api/import/xlsx', { method: 'POST', headers, body: await file.arrayBuffer() })
   const d = await r.json().catch(() => ({}))
   if (d.error) throw new Error(d.error)
@@ -319,14 +310,7 @@ export async function exportSchemaDoc() {
 }
 
 // ---- 内部工具 ----
-async function authHeaders(): Promise<Record<string, string>> {
-  const h: Record<string, string> = {}
-  if (authState.userToken) h['X-User-Token'] = authState.userToken
-  if (authState.session) h['X-Session'] = authState.session
-  else if (authState.conn) h['X-Conn'] = await buildConnHeader(authState.conn)
-  if (authState.gatewayToken) h['X-Gateway-Token'] = authState.gatewayToken
-  return h
-}
+// P1-9 去重: authHeaders 统一从 client.ts 导入(原本地副本删除)
 async function getDbUsers(): Promise<{
   supported: boolean; logins: Record<string, unknown>[]; users: Record<string, unknown>[];
   roles: Record<string, unknown>[]; permissions: Record<string, unknown>[]
@@ -421,7 +405,8 @@ export function openNewTable(db: string, s: string) {
 }
 
 // ================= 固定表(快捷方式): localStorage 持久化 =================
-const PIN_KEY = 'dbm_pinned_tables'
+// P1-9: 存储键集中到 constants/storage.ts
+const PIN_KEY = STORAGE_KEYS.PINNED_TABLES
 
 export interface PinnedTable { db: string; s: string; t: string }
 

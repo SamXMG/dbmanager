@@ -1,0 +1,20 @@
+# DB Manager 预提交钩子(P1-6): 本地提交前自动 lint/format/类型检查
+# 安装: pip install pre-commit && pre-commit install
+# 说明: ruff 为硬门禁(F/E9, 与 CI 一致); black/mypy 为提示项(通过 --fix/手动修后 git add 再提交)。
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.10
+    hooks:
+      - id: ruff
+        args: [--fix, --select, "F,E9"]
+      - id: ruff-format
+        # 格式化为提示项: 自动格式化失败时文件已修改, 人工 git add 后重提
+        args: [--check]
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.10.0
+    hooks:
+      - id: mypy
+        args: [--ignore-missing-imports]
+        pass_filenames: false
+        # 存量未标注, 仅增量模块; 失败提示不阻断
+        files: "^app.py$|^handler.py$"

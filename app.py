@@ -218,15 +218,19 @@ def run():
             import traceback; traceback.print_exc()
             sys.stdout.flush()
             ssl_on = False
-    # 传输安全提醒(五轮评估 P2-1 补全): 明文 HTTP 且绑定非回环地址时,
-    # 会话令牌/网关令牌可被局域网嗅探劫持。默认 HOST=127.0.0.1 不触发;
-    # 仅当用户显式 DBM_HOST=非回环 且未启用 HTTPS 时提醒, 引导启用 DBM_SSL=1。
+    # 传输安全门禁(P0-2): 明文 HTTP 且绑定非回环地址时, 会话/网关令牌可被局域网嗅探劫持。
+    # 默认 HOST=127.0.0.1 不触发; 仅当用户显式 DBM_HOST=非回环 且未启用 HTTPS 时,
+    # 直接拒绝启动(而非仅警告), 强制要么回退 127.0.0.1, 要么启用 DBM_SSL=1。
     if not ssl_on and HOST not in ("127.0.0.1", "::1", "localhost"):
-        logger.warning("=" * 64)
-        logger.warning("安全提醒: 当前以明文 HTTP 监听非回环地址(%s), 会话令牌存在被局域网嗅探劫持的风险!", HOST)
-        logger.warning("公网/局域网多用户部署强烈建议启用 HTTPS: 设置 DBM_SSL=1 自动生成自签名证书,")
-        logger.warning("或提供自有证书(DBM_SSL_CERT / DBM_SSL_KEY)。")
-        logger.warning("=" * 64)
+        logger.error("=" * 64)
+        logger.error("安全拦截: 禁止以明文 HTTP 监听非回环地址(%s)! 会话/网关令牌存在被嗅探劫持风险。", HOST)
+        logger.error("处理方法(二选一):")
+        logger.error("  1) 仅本机访问: 将监听地址改回 127.0.0.1(dbmanager.conf [server] host=127.0.0.1);")
+        logger.error("  2) 局域网/公网开放: 启用 HTTPS, 设置 DBM_SSL=1 自动生成自签名证书,")
+        logger.error("     或提供自有证书(DBM_SSL_CERT / DBM_SSL_KEY)。")
+        logger.error("=" * 64)
+        sys.stdout.flush()
+        sys.exit(1)
     config.SERVERS = servers
     url = ("https" if ssl_on else "http") + f"://127.0.0.1:{PORT}"
     logger.info("DB Manager 多数据库版运行在 %s", url)

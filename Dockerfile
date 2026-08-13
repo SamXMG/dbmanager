@@ -36,7 +36,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # 后端全部源码(含重构后的 services/routes 分层)
 COPY app.py config.py crypto.py dbcore.py handler.py ops.py store.py tunnel.py auth.py \
-     logging_conf.py task_sched.py get_ipv6.py ./
+     logging_conf.py task_sched.py get_ipv6.py sqlitedb.py metrics.py ./
 COPY services ./services
 COPY routes ./routes
 COPY css ./css

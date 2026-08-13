@@ -3,10 +3,12 @@
 URL 构建、引擎缓存(上限32)、超时设置、连接测试、事务模式持久连接。
 """
 import hashlib
+import os
 from urllib.parse import quote, quote_plus
 
 from sqlalchemy import create_engine, text
 
+import config
 from config import (
     CONN_IDLE_TIMEOUT, DEFAULT_DRIVER, DEFAULT_PORT, ENGINE_CACHE,
     ENGINE_CACHE_MAX, LOCK, QUERY_TIMEOUT, TX_CONN,
@@ -27,6 +29,12 @@ def build_url(ci: dict) -> str:
         db = (ci.get("database") or ":memory:").strip()
         if db == ":memory:":
             return "sqlite:///:memory:"
+        # 路径沙箱: 校验解析后不逃逸允许根(防 ../../ 读取系统文件); 校验通过后用原始 db 组装 URL
+        _safe_sqlite_path(db)
+        if os.path.isabs(db):
+            # 绝对路径: 反斜杠转正斜杠以兼容 SQLAlchemy sqlite URL 解析
+            return "sqlite:///" + quote(db.replace("\\", "/"), safe="/:")
+        # 相对路径: 保持相对, 由 sqlite 按 cwd 解析(兼容中文目录与历史约定)
         return "sqlite:///" + quote(db, safe="/:\\")
     user = quote_plus(ci.get("uid") or "")
     pwd = quote_plus(ci.get("pwd") or "")
@@ -63,6 +71,51 @@ def build_url(ci: dict) -> str:
         return (f"mssql+pyodbc://{user}:{pwd}@{netloc}/{dbn}"
                 f"?driver={drv_enc}&TrustServerCertificate=yes&Encrypt=no")
     raise ValueError(f"不支持的数据库类型: {t}")
+
+
+def is_safe_server(srv: str) -> bool:
+    """SSRF 防护: server 必须为合法主机名/IP(可选 :端口), 拒绝 URL/路径形式与云元数据/链路本地地址。
+    返回 True 表示安全。供 /api/test 与 /api/connect 复用。
+    注意: 回环(127.0.0.1/localhost)与内网地址(RFC1918)为合法 DB 地址, 不过滤, 以免破坏本地/内网库连接。"""
+    if not srv:
+        return False
+    s = str(srv).strip()
+    if "://" in s or s.startswith(("/", "\\")):
+        return False
+    low = s.lower()
+    # 云元数据 / 链路本地(SSRF 经典靶标): 169.254.0.0/16, 含 169.254.169.254
+    if low.startswith("169.254.") or low == "169.254.169.254":
+        return False
+    # 0.0.0.0 作为目标地址无意义(监听通配), 视为非法
+    if low == "0.0.0.0":
+        return False
+    return True
+
+
+def _safe_sqlite_path(db: str) -> str:
+    """SQLite 连接数据库路径沙箱: 仅允许落在 DATA_ROOT / 进程工作目录(cwd) / DBM_SQLITE_ALLOW_ROOTS 内,
+    拒绝 ../ 逃逸读取/创建系统文件(如 /etc/passwd)。
+    - DATA_ROOT(BASE_DIR/data): 推荐的数据目录;
+    - cwd: 兼容历史相对路径约定(测试库/用户库常建在项目根);
+    - DBM_SQLITE_ALLOW_ROOTS: 生产环境连接数据盘上的库时追加。
+    相对路径按 cwd 解析(与历史 build_url 行为一致), 仅校验解析后不逃逸上述根。"""
+    root = os.path.realpath(config.DATA_ROOT)
+    try:
+        os.makedirs(root, exist_ok=True)
+    except Exception:
+        pass
+    cwd = os.path.realpath(os.getcwd())
+    cand = db if os.path.isabs(db) else os.path.join(cwd, db)
+    cand = os.path.realpath(cand)
+    allowed = [root, cwd]
+    for r in config.SQLITE_ALLOW_ROOTS:
+        allowed.append(os.path.realpath(r))
+    for ar in allowed:
+        if cand == ar or cand.startswith(ar + os.sep):
+            return cand
+    raise ValueError("SQLite 数据库路径必须落在数据目录(%s)或工作目录(%s)或额外允许根内, 拒绝访问: %s"
+                     % (root, cwd, db))
+
 
 def conn_hash(ci: dict) -> str:
     """连接缓存键：包含密码摘要，改密码后引擎缓存自动失效（无需重启进程）"""
@@ -139,7 +192,14 @@ def get_engine(ci: dict):
         kw = {"pool_pre_ping": True, "pool_recycle": CONN_IDLE_TIMEOUT,
               "future": True, "connect_args": {}}
         if t == "sqlite":
-            kw["connect_args"] = {"check_same_thread": False}
+            # 复核 P1-8: SQLite 锁等待超时 30s(默认 5s 对慢事务不够), 防慢库永久占线程
+            kw["connect_args"] = {"check_same_thread": False, "timeout": 30}
+        elif t == "mysql":
+            kw["connect_args"] = {"connect_timeout": 8}
+        elif t == "postgresql":
+            kw["connect_args"] = {"connect_timeout": 8}
+        elif t == "mssql":
+            kw["connect_args"] = {"timeout": 8}
         eng = create_engine(url, **kw)
         if t != "sqlite":
             _apply_query_timeout(eng, t)  # 查询超时落地(默认 30s)

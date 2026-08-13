@@ -168,22 +168,28 @@ def _req_log(method: str):
 
 
 # ------------------------------
-# 审计日志: 关键操作追加写 logs/audit.log(时间|IP|操作|详情), 超 5MB 轮转
+# 审计日志: 关键操作追加写 logs/audit.log(时间|IP|操作|详情), 超 5MB 多代轮转(保留 10 代)
 # ------------------------------
 AUDIT_DIR = os.path.join(config.BASE_DIR, "logs")
 AUDIT_FILE = os.path.join(AUDIT_DIR, "audit.log")
 AUDIT_MAX = 5 * 1024 * 1024
+AUDIT_KEEP = 10
 _AUDIT_LOCK = threading.Lock()
 
 
 def _audit(ip, action, detail="", user=""):
-    """追加一条审计记录: 文件(audit.log, 保留原有轮转) + SQLite(audit_log 表, 可 SQL 查询) 双写
+    """追加一条审计记录: 文件(audit.log, 多代轮转保留 AUDIT_KEEP 代) + SQLite(audit_log 表, 可 SQL 查询) 双写
     任何异常静默忽略(审计不能影响主流程)"""
     try:
         with _AUDIT_LOCK:
             os.makedirs(AUDIT_DIR, exist_ok=True)
             if os.path.exists(AUDIT_FILE) and os.path.getsize(AUDIT_FILE) > AUDIT_MAX:
-                os.replace(AUDIT_FILE, AUDIT_FILE + ".1")
+                # 多代轮转(P1-8): audit.log -> .1 -> .2 ... -> 删除最旧, 取代原单代 .1 覆盖
+                for i in range(AUDIT_KEEP - 2, -1, -1):
+                    src = AUDIT_FILE if i == 0 else "%s.%d" % (AUDIT_FILE, i)
+                    dst = "%s.%d" % (AUDIT_FILE, i + 1)
+                    if os.path.exists(src):
+                        os.replace(src, dst)
             line = "%s | %s | %s | %s | %s\n" % (
                 datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 ip, user or "-", action, detail)
@@ -199,7 +205,7 @@ def _audit(ip, action, detail="", user=""):
 
 # 写操作路径(启用账号体系后仅 write 角色可访问)
 WRITE_PATHS = {
-    "/api/row", "/api/import", "/api/alter", "/api/restore", "/api/sync",
+    "/api/row", "/api/rows/delete", "/api/import", "/api/alter", "/api/restore", "/api/sync",
     "/api/routines/save", "/api/routines/drop", "/api/routines/execute",
     "/api/schema-sync", "/api/connections", "/api/connections/delete",
     "/api/transaction/commit", "/api/transaction/rollback",
@@ -434,6 +440,30 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self._send_json(403, {"error": "该操作仅管理员可执行"})
         return False
 
+    def _guards(self, write=False):
+        """路由统一门禁(P1-7 重构): 按序执行 Host/网关/认证/强制改密/细粒度权限;
+        write=True 时追加写门禁(WRITE_PATHS 角色 + 连接只读双校验)。
+        返回 True 表示已拦截(调用方直接 return), False 表示放行。
+        取代原 do_GET/do_POST/do_PUT/do_DELETE 四动词复制粘贴的门禁序列。"""
+        if not self._host_allowed():
+            self._send_json(403, {"error": "非法 Host（仅支持 IP 直连访问）"})
+            return True
+        if self._gateway_blocked():
+            return True
+        if self._auth_blocked():
+            return True
+        if self._must_change_blocked():
+            return True
+        if self._perm_blocked(write=write):
+            return True
+        if write:
+            path, _ = self._parse()
+            if path in WRITE_PATHS and not self._require_write():
+                return True
+            if path in WRITE_PATHS and self._conn_readonly_blocked():
+                return True
+        return False
+
     def _visible_connections(self):
         """按当前用户过滤连接可见性: admin 看全部; 普通用户看公开连接(visible_to 为空)、
         自己可见的连接(visible_to 含用户名) 或 管理员为其配置了权限的连接(perms 授权)。
@@ -606,16 +636,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         path, q = self._parse()
         try:
-            if not self._host_allowed():
-                self._send_json(403, {"error": "非法 Host（仅支持 IP 直连访问）"})
-                return
-            if self._gateway_blocked():
-                return
-            if self._auth_blocked():
-                return
-            if self._must_change_blocked():
-                return
-            if self._perm_blocked(write=False):
+            if self._guards(write=False):
                 return
             # 静态资源(css/js): 仅白名单子目录下的扁平文件, 防目录穿越
             for prefix, (subdir, ctype) in STATIC_DIRS.items():
@@ -689,21 +710,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
         path, q = self._parse()
         try:
-            if not self._host_allowed():
-                self._send_json(403, {"error": "非法 Host（仅支持 IP 直连访问）"})
-                return
-            if self._gateway_blocked():
-                return
-            if self._auth_blocked():
-                return
-            if self._must_change_blocked():
-                return
-            if self._perm_blocked(write=True):
-                return
-            # 写操作网关(与 do_PUT/do_DELETE 对齐): 角色 + 连接只读双校验, 防 read 越权写
-            if path in WRITE_PATHS and not self._require_write():
-                return
-            if path in WRITE_PATHS and self._conn_readonly_blocked():
+            if self._guards(write=True):
                 return
             for _mod in ROUTE_MODS:
                 if _mod.handle_post(self, path, q):
@@ -718,20 +725,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def do_PUT(self):
         path, q = self._parse()
         try:
-            if not self._host_allowed():
-                self._send_json(403, {"error": "非法 Host（仅支持 IP 直连访问）"})
-                return
-            if self._gateway_blocked():
-                return
-            if self._auth_blocked():
-                return
-            if self._must_change_blocked():
-                return
-            if self._perm_blocked(write=True):
-                return
-            if path in WRITE_PATHS and not self._require_write():
-                return
-            if path in WRITE_PATHS and self._conn_readonly_blocked():
+            if self._guards(write=True):
                 return
             if path == "/api/row":
                 conn = resolve_conn(self)
@@ -770,20 +764,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def do_DELETE(self):
         path, q = self._parse()
         try:
-            if not self._host_allowed():
-                self._send_json(403, {"error": "非法 Host（仅支持 IP 直连访问）"})
-                return
-            if self._gateway_blocked():
-                return
-            if self._auth_blocked():
-                return
-            if self._must_change_blocked():
-                return
-            if self._perm_blocked(write=True):
-                return
-            if path in WRITE_PATHS and not self._require_write():
-                return
-            if path in WRITE_PATHS and self._conn_readonly_blocked():
+            if self._guards(write=True):
                 return
             if path == "/api/row":
                 conn = resolve_conn(self)

@@ -19,12 +19,13 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Install dependencies
-        run: pip install -r requirements.txt pyflakes
+        run: pip install -r requirements.txt pyflakes ruff
       # pyodbc/oracledb 依赖按平台条件安装(requirements.txt 已声明);
       # 测试只使用 SQLite, 无需真实数据库驱动
-      - name: Static check (pyflakes undefined names)
+      - name: Static check (ruff F+E9, 与 pyflakes 语义对齐)
         shell: bash
         run: |
+          ruff check --select F,E9 . 2>&1 | tail -20
           python -m pyflakes *.py routes/*.py services/*.py tests/*.py 2>&1 | grep -i "undefined" && exit 1 || exit 0
       - name: Import integrity (no circular imports)
         run: python -c "import app; print('import app OK')"
@@ -32,16 +33,20 @@ jobs:
         run: python tests/smoke_test.py
       - name: Run ops unit tests
         run: python tests/test_ops.py
+      - name: Run P0 security unit tests (SSRF / 路径沙箱 / 令牌头降级)
+        run: python tests/test_p0_security.py
       - name: Run task scheduler tests
         run: python tests/test_task_sched.py
         env:
           PYTHONPATH: .
+      - name: Run auth/LDAP unit tests (mock, 独立临时库)
+        run: python tests/test_auth_ldap.py
       - name: HTTP full-chain smoke (real server + SQLite)
         run: python tests/e2e_http_smoke.py 18777
         env:
           # 强制改密(P0-1)后: 默认 admin 命中 must_change_pwd 会 403 拦全部 e2e, 必须用非默认口令起库
           DBM_DEFAULT_PWD: CiRand0mPwd#2026
-      - name: Security E2E (auth / account / ACL)  # 四轮评估 P0: 硬编码路径已可移植化, 守护 RBAC 写门禁
+      - name: Security E2E (auth / account / ACL / SQL 工作台 / EXPLAIN / SSRF)
         shell: bash
         env:
           DBM_DEFAULT_PWD: CiRand0mPwd#2026
@@ -52,6 +57,11 @@ jobs:
           python tests/e2e_auth.py || { kill $SERVER_PID 2>/dev/null; exit 1; }
           python tests/e2e_acct.py || { kill $SERVER_PID 2>/dev/null; exit 1; }
           python tests/e2e_acl.py || { kill $SERVER_PID 2>/dev/null; exit 1; }
+          python tests/e2e_p0_ssrf.py || { kill $SERVER_PID 2>/dev/null; exit 1; }
+          python tests/e2e_sql_workbench.py || { kill $SERVER_PID 2>/dev/null; exit 1; }
+          python tests/e2e_stage5.py || { kill $SERVER_PID 2>/dev/null; exit 1; }
+          python tests/e2e_stage5b.py || { kill $SERVER_PID 2>/dev/null; exit 1; }
+          python tests/e2e_explain.py || { kill $SERVER_PID 2>/dev/null; exit 1; }
           kill $SERVER_PID 2>/dev/null || true
       - name: Dependency vulnerability scan (pip-audit)
         continue-on-error: true   # 发现即报告, 不阻塞发版(修复依赖由维护者处理)
@@ -81,3 +91,12 @@ jobs:
         run: npm run build
       - name: Dependency vulnerability scan (npm audit, production deps only)
         run: npm audit --omit=dev --audit-level=high
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t dbmanager .
+      - name: Import smoke (P0-1: sqlitedb/metrics 已随镜像 COPY, docker run 不再缺模块)
+        run: docker run --rm dbmanager python -c "import app; print('docker import app OK')"

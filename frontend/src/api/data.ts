@@ -23,6 +23,9 @@ export const updateRow = (body: Record<string, unknown>) =>
 /** 删除行(DELETE) */
 export const deleteRow = (body: Record<string, unknown>) =>
   request<RowResult>('/api/row', { method: 'DELETE', body })
+/** 批量删除行(POST /api/rows/delete, P1-9): keys=主键值数组, 单请求删多行(替代 N 次串行 DELETE) */
+export const batchDeleteRows = (body: { s: string; t: string; keys: Record<string, unknown>[] }) =>
+  request<RowResult>('/api/rows/delete', { method: 'POST', body })
 
 /** 事务提交/回滚 */
 export const txCommit = (txId: string | number) =>

@@ -2,6 +2,7 @@
 // SQL 工作台(阶段 4): 工具栏 + CodeMirror 编辑器 + 历史/收藏 + 多结果 tab + 结果内过滤 + 结果表格
 // 对齐旧版 js/sql.js 的 sqlView 全部功能(执行/格式化/解释/写模式/导出 CSV/导出 Excel/清空历史/看全文)
 import { computed, onMounted, ref } from 'vue'
+import { confirmDanger } from '@/utils/confirm'
 import SqlEditor from '@/components/SqlEditor.vue'
 import { useSqlStore } from '@/stores/sql'
 import { useUIStore } from '@/stores/ui'
@@ -26,7 +27,7 @@ onMounted(() => { sqlStore.loadAll() })
 // ---- 执行 / 解释 / 格式化 ----
 async function onExec() {
   try {
-    if (sqlStore.writeMode && !confirm('写模式执行: 将真实修改数据库且不可撤销。\n建议先备份或确认 WHERE 条件准确。\n确认继续执行吗？')) return
+    if (sqlStore.writeMode && !await confirmDanger('写模式执行: 将真实修改数据库且不可撤销。\n建议先备份或确认 WHERE 条件准确。\n确认继续执行吗？', '写模式执行')) return
     const tabs = await sqlStore.exec()
     if (tabs.length && tabs[0].error) ui.toast('SQL 执行失败: ' + tabs[0].error, true)
   } catch (e) {
@@ -122,10 +123,8 @@ const hint = computed(() => {
 })
 
 // ---- 截断单元格双击看全文(弹窗) ----
-function esc(s: unknown): string {
-  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
-}
+// P1-9 去重: esc 统一从 utils/sqlIdent.ts 导入(原组件内本地定义删除)
+import { esc } from '@/utils/sqlIdent'
 async function copyText(t: string, okMsg = '已复制') {
   try { await navigator.clipboard.writeText(t); ui.toast(okMsg) }
   catch { ui.toast('复制失败', true) }
@@ -178,8 +177,8 @@ function useHist(sql: string, run = false) {
   if (run) onExec()
 }
 function toggleHist() { showHist.value = !showHist.value }
-function clearAll() {
-  if (!confirm('确认清空全部 SQL 历史与收藏？')) return
+async function clearAll() {
+  if (!await confirmDanger('确认清空全部 SQL 历史与收藏？')) return
   sqlStore.clearHistory()
   sqlStore.clearFavorites()
   ui.toast('已清空')

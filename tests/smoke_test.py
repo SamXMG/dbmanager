@@ -12,6 +12,9 @@ BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BASE)
 
 import config
+# P0-3 SQLite 路径沙箱: 测试库位于系统临时目录(绝对路径, 在 cwd/DATA_ROOT 之外),
+# 仅测试进程内将临时目录加入允许根, 不弱化生产默认(cwd + DATA_ROOT)。
+config.SQLITE_ALLOW_ROOTS = [tempfile.gettempdir()]
 import crypto
 from crypto import decrypt_pwd, encrypt_pwd
 from dbcore import create_engine, get_engine, text

@@ -15,7 +15,7 @@ from config import DEFAULT_PORT, HOST, PORT
 from crypto import rsa_public_pem
 from dbcore import (
     _norm_db_type, build_url, conn_hash, get_engine, get_mongo, get_redis,
-    test_connection,
+    test_connection, is_safe_server, _safe_sqlite_path,
 )
 from ops import (
     _xlsx_bytes, alter_table, backup_database, commit_transaction, diff_schema,
@@ -112,8 +112,8 @@ def handle_post(handler, path, q):
                             return True
                         b = c
                     srv = str(b.get("server") or "")
-                    if "://" in srv or srv.startswith(("/", "\\")):
-                        handler._send_json(400, {"error": "server 仅支持主机名或 IP(禁止 URL/路径形式)"})
+                    if srv and not is_safe_server(srv):
+                        handler._send_json(400, {"error": "server 仅支持主机名或 IP(禁止 URL/路径形式及云元数据/链路本地地址)"})
                         return True
                     try:
                         test_connection(b)
@@ -126,13 +126,33 @@ def handle_post(handler, path, q):
     if path == "/api/connect":
                     b = handler._body()
                     is_named = bool(b.get("name"))
+                    # --- SSRF 缓解 + 角色门禁(P0-3) ---
+                    # 手动连接(无 name, 任意 server)属网络探测, 需 write 以上角色;
+                    # server 必须为合法主机/IP(禁 URL/路径/云元数据/链路本地地址)。
+                    # 命名连接沿用其保存的 server(可信), 仅做细粒度 ACL 校验。
+                    if not is_named:
+                        if not handler._require_write():
+                            return True
+                        srv = str(b.get("server") or "")
+                        if srv and not is_safe_server(srv):
+                            handler._send_json(400, {"error": "server 仅支持主机名或 IP(禁止 URL/路径形式及云元数据/链路本地地址)"})
+                            return True
+                    # SQLite 数据库路径沙箱(防 ../../ 逃逸读取系统文件)
+                    if (b.get("db_type") or "").lower() == "sqlite":
+                        dbp = str(b.get("database") or "").strip()
+                        if dbp and dbp != ":memory:":
+                            try:
+                                _safe_sqlite_path(dbp)
+                            except ValueError as e:
+                                handler._send_json(400, {"error": str(e)})
+                                return True
                     if is_named:
                         c = get_connection_by_name(b["name"])
                         if not c:
                             handler._send_json(404, {"error": f"未找到连接: {b['name']}"})
                             return True
                         # 命名连接入口权限校验(细粒度 ACL): 未配置权限的用户不受限(兼容老部署);
-                        # admin 始终放行。手动连接(无 name)等同用户自己的库, 不受连接级限制。
+                        # admin 始终放行。手动连接(无 name)已走上方 write 门禁, 不受连接级限制。
                         u = auth.current_user(handler)
                         if u and u["role"] != "admin" and not auth.can_access(
                                 u["user"], u["role"], b["name"], "read"):
@@ -159,6 +179,20 @@ def handle_post(handler, path, q):
                     if (isinstance(b, dict) and (b.get("visible_to") or b.get("mode")) and
                             not handler._require_admin()):
                         return True
+                    # 归属校验(P1-7): 记录创建者; 非 admin 修改他人创建的连接时拒绝
+                    if isinstance(b, dict):
+                        u = auth.current_user(handler)
+                        uname = (u or {}).get("user", "")
+                        if auth.auth_enabled() and uname and u["role"] != "admin":
+                            existing = None
+                            try:
+                                existing = get_connection_by_name(b.get("name") or "")
+                            except Exception:
+                                existing = None
+                            if existing and existing.get("owner") and existing["owner"] != uname:
+                                handler._send_json(403, {"error": "仅连接创建者或管理员可修改该连接"})
+                                return True
+                            b["owner"] = uname
                     rec = save_connection(b)
                     rec.pop("pwd_enc", None)
                     handler._send_json(200, {"ok": True, "connection": rec})
@@ -167,7 +201,20 @@ def handle_post(handler, path, q):
                     return True
     if path == "/api/connections/delete":
                     b = handler._body()
-                    delete_connection(b.get("name") or "")
+                    name = b.get("name") or ""
+                    # 归属校验(P1-7): 非 admin 仅能删除自己创建的连接(老连接无 owner 视为公共, 保持兼容)
+                    u = auth.current_user(handler)
+                    uname = (u or {}).get("user", "")
+                    if auth.auth_enabled() and uname and u["role"] != "admin":
+                        existing = None
+                        try:
+                            existing = get_connection_by_name(name)
+                        except Exception:
+                            existing = None
+                        if existing and existing.get("owner") and existing["owner"] != uname:
+                            handler._send_json(403, {"error": "仅连接创建者或管理员可删除该连接"})
+                            return True
+                    delete_connection(name)
                     handler._send_json(200, {"ok": True})
                     return True
     if path == "/api/databases":

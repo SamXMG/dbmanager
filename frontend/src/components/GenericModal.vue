@@ -1,16 +1,25 @@
 <script setup lang="ts">
 // 通用弹窗(阶段5): 渲染 ui.modal(innerHTML, showModal 注入)
 // 修复: 之前 ui.modal 存了 HTML 但无组件渲染 -> 所有 showModal 弹窗(新增行/统计/看全文/ER图等)都不显示
-// 注意: 调用方注入 HTML 时必须自行 esc 用户数据(对齐旧版 showModal 约定)
+// P0-5 加固: v-html 前过 DOMPurify 白名单净化, 阻断脚本/事件注入类 XSS。
+//   - 允许 onclick/onchange: 兼容 window.__fn 内联回调模式(函数名固定、参数不内联用户数据, 调用方已 esc)
+//   - 其余事件属性/script/iframe/外链/危险 URL 一律被 DOMPurify 剔除
+import { computed } from 'vue'
+import DOMPurify from 'dompurify'
 import { useUIStore } from '@/stores/ui'
 
 const ui = useUIStore()
+const safeHtml = computed(() =>
+  ui.modal ? DOMPurify.sanitize(ui.modal, { ADD_ATTR: ['onclick', 'onchange'] }) : '',
+)
 </script>
 
 <template>
   <Teleport to="body">
-    <div v-if="ui.modal" class="g-modal-mask" @click.self="ui.closeModal()">
-      <div class="g-modal" v-html="ui.modal"></div>
+    <div v-if="ui.modal" class="g-modal-mask" role="dialog" aria-modal="true"
+         aria-label="对话框" @click.self="ui.closeModal()"
+         @keydown.esc="ui.closeModal()">
+      <div class="g-modal" v-html="safeHtml"></div>
     </div>
   </Teleport>
 </template>

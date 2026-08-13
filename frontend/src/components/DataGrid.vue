@@ -2,6 +2,7 @@
 // 数据网格: 排序/筛选(列头面板)/行选中(Ctrl/Shift/全选)/单元格编辑/分页/右键/列宽拖拽记忆/类型着色
 // 对应旧版 js/grid.js 全量网格功能
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { confirmDanger } from '@/utils/confirm'
 import { useGridStore, type GridColumn } from '@/stores/grid'
 import { useTabStore } from '@/stores/tab'
 import { useUIStore } from '@/stores/ui'
@@ -127,17 +128,31 @@ function goPage(p: number) {
 }
 
 // ---- 基础版虚拟滚动(大表 >300 行/页时只渲染可视区, 固定行高 32px) ----
+// P1-9: 视口高度改为 dgScroll.clientHeight 实测值 + ResizeObserver 自适应(原硬编码 900px)
 const ROW_H = 32
 const VIRTUAL_THRESHOLD = 300
 const scrollTop = ref(0)
 const dgScroll = ref<HTMLElement | null>(null)
+const viewH = ref(900)
+let _resizeObs: ResizeObserver | null = null
+function updateViewH() {
+  if (dgScroll.value) viewH.value = dgScroll.value.clientHeight || 900
+}
+onMounted(() => {
+  updateViewH()
+  if (dgScroll.value && typeof ResizeObserver !== 'undefined') {
+    _resizeObs = new ResizeObserver(updateViewH)
+    _resizeObs.observe(dgScroll.value)
+  }
+})
+onBeforeUnmount(() => { _resizeObs?.disconnect(); _resizeObs = null })
 const virtualMode = computed(() => grid.rows.length > VIRTUAL_THRESHOLD)
 interface VRow { r: Record<string, unknown>; i: number }
 const viewRows = computed<VRow[]>(() => {
   const rows = grid.rows
   if (!virtualMode.value) return rows.map((r, i) => ({ r, i }))
   const start = Math.max(0, Math.floor(scrollTop.value / ROW_H) - 10)
-  const end = Math.min(rows.length, Math.ceil((scrollTop.value + 900) / ROW_H) + 10)
+  const end = Math.min(rows.length, Math.ceil((scrollTop.value + viewH.value) / ROW_H) + 10)
   const out: VRow[] = []
   for (let i = start; i < end; i++) out.push({ r: rows[i], i })
   return out
@@ -191,10 +206,8 @@ function startResize(e: MouseEvent, colName: string) {
 }
 
 // ---- 右键菜单(对齐旧版 cellCtxMenu/rowCtxMenu) ----
-function esc(s: unknown): string {
-  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
-}
+// P1-9 去重: esc 统一从 utils/sqlIdent.ts 导入(原组件内本地定义删除)
+import { esc } from '@/utils/sqlIdent'
 async function copyText(t: string, okMsg = '已复制') {
   try { await navigator.clipboard.writeText(t); ui.toast(okMsg) }
   catch { ui.toast('复制失败', true) }
@@ -219,7 +232,7 @@ function onCellCtx(e: MouseEvent, i: number, c: string) {
   ui.showCtxMenu(e.clientX, e.clientY, items)
 }
 async function setCellNull(i: number, c: string) {
-  if (!confirm(`确认将 ${c} 置为 NULL？`)) return
+  if (!await confirmDanger(`确认将 ${c} 置为 NULL？`)) return
   const ok = await grid.setCellNull(i, grid.columns.findIndex(x => x.name === c))
   ui.toast(ok ? '已置空' : '置空失败', !ok)
 }
@@ -238,7 +251,7 @@ function onRowCtx(e: MouseEvent, i: number) {
   if (auth.canWrite) {
     items.push({ sep: true }, {
       label: '删除行', danger: true, fn: async () => {
-        if (!confirm('确认删除该行？')) return
+        if (!await confirmDanger('确认删除该行？')) return
         grid.selectRow(i, false, false)
         const ok = await grid.deleteSelected()
         ui.toast(ok ? '已删除' : '删除失败', !ok)

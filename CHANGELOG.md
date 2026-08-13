@@ -40,6 +40,35 @@
   - `handler.py`：`/api/register` 移出公网网关豁免白名单——公网客户端必须先验证网关令牌才能注册
     （内网/局域网注册不受影响，审批流+IP 限流保留），堵住外部无令牌自助注册面
 
+## [Unreleased] - 三维评估 P1 批次落地(2026-08-13)
+
+### 后端
+- **门禁单点化(P1-7)**：`handler.py` 抽 `_guards(write)` 统一门禁序列(Host/网关/认证/强制改密/细粒度权限/写门禁)，do_GET/POST/PUT/DELETE 四动词复制粘贴消除
+- **连接归属校验(P1-7)**：`store.py` 连接记录新增 `owner` 字段；保存/删除时非 admin 仅能操作自己创建的连接（老连接无 owner 保持兼容）
+- **密钥权限(P1-8)**：`crypto.py` 抽 `_lock_key_file()`——Linux/Mac chmod 600，**Windows 用 icacls 移除继承并仅授当前用户**（原 chmod 在 Windows 无效）
+- **审计多代滚动(P1-8)**：audit.log 超 5MB 从单代 `.1` 覆盖改为 10 代轮转
+- **连接超时(P1-8)**：`dbcore.get_engine` 主路径补方言 connect_timeout(8s)，SQLite 补锁等待 `timeout=30`
+- **批量删除(P1-9)**：新增 `POST /api/rows/delete`（`services.data.mutate_batch_delete`，单事务批量 DELETE，上限 5000 键），替代前端 N 次串行 `DELETE /api/row`
+- **测试工程化(P1-6)**：新增 `pyproject.toml`(ruff F/E9 门禁 + black/mypy 配置) 与 `.pre-commit-config.yaml`；CI static check 换 ruff；`e2e_sql_workbench/e2e_stage5/e2e_stage5b/e2e_explain/test_auth_ldap` 全部接入 CI
+- **e2e 可移植化修复**：e2e_sql_workbench/stage5/stage5b 补齐 DBM_DEFAULT_PWD 适配 + 强制改密(must_change_pwd)适配 + 用户数据备份/恢复（连跑互不干扰）；测试库从 Temp 绝对路径改为项目根相对路径（P0-3 SQLite 沙箱合规）；test_task_sched 补 `SQLITE_ALLOW_ROOTS` 适配
+
+### 前端
+- **HTTP 错误可见(P0-5)**：`api/client.ts` 4xx/5xx 一律 reject（原 500 无 error 字段时静默当成功返回 `{}`）
+- **XSS 兜底(P0-5)**：`GenericModal.vue` v-html 前过 DOMPurify 白名单净化（兼容 window.__fn 内联回调，剔除脚本/事件注入类载荷）
+- **分包与懒加载(P1-9)**：`vite.config.ts` manualChunks 拆 `vendor`(vue/pinia/router) + `editor`(CodeMirror)，警告阈值回归 1000；App.vue/AppHeader.vue 10 个低频模态改 `defineAsyncComponent` 懒加载（首屏只留网关/登录/通用弹窗）
+- **虚拟滚动真实视口(P1-9)**：`DataGrid.vue` 视口高度由硬编码 900px 改为 `clientHeight` 实测 + ResizeObserver 自适应
+- **工具去重(P1-9)**：新建 `utils/sqlIdent.ts`（唯一 esc/quoteIdent，5 个组件本地副本删除）、`constants/storage.ts`（STORAGE_KEYS 集中）；`client.ts` 导出统一 `authHeaders()`（sql.ts/tools.ts 复用，鉴权头 3 处副本收敛）
+- **类型收口(P1-9)**：`ObjectTree.vue` 模板 6 处 `(t as any)` 消除（DbObject 已有 type/schema 字段）
+- **危险操作确认(P1-10)**：新建 `utils/confirm.ts`（`confirmDanger()` 红色主按钮确认弹窗），替换全仓 24 处高危操作原生 confirm（删行/删表/清空/删连接/删任务/踢下线/停服/重启/还原/写模式等）
+- **停服改 SPA 状态(P1-10)**：`AppHeader.vue` 停服由 `document.body.innerHTML` 暴力清空改为 SPA 内状态遮罩
+- **SVG 图标(P1-10)**：新建 `components/Icon.vue`（Lucide 风格 14 个图标），`ObjectTree.vue` 全部功能 emoji（表/视图/库/文件夹/过程/触发器）替换为矢量图标
+- **a11y 原语(P1-10)**：全局 `:focus-visible` 焦点样式 + `prefers-reduced-motion` 兜底；`GenericModal` 加 role=dialog/aria-modal/Esc 关闭
+- 新增依赖：`dompurify`
+
+### 验证
+- 后端 13 项全绿：smoke/test_ops/test_p0_security/test_task_sched/test_auth_ldap/e2e_explain + 8 个 e2e 同服务连跑（sql_workbench/stage5/stage5b/auth/acct/acl/p0_ssrf/http_smoke）
+- 前端：vue-tsc 0 错误、vitest 18/18、vite build 成功（vendor 102KB / editor 375KB 独立 chunk）
+
 ## [1.5.0] - 2026-08-12
 
 ### 新增

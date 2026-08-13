@@ -17,6 +17,11 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INDEX_FILE = os.path.join(BASE_DIR, "index.html")
 SERVERS = []  # 由 app.run() 赋值(IPv4/IPv6 监听实例), 供 shutdown 接口读取
 
+# SQLite 连接数据库路径沙箱根(防 ../../ 逃逸读取/创建系统文件)。
+# 默认 BASE_DIR/data; 可用 DBM_DATA_ROOT 环境变量覆盖; DBM_SQLITE_ALLOW_ROOTS 追加额外允许根(逗号分隔)。
+DATA_ROOT = os.environ.get("DBM_DATA_ROOT") or os.path.join(BASE_DIR, "data")
+SQLITE_ALLOW_ROOTS = [p.strip() for p in (os.environ.get("DBM_SQLITE_ALLOW_ROOTS") or "").split(",") if p.strip()]
+
 # ------------------------------
 # 配置文件(dbmanager.conf)
 # ------------------------------

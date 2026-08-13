@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // 根组件: 初始化 store + 全局弹窗(网关/认证) + 路由守卫
-import { onMounted, ref } from 'vue'
+import { defineAsyncComponent, onMounted, ref } from 'vue'
 import { RouterView, useRouter } from 'vue-router'
 import { useConnectionStore } from '@/stores/connection'
 import { useAuthStore } from '@/stores/auth'
@@ -10,9 +10,10 @@ import AuthModal from '@/components/AuthModal.vue'
 import AppHeader from '@/components/AppHeader.vue'
 import CtxMenu from '@/components/CtxMenu.vue'
 import GenericModal from '@/components/GenericModal.vue'
-import TableDesignerModal from '@/components/TableDesignerModal.vue'
-import RoutineModal from '@/components/RoutineModal.vue'
-import TaskModal from '@/components/TaskModal.vue'
+// 复核 P1-9: 低频模态懒加载(打开时才拉取), 首屏只保留网关/登录/通用弹窗
+const TableDesignerModal = defineAsyncComponent(() => import('@/components/TableDesignerModal.vue'))
+const RoutineModal = defineAsyncComponent(() => import('@/components/RoutineModal.vue'))
+const TaskModal = defineAsyncComponent(() => import('@/components/TaskModal.vue'))
 
 const router = useRouter()
 const connStore = useConnectionStore()

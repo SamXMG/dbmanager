@@ -2,6 +2,7 @@
 // 账号管理弹窗: 用户列表/审批(自助注册)/新建/删除/改角色/细粒度权限(仅 admin)
 // 局域网一次性部署定位: 成员自助注册 -> 管理员在此审批放权; 权限按 连接/表 级配置
 import { ref, computed, onMounted } from 'vue'
+import { confirmDanger } from '@/utils/confirm'
 import { listUsers, saveUser, deleteUser, approveUser, type UserInfo } from '@/api/account'
 import { useUIStore } from '@/stores/ui'
 import PermModal from '@/components/PermModal.vue'
@@ -57,7 +58,7 @@ async function doApprove(username: string) {
 }
 
 async function doReject(username: string) {
-  if (!confirm('拒绝账号 ' + username + '？拒绝后该账号无法登录。')) return
+  if (!await confirmDanger('拒绝账号 ' + username + '？拒绝后该账号无法登录。')) return
   try {
     await approveUser(username, 'read', 'reject')
     showInfo('已拒绝 ' + username)
@@ -84,7 +85,7 @@ async function doChangeRole(username: string, role: string) {
 }
 
 async function doDelete(username: string) {
-  if (!confirm('删除账号 ' + username + '？此操作不可撤销。')) return
+  if (!await confirmDanger('删除账号 ' + username + '？此操作不可撤销。')) return
   try {
     await deleteUser(username)
     showInfo('已删除 ' + username)

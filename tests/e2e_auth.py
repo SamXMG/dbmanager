@@ -77,22 +77,32 @@ check('admin 读表 200', st == 200, str(st))
 st, d = req('POST', '/api/row', {'s': 'main', 't': 'emp', 'values': {'name': '李四', 'dept': '销售'}, 'transaction': False}, tok=admin_tok, session=admin_ss)
 check('admin 新增行 200', st == 200 and d.get('ok'), str(d))
 
-# 6 临时 read 账号
+# 6 临时 read 账号 + admin 建命名连接(供只读账号访问)
+# P0-3 回归: 手动连接(任意 server/db, 属网络探测)需 write 以上角色;
+# 只读账号改走 admin 建的命名连接, 不得手动连(否则 403)。
 users = sqlitedb.users_load()
 salt = secrets.token_hex(16)
 h = hashlib.pbkdf2_hmac('sha256', b'readpass', bytes.fromhex(salt), 120000).hex()
 users['reader'] = {'pwd_hash': h, 'salt': salt, 'role': 'read'}
 sqlitedb.users_save(users)
 
+# admin 建命名连接(指向同一 sqlite 库), 供只读账号经命名连接读取(不开放手动连接)
+st, d = req('POST', '/api/connections', {'name': 'e2e_read_conn', 'db_type': 'sqlite', 'database': DB}, tok=admin_tok)
+check('admin 建命名连接(供 read)', st == 200, str(d))
 st, d = req('POST', '/api/login', {'username': 'reader', 'password': 'readpass'})
 check('read 账号登录', st == 200 and d.get('role') == 'read')
 read_tok = d.get('token', '')
+# P0-3 回归: 只读账号手动连接被拒(角色门禁)
 st, d = req('POST', '/api/connect', {'db_type': 'sqlite', 'database': DB}, tok=read_tok)
+check('read 手动连接 -> 403(P0-3 角色门禁)', st == 403, str(st))
+# 只读账号经命名连接可读数据(admin 已建该连接, 默认公开可见)
+st, d = req('POST', '/api/connect', {'name': 'e2e_read_conn'}, tok=read_tok)
+check('read 命名连接 200', st == 200, str(st))
 read_ss = d.get('session', '')
 st, d = req('GET', '/api/data?s=main&t=emp&page=1&size=10&where=', tok=read_tok, session=read_ss)
 check('read 读数据 200', st == 200, str(st))
 
-# 7 read 写操作被拒(新增行 + 改 + 删)
+# 7 read 写操作被拒(命名连接上: 新增行 + 改 + 删 + 导入)
 st, d = req('POST', '/api/row', {'s': 'main', 't': 'emp', 'values': {'name': 'x'}, 'transaction': False}, tok=read_tok, session=read_ss)
 check('read 新增 -> 403', st == 403, d.get('error', ''))
 st, d = req('PUT', '/api/row', {'s': 'main', 't': 'emp', 'orig': {'id': 1, 'name': '张三', 'dept': '研发'}, 'values': {'dept': 'x'}, 'transaction': False}, tok=read_tok, session=read_ss)
@@ -107,7 +117,8 @@ log = open(os.path.join(ROOT, 'logs', 'audit.log'), encoding='utf-8').read()
 check('审计含 admin login', 'login | admin' in log or 'admin' in log and 'login' in log)
 check('审计含 admin 新增行', 'row_insert' in log and 'admin' in log)
 
-# 9 清理 read 账号 + 测试库
+# 9 清理: 命名连接 + read 账号 + 测试库
+req('POST', '/api/connections/delete', {'name': 'e2e_read_conn'}, tok=admin_tok)
 users.pop('reader', None)
 sqlitedb.users_save(users)
 try:

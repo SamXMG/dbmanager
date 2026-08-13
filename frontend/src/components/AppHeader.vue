@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // 顶栏: 连接信息/用户/角色/主题切换/事务(真实现: 开关+提交/回滚)/停止服务
-import { ref, computed } from 'vue'
+import { ref, computed, defineAsyncComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import { useConnectionStore } from '@/stores/connection'
 import { useAuthStore } from '@/stores/auth'
@@ -8,12 +8,14 @@ import { useUIStore } from '@/stores/ui'
 import { useTabStore } from '@/stores/tab'
 import { shutdown } from '@/api/connection'
 import { txCommit, txRollback } from '@/api/data'
-import ConnMgrModal from '@/components/ConnMgrModal.vue'
+import { confirmDanger } from '@/utils/confirm'
+// 复核 P1-9: 低频管理模态懒加载(打开时才拉取); AuthModal 登录弹窗首屏必经, 保持同步
 import AuthModal from '@/components/AuthModal.vue'
-import UserAdminModal from '@/components/UserAdminModal.vue'
-import SessionModal from '@/components/SessionModal.vue'
-import SystemQueryModal from '@/components/SystemQueryModal.vue'
-import ServerConfigModal from '@/components/ServerConfigModal.vue'
+const ConnMgrModal = defineAsyncComponent(() => import('@/components/ConnMgrModal.vue'))
+const UserAdminModal = defineAsyncComponent(() => import('@/components/UserAdminModal.vue'))
+const SessionModal = defineAsyncComponent(() => import('@/components/SessionModal.vue'))
+const SystemQueryModal = defineAsyncComponent(() => import('@/components/SystemQueryModal.vue'))
+const ServerConfigModal = defineAsyncComponent(() => import('@/components/ServerConfigModal.vue'))
 
 const router = useRouter()
 const conn = useConnectionStore()
@@ -54,7 +56,7 @@ async function toggleTx() {
 }
 
 async function doCommit() {
-  if (!confirm('确认提交所有修改？提交后无法撤销。')) return
+  if (!await confirmDanger('确认提交所有修改？提交后无法撤销。', '提交事务')) return
   try {
     await txCommit(tabStore.activeId ?? 0)
     ui.toast('事务已提交')
@@ -68,10 +70,13 @@ async function doRollback() {
   } catch (e) { ui.toast('回滚失败: ' + (e as Error).message, true) }
 }
 
+// P1-10: 停服改 SPA 内状态遮罩(原 document.body.innerHTML 暴力清空整个 SPA, 破坏路由/状态)
+const stopped = ref(false)
 async function doShutdown() {
-  if (!confirm('确认停止服务？\n停止后页面将无法使用，需重新启动 app.py 才能再次访问。')) return
+  if (!await confirmDanger('确认停止服务？\n停止后页面将无法使用，需重新启动 app.py 才能再次访问。', '停止服务')) return
   try { await shutdown() } catch { /* 服务已停 */ }
-  setTimeout(() => { document.body.innerHTML = '<div style="padding:80px;text-align:center;color:var(--text2)">服务已停止。<br>如要再次使用，请重新运行本程序（python app.py）。</div>' }, 600)
+  stopped.value = true
+  ui.toast('服务已停止')
 }
 
 async function logout() {
@@ -116,6 +121,13 @@ async function logout() {
   <SessionModal v-if="showSessions" @close="showSessions = false" />
   <SystemQueryModal v-if="showSysQuery" @close="showSysQuery = false" />
   <ServerConfigModal v-if="showServerConfig" @close="showServerConfig = false" />
+  <!-- P1-10: 停服状态遮罩(SPA 内状态, 不清空 DOM) -->
+  <div v-if="stopped" class="stopped-mask">
+    <div class="stopped-card">
+      <h3>服务已停止</h3>
+      <p>如要再次使用，请重新运行本程序（python app.py）。</p>
+    </div>
+  </div>
 </template>
 
 <style scoped>
@@ -126,6 +138,15 @@ async function logout() {
 }
 .app-header h1 { font-size: 16px; font-weight: 600; margin: 0; white-space: nowrap; }
 .app-header .db { color: var(--text3); font-size: 12px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* P1-10: 停服状态遮罩 */
+.stopped-mask {
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--panel, #fff); color: inherit;
+  display: flex; align-items: center; justify-content: center;
+}
+.stopped-card { text-align: center; }
+.stopped-card h3 { margin: 0 0 8px; }
+.stopped-card p { margin: 0; color: var(--text2, #86909c); }
 .right { display: flex; align-items: center; gap: 6px; }
 button.tx-on { background: #a32d2d; color: #fff; border-color: #a32d2d; }
 </style>

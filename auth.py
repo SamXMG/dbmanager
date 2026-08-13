@@ -419,9 +419,11 @@ def touch_activity(username, path):
 
 def current_user(handler):
     """解析当前登录用户；未登录/过期返回 None
-    令牌来源: X-User-Token 请求头(API 客户端/旧前端) 或 HttpOnly Cookie dbm_user(浏览器自动携带)
+    令牌来源: 优先 HttpOnly Cookie dbm_user(浏览器自动携带, JS 不可读); 仅无 Cookie 时回退 X-User-Token 头(API 客户端/CI)
     开发模式 DBM_DEV=1: 无有效会话时默认视为 admin 已登录(便于调试登录态 UI, 无需输密码)"""
-    tok = handler.headers.get("X-User-Token") or _cookie_token(handler.headers.get("Cookie"))
+    # 优先 HttpOnly Cookie(dbm_user)——浏览器自动携带且 JS 不可读(XSS 安全);
+    # 仅当无 Cookie(纯 API 客户端/CI/移动端)时回退到 X-User-Token 请求头(P0-4)。
+    tok = _cookie_token(handler.headers.get("Cookie")) or handler.headers.get("X-User-Token")
     if tok:
         s = USER_SESSIONS.get(tok)
         if s:

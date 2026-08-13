@@ -1,5 +1,5 @@
-// 账号 store(P1 加固: 令牌不再落 localStorage, 仅内存持有 + HttpOnly Cookie 承载;
-// 刷新后登录态经 /api/config 的 auth_user 恢复; X-User-Token 头保留注入兼容跨源开发模式)
+// 账号 store(P0-4 加固: 令牌仅由后端 HttpOnly Cookie(dbm_user)承载, 前端不再持有/注入 X-User-Token;
+// 刷新后登录态经 /api/config 的 auth_user 恢复; 彻底杜绝 XSS 通过 JS 读取/重放令牌)
 import { defineStore } from 'pinia'
 import { login, register, changePwd, gatewayLogin } from '@/api/account'
 import { authState, request } from '@/api/client'
@@ -33,7 +33,7 @@ export const useAuthStore = defineStore('auth', {
         if (r.ok && r.token) {
           this.token = r.token; this.role = r.role as any; this.name = r.user || username
           this.mustChangePwd = !!r.must_change_pwd   // 默认账号 → 强制改密
-          authState.userToken = r.token   // 仅内存: dev 跨源请求注入; 生产同源由 Cookie 兜底
+          // 令牌仅由后端 HttpOnly Cookie(dbm_user)承载, 前端不再持有/注入令牌(P0-4: 杜绝 XSS 窃取)
           return { ok: true }
         }
         return { ok: false, error: '登录失败' }

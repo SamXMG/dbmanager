@@ -15,8 +15,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _TMP_ROOT = tempfile.mkdtemp(prefix="dbm_task_test_")
 os.environ["DBM_DB_FILE"] = os.path.join(_TMP_ROOT, "dbmanager.db")
 
+import config
 import sqlite3
 import task_sched
+
+# P0-3 沙箱适配: 测试库/备份目录在系统 TEMP, 追加为 SQLite 允许根(仅测试生效, 不削弱生产默认)
+config.SQLITE_ALLOW_ROOTS = [tempfile.gettempdir()]
 
 # 重定向备份目录到 TEMP(环境: 沙箱对项目根目录写保护)
 TMP = tempfile.gettempdir()

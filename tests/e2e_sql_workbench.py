@@ -7,10 +7,13 @@ import urllib.error
 import sqlite3
 import tempfile
 import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import sqlitedb   # 用于备份/恢复用户数据(改密流程影响同服务连跑的后续 e2e)
 
 BASE = 'http://127.0.0.1:8770'
 # 测试库放系统 TEMP(服务进程的沙箱写保护仅覆盖其 cwd=dbmanager 目录树)
-DB = os.path.join(tempfile.gettempdir(), 'dbm_e2e_sqlwb.db')
+DB = 'dbm_e2e_sqlwb.db'   # 项目根相对路径(P0-3 沙箱: 仅允许 cwd/DATA_ROOT 内)
 PASS, FAIL = [], []
 
 def check(name, cond, extra=''):
@@ -44,9 +47,17 @@ c.execute("INSERT INTO emp (name, dept) VALUES ('李四', '销售')")
 c.commit(); c.close()
 
 # 登录 + 连接
-st, d = req('POST', '/api/login', {'username': 'admin', 'password': 'admin123'})
+ADM_PWD = os.environ.get('DBM_DEFAULT_PWD') or 'admin123'
+# 备份用户数据: 改密流程(must_change_pwd)会改 admin 口令, 结尾恢复以免影响同服务连跑的后续 e2e
+_USERS_BAK = sqlitedb.users_load()
+st, d = req('POST', '/api/login', {'username': 'admin', 'password': ADM_PWD})
 check('admin 登录', st == 200 and d.get('token'), str(st))
 tok = d.get('token', '')
+# 强制改密(P0-1)适配: 非默认口令起库时 admin 首登须改密, 否则业务接口 403
+if d.get('must_change_pwd'):
+    st2, _ = req('POST', '/api/password', {'old_password': ADM_PWD, 'new_password': 'E2eAdmin@2026'}, tok=tok)
+    check('admin 首次改密', st2 == 200, str(st2))
+
 st, d = req('POST', '/api/connect', {'db_type': 'sqlite', 'database': DB}, tok=tok)
 check('连接 sqlite', st == 200 and d.get('ok'), str(st))
 ss = d.get('session', '')
@@ -103,6 +114,10 @@ st, d = req('POST', '/api/sql', {'sql': 'SELECT * FROM emp', 'limit': 5}, tok=to
 r0 = first_res(d)
 check('limit 生效 rows<=5', len(r0.get('rows') or []) <= 5)
 
+
+# 恢复原始用户数据(防影响同服务连跑的后续 e2e)
+if _USERS_BAK is not None:
+    sqlitedb.users_save(_USERS_BAK)
 print('\n===== SQL 工作台端到端: %d PASS / %d FAIL =====' % (len(PASS), len(FAIL)))
 if FAIL:
     print('失败项:', FAIL)

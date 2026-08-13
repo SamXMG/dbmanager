@@ -10,6 +10,11 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import config  # noqa: E402
+# P0-3 SQLite 路径沙箱: 测试库位于系统临时目录(绝对路径, 在 cwd/DATA_ROOT 之外),
+# 仅测试进程内将临时目录加入允许根, 不弱化生产默认(cwd + DATA_ROOT)。
+config.SQLITE_ALLOW_ROOTS = [tempfile.gettempdir()]
+
 from ops import (  # noqa: E402
     _qi, backup_database, restore_sql, run_sql, safe_where_clause, split_sql_statements,
 )

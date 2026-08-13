@@ -2,6 +2,7 @@
 // 存储过程/函数/触发器编辑器(阶段5 批3): 打开源码 -> 编辑 -> 保存重建/执行(参数收集)/删除
 // 对齐旧版 procBar + openRoutine
 import { computed, ref, watch } from 'vue'
+import { confirmDanger } from '@/utils/confirm'
 import { useUIStore } from '@/stores/ui'
 import { getRoutineSource, getRoutineParams } from '@/api/database'
 import { saveRoutine, dropRoutine, executeRoutine } from '@/api/routine'
@@ -45,7 +46,7 @@ async function doSave() {
   const r = target.value
   if (!r) return
   if (!source.value.trim()) { ui.toast('源码为空', true); return }
-  if (!confirm(`保存并重建 ${r.kind === 'Trigger' ? '触发器' : r.kind}「${r.name}」？(DROP 后重建)`, )) return
+  if (!await confirmDanger(`保存并重建 ${r.kind === 'Trigger' ? '触发器' : r.kind}「${r.name}」？(DROP 后重建)`, )) return
   saving.value = true
   try {
     const d = await saveRoutine({ s: r.s, name: r.name, kind: r.kind, source: source.value })
@@ -88,7 +89,7 @@ async function doExecute() {
 async function doDrop() {
   const r = target.value
   if (!r) return
-  if (!confirm(`确认删除 ${KIND_LABEL[r.kind] || r.kind}「${r.name}」？该操作不可撤销！`)) return
+  if (!await confirmDanger(`确认删除 ${KIND_LABEL[r.kind] || r.kind}「${r.name}」？该操作不可撤销！`)) return
   try {
     await dropRoutine({ s: r.s, name: r.name, kind: r.kind })
     ui.toast('已删除')

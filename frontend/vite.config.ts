@@ -15,7 +15,18 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
-    chunkSizeWarningLimit: 3000, // CodeMirror 体积小, 不刷警告
+    // 复核 P1-9: 警告阈值回归 1000(原 3000 掩盖包体肥胖); 配合 manualChunks 分包
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        // P1-9 分包: 框架核心 vendor + SQL 编辑器 editor 独立 chunk(仅工作台页加载)
+        manualChunks(id: string) {
+          if (!id.includes('node_modules')) return
+          if (id.includes('codemirror') || id.includes('@codemirror')) return 'editor'
+          if (id.includes('/vue') || id.includes('vue-router') || id.includes('pinia')) return 'vendor'
+        },
+      },
+    },
   },
   server: {
     port: 5173,
