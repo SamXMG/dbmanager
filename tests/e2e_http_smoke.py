@@ -8,6 +8,7 @@ import os
 import socket
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -48,6 +49,12 @@ def J(b):
 
 
 def main():
+    # 备份用户数据(首次部署默认账号会被强制改密, 结束后恢复, 避免污染共享 SQLite)
+    import sys
+    sys.path.insert(0, WORKDIR)
+    import sqlitedb
+    _users_bak = sqlitedb.users_load()
+
     # 1) 准备测试库(唯一后缀 + 相对路径: 绝对路径含中文目录在部分环境连接异常)
     import uuid
     db = os.path.basename(os.path.join(WORKDIR, "_ci_smoke_%s.db" % uuid.uuid4().hex[:6]))
@@ -62,7 +69,11 @@ def main():
     # 2) 起服务
     port = _free_port() if PORT == 0 else PORT
     _set_base(port)
-    env = dict(os.environ, DBM_PORT=str(port), DBM_NO_OPEN="1")
+    # 程序数据隔离到临时库(每次唯一): 防测试写入真实 dbmanager.db(与 test_auth_ldap 等约定一致),
+    # 并保证 admin 首次建库口令 = DBM_DEFAULT_PWD(干净环境行为一致; 唯一名防上次运行残留库复用)
+    _prog_db = os.path.join(tempfile.gettempdir(),
+                            "dbm_e2e_%d_%d.db" % (port, int(time.time())))
+    env = dict(os.environ, DBM_PORT=str(port), DBM_NO_OPEN="1", DBM_DB_FILE=_prog_db)
     proc = subprocess.Popen(
         [sys.executable, os.path.join(WORKDIR, "app.py")],
         cwd=WORKDIR, env=env,
@@ -103,12 +114,14 @@ def main():
         s, b = req("/api/connect", "POST", {"db_type": "sqlite", "database": db})
         h = {}
         if s == 401:  # auth 启用: 先登录默认账号
-            s2, b2 = req("/api/login", "POST", {"username": "admin", "password": "admin123"})
+            # 密码适配: CI/本地 e2e 可能设 DBM_DEFAULT_PWD 覆盖首次建库口令(强制改密 P0-1 要求非默认口令)
+            adm_pwd = os.environ.get("DBM_DEFAULT_PWD") or "admin123"
+            s2, b2 = req("/api/login", "POST", {"username": "admin", "password": adm_pwd})
             if s2 == 200:
                 h["X-User-Token"] = J(b2)["token"]
                 if J(b2).get("must_change_pwd"):
                     # 首次部署默认账号需先改密(否则 connect 403); 脚本适配产品行为
-                    req("/api/password", "POST", {"old_password": "admin123", "new_password": "E2eAdmin@2026"}, h)
+                    req("/api/password", "POST", {"old_password": adm_pwd, "new_password": "E2eAdmin@2026"}, h)
                 s, b = req("/api/connect", "POST", {"db_type": "sqlite", "database": db}, h)
         check("connect", s == 200 and J(b).get("session"), b[:120])
         h["X-Session"] = J(b)["session"]
@@ -143,6 +156,11 @@ def main():
                 os.remove(db_abs)
         except Exception:
             pass  # 某些沙箱环境拦截删除, CI 无此限制
+        if _users_bak is not None:
+            try:
+                sqlitedb.users_save(_users_bak)   # 恢复用户数据(防测试污染)
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":

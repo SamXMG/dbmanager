@@ -150,7 +150,7 @@ onMounted(() => { connStore.refreshConnList() })
 <template>
   <Teleport to="body">
     <div v-if="show" class="modal-mask" @click.self="emit('close')">
-      <div class="modal-box" style="max-width:700px;max-height:85vh;overflow:auto">
+      <div class="modal-box" style="max-width:700px">
         <div class="modal-header">
           <h3>我的连接</h3>
           <button class="sm" @click="emit('close')">✕</button>
@@ -221,8 +221,8 @@ onMounted(() => { connStore.refreshConnList() })
 </template>
 
 <style scoped>
-.modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-.modal-box { background: var(--panel); border-radius: 8px; padding: 20px; width: 90%; max-width: 700px; border: 1px solid var(--border); }
+.modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; box-sizing: border-box; }
+.modal-box { background: var(--panel); border-radius: 8px; padding: 20px; width: 90%; max-width: 700px; border: 1px solid var(--border); max-height: calc(100vh - 32px); overflow-y: auto; box-sizing: border-box; }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .modal-header h3 { margin: 0; color: var(--text); }
 .conn-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }

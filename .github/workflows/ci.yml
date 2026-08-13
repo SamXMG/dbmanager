@@ -38,8 +38,13 @@ jobs:
           PYTHONPATH: .
       - name: HTTP full-chain smoke (real server + SQLite)
         run: python tests/e2e_http_smoke.py 18777
+        env:
+          # 强制改密(P0-1)后: 默认 admin 命中 must_change_pwd 会 403 拦全部 e2e, 必须用非默认口令起库
+          DBM_DEFAULT_PWD: CiRand0mPwd#2026
       - name: Security E2E (auth / account / ACL)  # 四轮评估 P0: 硬编码路径已可移植化, 守护 RBAC 写门禁
         shell: bash
+        env:
+          DBM_DEFAULT_PWD: CiRand0mPwd#2026
         run: |
           python app.py > /tmp/dbm_server.log 2>&1 &
           SERVER_PID=$!

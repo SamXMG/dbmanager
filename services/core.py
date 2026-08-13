@@ -106,10 +106,27 @@ def _check_type(s):
         raise ValueError("非法数据类型")
     return s.strip()
 
+# DEFAULT 值白名单(注入防护, 复核 P0): 仅允许
+#   数字字面量 / 单引号字符串(含 MSSQL N'...' 前缀) / NULL / TRUE / FALSE / 安全时间函数
+# 禁止: 分号多语句、子查询、注释、标识符(双引号/反引号)、UNION 等
+_DEFAULT_SAFE = re.compile(
+    r"^(?:"
+    r"[-+]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?"          # 数字字面量(含科学计数法)
+    r"|(?:N)?'[^'\r\n]*'"                          # 字符串字面量(禁内嵌引号/换行)
+    r"|NULL|TRUE|FALSE"                            # 关键字
+    r"|CURRENT_TIMESTAMP|CURRENT_DATE|CURRENT_TIME|CURRENT_USER"
+    r"|NOW\(\)|GETDATE\(\)|SYSDATE\(\)"
+    r"|CURRENT_TIMESTAMP\(\)|CURRENT_DATE\(\)|CURRENT_TIME\(\)|CURRENT_USER\(\)"
+    r"|SYS_GUID\(\)|UUID\(\)|RANDOM\(\)|GUID\(\)"   # 安全函数(无参数, 不可带子查询)
+    r")$", re.I)
+
 def _check_default(s):
-    if re.search(r"[;/\-]{2}|--|\*/", s or ""):
-        raise ValueError("非法默认值")
-    return str(s).strip()
+    if s is None or str(s).strip() == "":
+        return ""
+    v = str(s).strip()
+    if not _DEFAULT_SAFE.fullmatch(v):
+        raise ValueError("非法默认值: 仅支持字面量(数字/字符串/NULL/布尔)或安全时间函数")
+    return v
 
 def split_sql_statements(sql):
     """按分号拆分多条 SQL, 跳过字符串/行注释/块注释内的分号"""

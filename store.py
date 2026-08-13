@@ -1,30 +1,28 @@
 # -*- coding: utf-8 -*-
 """dbmanager - 连接配置持久化
-connections.json 的读写(原子写), 密码字段保持密文。
+存 SQLite(dbmanager.db, connections 表, 密码字段保持密文);
+旧 connections.json 首次启动自动迁移(源文件改名 .bak)。
 """
 import json
 import os
 
 from config import DEFAULT_PORT, SUPPORTED
 from crypto import _conn_file, decrypt_pwd, encrypt_pwd
+import sqlitedb
 
 
 def _load_conn_store():
-    """读取连接存储。文件损坏时抛异常(绝不静默返回 [] 导致保存时覆盖丢失全部连接)"""
-    cf = _conn_file()
-    if not os.path.exists(cf):
-        return []
-    with open(cf, "r", encoding="utf-8") as _f:
-        data = json.load(_f)
-    return data.get("connections", []) if isinstance(data, dict) else (data or [])
+    """读取连接存储(SQLite)。数据损坏时抛异常(绝不静默返回 [] 导致保存时覆盖丢失全部连接)"""
+    sqlitedb.init_db()
+    if os.path.exists(_conn_file()):
+        sqlitedb.migrate_conns_json(_conn_file())
+    return sqlitedb.conns_load()
+
 
 def _save_conn_store(items):
-    """原子写连接存储: 先写临时文件再 os.replace, 避免写一半崩溃损坏文件"""
-    cf = _conn_file()
-    tmp = cf + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as _f:
-        json.dump({"connections": items}, _f, ensure_ascii=False, indent=2)
-    os.replace(tmp, cf)
+    """原子写连接存储: SQLite 事务覆盖写入(防写一半损坏)"""
+    sqlitedb.init_db()
+    sqlitedb.conns_save(items)
 
 def list_connections():
     """返回连接列表（不含密码，仅 has_pwd 标记）"""

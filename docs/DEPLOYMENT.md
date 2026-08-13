@@ -32,7 +32,8 @@ docker run -d --name dbm \
 ```
 
 > 说明：Dockerfile 为多阶段构建（node 构建前端 + python 运行时）。
-> `/app/data` 挂载卷保存 users.json / connections.json / 日志等运行时数据。
+> `/app/data` 挂载卷保存 `dbmanager.db`（SQLite：用户/权限/连接配置）、日志等运行时数据；
+> 旧版 users.json / connections.json 首次启动自动迁移入库（源文件改名 .bak）。
 > 生产建议配合 compose 增加健康检查：`GET /api/health`。
 
 ## 4. 内网 / 团队部署加固
@@ -61,19 +62,23 @@ docker run -d --name dbm \
 4. **CSP/安全头**：已内置（X-Frame-Options DENY、X-Content-Type-Options nosniff、
    基础 CSP），反代不要覆盖；
 5. **监控**：接入 Prometheus 抓取 `/api/metrics`，用 `/api/health` 做探活；
-6. **备份**：定时备份 `users.json`、`connections.json`、`.dbm_key`、`.dbm_gateway`、
+6. **备份**：定时备份 `dbmanager.db`（SQLite：用户/权限/连接配置）、`.dbm_key`、`.dbm_gateway`、
    `.dbm_cert.pem`/`.dbm_key_ssl.pem`（丢失密钥将无法解密已存密码）。
 
-## 6. 环境变量参考
+## 6. 配置参考（dbmanager.conf 优先）
+
+日常配置写项目根 `dbmanager.conf`（INI，模板 `dbmanager.conf.example`），改后重启生效；
+**优先级：环境变量 > 配置文件 > 内置默认值**。以下为环境变量名（与配置文件键一一对应，
+如 `DBM_HOST` ↔ `[server] host`），CI/Docker 用环境变量覆盖，日常部署建议直接改配置文件。
 
 | 变量 | 作用 | 默认 |
 |---|---|---|
-| `DBM_HOST` | 监听地址（安全默认仅本机） | `127.0.0.1` |
+| `DBM_HOST` | 监听地址（安全默认仅本机；局域网改 `host=0.0.0.0`） | `127.0.0.1` |
 | `DBM_PORT` | 监听端口 | `8770` |
 | `DBM_SSL=1` | 启用 HTTPS（自动生成自签名证书） | 关 |
 | `DBM_SSL_CERT` / `DBM_SSL_KEY` | 自有证书路径 | — |
 | `DBM_DEFAULT_PWD` | 覆盖首次创建 admin 的密码（仅首建生效） | `admin123` |
-| `DBM_AUTH=1` | 无 users.json 也强制启用账号体系 | 关 |
+| `DBM_AUTH=1` | 无用户也强制启用账号体系 | 关 |
 | `DBM_ALLOW_REGISTER=1` | 开放自助注册（默认只读角色） | 关 |
 | `DBM_LDAP_URL` / `DBM_LDAP_BASE` | 启用 LDAP/AD 登录 | 关 |
 | `DBM_GATEWAY_TOKEN` | 固定公网网关令牌 | 首次启动自动生成 |
@@ -94,14 +99,14 @@ docker run -d --name dbm \
 
 1. 备份数据目录（§5 第 6 条清单）；
 2. 拉取新版本代码/镜像，`pip install -r requirements.lock` 或重建镜像；
-3. 重启服务；`users.json` 自动幂等迁移（admin 角色升级等）；
+3. 重启服务；`dbmanager.db` 结构幂等（旧版 users.json/connections.json 若存在自动迁移入库）；
 4. 用 `/api/health` 确认新版本号，抽查登录与审计日志。
 
 ## 9. 故障排查
 
 - **服务起不来**：查看 `logs/dbmanager.log`；确认端口未被占用（`DBM_NO_KILL=1`
   可禁止自动接管旧实例）；
-- **登录不了**：确认 `users.json` 存在且密码正确；限流锁 5 分钟自动解除；
+- **登录不了**：确认账号密码正确（数据在 `dbmanager.db`）；限流锁 5 分钟自动解除；
 - **SQL Server 连不上**：安装 ODBC Driver 17/18；Linux 需 `msodbcsql18`（Dockerfile 已含）；
 - **局域网访问被拒**：`DBM_HOST=0.0.0.0` + 防火墙放行 8770；
 - **证书告警**：自签名证书浏览器会提示，可导入信任或改用反代 + 正式证书。

@@ -35,6 +35,13 @@
 | GET | `/api/users` | 账号列表（admin） |
 | POST | `/api/users` | 新建/更新账号：`{username, role, password?}`（admin；非 admin 不得授予 admin 角色） |
 | POST | `/api/users/delete` | 删除账号（admin；不能删自己） |
+| GET | `/api/users/perms?username=x` | 查询用户连接/表级权限（admin）：`{perms, connections}` |
+| POST | `/api/users/perms` | 配置权限（admin，单用户/批量）：`{usernames, perms}`，perms 为空=清空恢复不受限 |
+| GET | `/api/sessions` | 在线用户列表（admin）：用户名/角色/登录时间/IP/最后活跃/当前操作/会话数 |
+| POST | `/api/sessions/kick` | 强制踢下线（admin）：`{username}`，删除该用户全部会话；不能踢自己 |
+| POST | `/api/conn/tables` | 权限配置辅助：拉取指定保存连接的表名列表（admin） |
+| POST | `/api/sysdb` | 系统查询（admin）：`{sql}` 对内置 SQLite 执行只读 SELECT（白名单校验，禁写/禁多语句） |
+| GET | `/api/audit?user=&action=&limit=&offset=` | 审计查询（admin）：按用户/操作筛选，时间倒序 |
 | POST | `/api/gateway/login` | 公网网关令牌验证：`{token}` → Set-Cookie `dbm_gw` |
 | POST | `/api/shutdown` | 关停服务（仅 admin） |
 

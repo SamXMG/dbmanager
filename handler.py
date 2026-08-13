@@ -25,10 +25,11 @@ import urllib.parse
 
 import config
 import auth  # 账号体系（users.json; 不存在则整体不启用）
+import sqlitedb  # 程序数据(SQLite): 用户/权限/连接/审计/任务
 
 logger = logging.getLogger("handler")
 from config import (
-    DEFAULT_PORT, HOST, PORT, SESSIONS, SESSION_TTL, STATIC_DIRS,
+    DEFAULT_PORT, HOST, PORT, SESSIONS, SESSION_TTL, STATIC_DIRS, conf,
 )
 from crypto import maybe_decrypt_pwd, rsa_public_pem
 from dbcore import _norm_db_type, test_connection
@@ -92,6 +93,22 @@ def resolve_conn(handler):
         return _norm_db_type(item[0])
     return _norm_db_type(parse_conn_header(handler))
 
+
+def _sql_first_table(sql):
+    """从 SQL 文本提取首个表名(FROM/JOIN/UPDATE/INTO/TABLE 关键字后), 供表级权限校验;
+    带 schema 前缀(a.b)时取表名部分; 提取失败返回 None(该请求只做连接级管控)。"""
+    if not sql:
+        return None
+    try:
+        import re
+        m = re.search(r"(?:FROM|JOIN|UPDATE|INTO|TABLE)\s+[`\"\[]?([\w\u4e00-\u9fff.\-]+)",
+                      sql, re.IGNORECASE)
+        if not m:
+            return None
+        return m.group(1).split(".")[-1]
+    except Exception:
+        return None
+
 # ------------------------------
 # HTTP 处理
 # ------------------------------
@@ -99,7 +116,7 @@ def _safe_error(e):
     """错误脱敏: 业务校验错误(ValueError)与数据库错误(SQLAlchemyError, 含语法错误/
     表不存在等, 对用户排查 SQL 有直接价值)以及开发模式(DBM_DEV=1)透传详情;
     其余内部异常(代码 bug 等)对外只给通用消息, 防止泄露内部细节。"""
-    if isinstance(e, ValueError) or os.environ.get("DBM_DEV"):
+    if isinstance(e, ValueError) or conf("DBM_DEV"):
         return str(e)
     try:
         from sqlalchemy.exc import SQLAlchemyError
@@ -133,6 +150,11 @@ def _req_log(method: str):
                 logger.info("%s %s %s %dms user=%s",
                             method, self.path.split("?")[0], status, ms,
                             auth.user_name(self) or "-")
+                # 在线用户管理: 记录当前操作路径(节流写入, 失败不影响主流程)
+                try:
+                    auth.touch_activity(auth.user_name(self), self.path.split("?")[0])
+                except Exception:
+                    pass
                 return r
             except Exception:
                 ms = int((time.time() - t0) * 1000)
@@ -155,7 +177,8 @@ _AUDIT_LOCK = threading.Lock()
 
 
 def _audit(ip, action, detail="", user=""):
-    """追加一条审计记录; 任何异常静默忽略(审计不能影响主流程)"""
+    """追加一条审计记录: 文件(audit.log, 保留原有轮转) + SQLite(audit_log 表, 可 SQL 查询) 双写
+    任何异常静默忽略(审计不能影响主流程)"""
     try:
         with _AUDIT_LOCK:
             os.makedirs(AUDIT_DIR, exist_ok=True)
@@ -168,6 +191,10 @@ def _audit(ip, action, detail="", user=""):
                 f.write(line)
     except Exception:
         pass
+    try:
+        sqlitedb.audit_add(ip, action, detail, user)
+    except Exception:
+        pass
 
 
 # 写操作路径(启用账号体系后仅 write 角色可访问)
@@ -176,7 +203,14 @@ WRITE_PATHS = {
     "/api/routines/save", "/api/routines/drop", "/api/routines/execute",
     "/api/schema-sync", "/api/connections", "/api/connections/delete",
     "/api/transaction/commit", "/api/transaction/rollback",
-    "/api/gen-data", "/api/transfer",
+    "/api/gen-data", "/api/transfer", "/api/config/settings", "/api/config/restart",
+}
+
+# 连接/表级细粒度权限豁免: 管理/账号/配置类接口由各自的 admin 门禁控制, 不做数据级权限判定
+PERM_EXEMPT = {
+    "/api/config", "/api/config/settings", "/api/pubkey", "/api/login", "/api/logout", "/api/register",
+    "/api/password", "/api/health", "/api/metrics", "/api/test",
+    "/api/connections", "/api/connections/delete", "/api/conn/tables",
 }
 
 # 请求体大小上限(五轮评估 P2-2: 防恶意大 POST 体内存耗尽 DoS)
@@ -189,7 +223,7 @@ class BodyTooLarge(Exception):
 
 class Handler(http.server.BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
-        if os.environ.get("DBM_LOG"):
+        if conf("DBM_LOG"):
             try:
                 sys.stderr.write("[req] %s %s\n" % (self.command, self.path))
             except Exception:
@@ -279,14 +313,20 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.wfile.write(html.encode("utf-8"))
 
     def _body(self):
+        """读取并解析 JSON 请求体。带缓存: 权限检查(_request_table)与路由处理
+        可能各调一次, 重复读流会阻塞(Content-Length 已消费)导致请求挂起 48s+"""
+        cache = getattr(self, "_body_cache", None)
+        if cache is not None:
+            return cache
         n = int(self.headers.get("Content-Length", 0))
         if not n:
+            self._body_cache = {}
             return {}
         if n > MAX_BODY:   # P2-2: 请求体硬上限, 防内存耗尽 DoS
             self._send_json(413, {"error": "请求体超过大小上限(%dMB)" % (MAX_BODY // 1048576)})
             raise BodyTooLarge
         raw = self.rfile.read(n).decode("utf-8")
-        if os.environ.get("DBM_LOG"):
+        if conf("DBM_LOG"):
             try:
                 sys.stderr.write("[body] %s\n" % raw[:400])
             except Exception:
@@ -294,6 +334,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         obj = json.loads(raw)
         if isinstance(obj, dict) and obj.get("pwd"):
             obj["pwd"] = maybe_decrypt_pwd(obj["pwd"])  # rsa: 前缀 → RSA 解密为明文
+        self._body_cache = obj
         return obj
 
     def _parse(self):
@@ -325,7 +366,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if path.startswith("/api/gateway/"):
             return False
         if path in ("/api/config", "/api/pubkey"):
-            return False  # 前端依赖其判断是否弹网关验证
+            return False  # 前端依赖其判断网关状态; register 不在此豁免(复核 P0-R4): 公网必须过网关令牌, 防无令牌自助注册
         self._send_json(401, {"error": "需要公网访问验证", "require_gateway": True})
         return True
 
@@ -357,7 +398,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         """强制首次改密: 默认账号未改密前, 业务 API 一律 403,
         仅放行 改密/登出/配置查询 等必要通道(否则改密流程无法进行)。
         开发模式(DBM_DEV=1)跳过——假 admin 会话无真实改密流程。"""
-        if not auth.auth_enabled() or os.environ.get("DBM_DEV") == "1":
+        if not auth.auth_enabled() or conf("DBM_DEV") == "1":
             return False
         path, _ = self._parse()
         # 静态资源与前端外壳必须放行: 未改密用户刷新页面时若 JS/CSS 403, 改密 UI 无法渲染(白屏)
@@ -394,7 +435,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         return False
 
     def _visible_connections(self):
-        """按当前用户过滤连接可见性: admin 看全部; 普通用户只看公开连接(visible_to 为空)与自己可见的连接。
+        """按当前用户过滤连接可见性: admin 看全部; 普通用户看公开连接(visible_to 为空)、
+        自己可见的连接(visible_to 含用户名) 或 管理员为其配置了权限的连接(perms 授权)。
         未启用账号体系时不过滤(单用户自用全部可见)。"""
         conns = list_connections()
         if not auth.auth_enabled():
@@ -403,8 +445,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if u and u["role"] == "admin":
             return conns
         name = (u or {}).get("user", "")
+        perms = auth.user_perms(name)
         return [c for c in conns
-                if not c.get("visible_to") or name in c.get("visible_to")]
+                if not c.get("visible_to") or name in c.get("visible_to")
+                or c.get("name") in perms]
 
     def _conn_readonly_blocked(self):
         """连接带 read_only 标记时拒绝写操作: 返回 True 表示已拦截(需连接的写接口统一调用)。
@@ -424,6 +468,102 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def _audit_action(self, action, detail=""):
         """审计并自动附带当前登录用户(未登录/未启用账号体系记 -)"""
         _audit(self.client_address[0], action, detail, auth.user_name(self))
+
+    def _perm_blocked(self, write=False):
+        """连接/表级细粒度权限(管理员在账号管理中配置): 返回 True 表示已拦截(403)。
+        仅作用于数据访问接口; 管理/账号/连接管理/配置接口豁免(它们有各自的 admin 门禁)。
+        admin 角色与未配置权限的用户不受限(兼容老部署)。"""
+        if not auth.auth_enabled():
+            return False
+        u = auth.current_user(self)
+        if not u or u["role"] == "admin":
+            return False
+        path, q = self._parse()
+        if path in PERM_EXEMPT:
+            return False
+        if path.startswith(("/api/users", "/api/sessions", "/api/gateway/",
+                            "/assets/", "/v2", "/css/", "/js/")):
+            return False
+        # 会话连接优先; 连接管理页(无会话)跳过
+        try:
+            conn = resolve_conn(self)
+        except Exception:
+            return False
+        name = (conn or {}).get("name") or ""
+        if not name:
+            return False   # 手动临时连接(非保存连接)不适用连接级权限
+        action = "write" if write else "read"
+        if not auth.can_access(u["user"], u["role"], name, action):
+            self._send_json(403, {"error": "无权访问该连接(%s)" % name, "perm_denied": True})
+            return True
+        table = self._request_table(path)
+        if table and not auth.can_access(u["user"], u["role"], name, action, table):
+            self._send_json(403, {"error": "无权访问该表(%s.%s)" % (name, table),
+                                  "perm_denied": True})
+            return True
+        return False
+
+    def _request_table(self, path):
+        """从请求中提取目标表名(尽力而为): 覆盖已知接口的 body/query 位置;
+        提取失败返回 None(仅做连接级管控)。SQL 控制台(/api/sql)提取语句首个表名。"""
+        try:
+            path, q = self._parse()
+            if path == "/api/data":
+                return (q.get("t") or [""])[0] or None
+            if path in ("/api/columns", "/api/indexes", "/api/relations", "/api/er",
+                        "/api/db-users", "/api/export", "/api/export-doc", "/api/alter"):
+                b = self._body()
+                t = (b.get("t") if isinstance(b, dict) else None) or (q.get("t") or [""])[0]
+                return t or None
+            if path in ("/api/row", "/api/stats", "/api/gen-data"):
+                b = self._body()
+                return (b.get("t") if isinstance(b, dict) else None) or None
+            if path in ("/api/sql", "/api/explain"):
+                b = self._body()
+                sql = (b.get("sql") or "") if isinstance(b, dict) else ""
+                return _sql_first_table(sql)
+            if path in ("/api/transfer", "/api/sync"):
+                b = self._body()
+                if isinstance(b, dict):
+                    return b.get("t") or b.get("table") or None
+            if path in ("/api/import", "/api/restore"):
+                b = self._body()
+                if isinstance(b, dict):
+                    return b.get("t") or b.get("table") or b.get("target") or None
+        except Exception:
+            pass
+        return None
+
+    def _filter_tables(self, tables):
+        """按用户表级权限过滤表列表(白名单/黑名单): 用于 /api/tables, 使前端对象树
+        只展示有权限的表。admin 与未配置权限用户返回原样。"""
+        try:
+            if not auth.auth_enabled():
+                return tables
+            u = auth.current_user(self)
+            if not u or u["role"] == "admin":
+                return tables
+            conn = resolve_conn(self)
+            name = (conn or {}).get("name") or ""
+            if not name:
+                return tables
+            p = auth.user_perms(u["user"]).get(name)
+            if not p:
+                return tables
+            tl, dl = p.get("tables") or [], p.get("deny_tables") or []
+            if not tl and not dl:
+                return tables
+            out = []
+            for t in tables:
+                tname = t.get("name") if isinstance(t, dict) else str(t)
+                if dl and tname in dl:
+                    continue
+                if tl and tname not in tl:
+                    continue
+                out.append(t)
+            return out
+        except Exception:
+            return tables
 
     def _do_gateway_login(self):
         b = self._body()
@@ -474,6 +614,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if self._auth_blocked():
                 return
             if self._must_change_blocked():
+                return
+            if self._perm_blocked(write=False):
                 return
             # 静态资源(css/js): 仅白名单子目录下的扁平文件, 防目录穿越
             for prefix, (subdir, ctype) in STATIC_DIRS.items():
@@ -556,6 +698,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 return
             if self._must_change_blocked():
                 return
+            if self._perm_blocked(write=True):
+                return
             # 写操作网关(与 do_PUT/do_DELETE 对齐): 角色 + 连接只读双校验, 防 read 越权写
             if path in WRITE_PATHS and not self._require_write():
                 return
@@ -582,6 +726,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if self._auth_blocked():
                 return
             if self._must_change_blocked():
+                return
+            if self._perm_blocked(write=True):
                 return
             if path in WRITE_PATHS and not self._require_write():
                 return
@@ -633,6 +779,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 return
             if self._must_change_blocked():
                 return
+            if self._perm_blocked(write=True):
+                return
             if path in WRITE_PATHS and not self._require_write():
                 return
             if path in WRITE_PATHS and self._conn_readonly_blocked():
@@ -665,7 +813,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
 GATEWAY_TOKEN_FILE = os.path.join(config.BASE_DIR, ".dbm_gateway")
 
 def _load_gateway_token():
-    env = os.environ.get("DBM_GATEWAY_TOKEN")
+    env = conf("DBM_GATEWAY_TOKEN")
     if env:
         return env
     tf = GATEWAY_TOKEN_FILE
@@ -766,15 +914,15 @@ def _gen_self_signed_cert(cert_path, key_path):
 def _ssl_setup():
     """解析 SSL 证书来源并设置全局 USE_HTTPS / SSL_CERT / SSL_KEY。"""
     global SSL_CERT, SSL_KEY, USE_HTTPS
-    cert = os.environ.get("DBM_SSL_CERT")
-    key = os.environ.get("DBM_SSL_KEY")
+    cert = conf("DBM_SSL_CERT")
+    key = conf("DBM_SSL_KEY")
     if cert and key:
         SSL_CERT, SSL_KEY, USE_HTTPS = cert, key, True
         return
     dcert = os.path.join(config.BASE_DIR, ".dbm_cert.pem")
     dkey = os.path.join(config.BASE_DIR, ".dbm_key_ssl.pem")
-    # DBM_SSL=1 或已存在默认自签名证书时启用
-    if os.environ.get("DBM_SSL") == "1" or os.path.exists(dcert):
+    # DBM_SSL=1(或 dbmanager.conf [server] ssl=1) 或已存在默认自签名证书时启用
+    if conf("DBM_SSL") == "1" or os.path.exists(dcert):
         if not (os.path.exists(dcert) and os.path.exists(dkey)):
             try:
                 _gen_self_signed_cert(dcert, dkey)
@@ -827,7 +975,7 @@ def _gateway_allowed(handler):
     return _gateway_cookie_ok(handler)
 
 def get_default_conn():
-    raw = os.environ.get("DBM_DEFAULT_CONN")
+    raw = conf("DBM_DEFAULT_CONN")
     if raw:
         try:
             return json.loads(raw)

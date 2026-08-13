@@ -33,8 +33,10 @@ def mkuser(name, pwd, role):
     salt = secrets.token_hex(16)
     return {'pwd_hash': hashlib.pbkdf2_hmac('sha256', pwd.encode(), bytes.fromhex(salt), 120000).hex(), 'salt': salt, 'role': role}
 
-USERS_PATH = os.path.join(ROOT, 'users.json')
-users = json.load(open(USERS_PATH, encoding='utf-8'))
+import sys
+sys.path.insert(0, ROOT)
+import sqlitedb
+users = sqlitedb.users_load()
 # 备份原始, 注入测试账号
 BACKUP = json.loads(json.dumps(users))
 users.update({
@@ -42,7 +44,7 @@ users.update({
     'reader2': mkuser('reader2', 'readpass', 'read'),
     'mgr': mkuser('mgr', 'mgr123', 'admin'),   # 账号管理需 admin 角色(37ad19f 后 _require_admin)
 })
-json.dump(users, open(USERS_PATH, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
+sqlitedb.users_save(users)
 
 # === 1. 限流: victim 连续 6 次错误 ===
 codes = [req('POST', '/api/login', {'username': 'victim', 'password': 'x%d' % i})[0] for i in range(6)]
@@ -101,10 +103,10 @@ check('删除他人账号 200', st == 200)
 st, _ = req('POST', '/api/login', {'username': 'newbie', 'password': 'changed123'})
 check('删除后无法登录', st == 401)
 
-# === 5. 恢复 users.json ===
-json.dump(BACKUP, open(USERS_PATH, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
-restored = json.load(open(USERS_PATH, encoding='utf-8'))
-check('users.json 已恢复', set(restored.keys()) == set(BACKUP.keys()) and 'mgr' not in restored)
+# === 5. 恢复用户数据 ===
+sqlitedb.users_save(BACKUP)
+restored = sqlitedb.users_load()
+check('用户数据已恢复', set(restored.keys()) == set(BACKUP.keys()) and 'mgr' not in restored)
 
 print(f'\n===== {len(PASS)} 通过, {len(FAIL)} 失败 =====')
 exit(1 if FAIL else 0)

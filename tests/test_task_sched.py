@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
-"""P2-2 调度任务逻辑单测: 重定向 tasks.json/backups 到 TEMP(本环境沙箱写保护 dbmanager 目录),
-mock get_connection_by_name 返回临时 sqlite 库, 验证 增/查/执行备份/启停/删 全链路"""
+"""P2-2 调度任务逻辑单测: 重定向 tasks 存储到 TEMP(本环境沙箱写保护 dbmanager 目录),
+mock get_connection_by_name 返回临时 sqlite 库, 验证 增/查/执行备份/启停/删 全链路。
+数据层已迁 SQLite: 必须把 DBM_DB_FILE 指到临时库, 防污染真实 dbmanager.db。
+"""
 import os
 import sys
 import tempfile
@@ -8,16 +10,17 @@ import time
 from unittest.mock import patch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# 隔离数据层: 在 import task_sched 之前把 DBM_DB_FILE 指到临时库, 防测试污染真实 dbmanager.db
+_TMP_ROOT = tempfile.mkdtemp(prefix="dbm_task_test_")
+os.environ["DBM_DB_FILE"] = os.path.join(_TMP_ROOT, "dbmanager.db")
+
 import sqlite3
 import task_sched
 
-# 重定向到 TEMP(环境: 沙箱对项目根目录写保护)
+# 重定向备份目录到 TEMP(环境: 沙箱对项目根目录写保护)
 TMP = tempfile.gettempdir()
-task_sched.TASKS_FILE = os.path.join(TMP, 'dbm_tasks_test.json')
-task_sched.BACKUP_DIR = os.path.join(TMP, 'dbm_backups_test')
-for f in (task_sched.TASKS_FILE, task_sched.TASKS_FILE + '.tmp'):
-    if os.path.exists(f):
-        os.remove(f)
+task_sched.BACKUP_DIR = os.path.join(TMP, 'dbm_backups_test_%d' % int(time.time()))
 
 DB = os.path.join(TMP, 'dbm_task_db_%d.db' % int(time.time()))
 c = sqlite3.connect(DB)

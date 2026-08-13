@@ -35,7 +35,8 @@ def handle_get(handler, path, q):
     """GET 路由: 已处理返回 True, 否则 False"""
     if path == "/api/tables":
                     conn = handler._resolve_conn()
-                    handler._send_json(200, get_tables(conn))
+                    # 表级权限过滤: 只返回用户有权限的表(白名单/黑名单), 对象树所见即所得
+                    handler._send_json(200, handler._filter_tables(get_tables(conn)))
                     return True
     if path == "/api/columns":
                     conn = handler._resolve_conn()

@@ -1,37 +1,33 @@
 # -*- coding: utf-8 -*-
-"""简单调度器(P2-2): tasks.json 持久化 + 后台线程循环检查 + 定时备份
+"""简单调度器(P2-2): 任务存 SQLite(tasks 表, 旧 tasks.json 自动迁移) + 后台线程循环检查 + 定时备份
 任务字段: id, name, action('backup'), conn_name(引用已保存连接, 不存密码),
          interval_min(间隔分钟), enabled, last_run, next_run, last_result
 备份输出: backups/backup_{name}_{YYYYmmdd_HHMMSS}.sql
 启动: app.py 中调用 start() 起 daemon 线程, 每 15s 检查一次
 """
-import json
 import os
 import threading
 import time
 from datetime import datetime
 
+import sqlitedb
+
 _BASE = os.path.dirname(os.path.abspath(__file__))
-TASKS_FILE = os.path.join(_BASE, 'tasks.json')
+TASKS_FILE = os.path.join(_BASE, 'tasks.json')   # 遗留路径: 仅迁移检测
 BACKUP_DIR = os.path.join(_BASE, 'backups')
 LOCK = threading.Lock()
 _seq = [0]
 
 
 def _load() -> list:
-    try:
-        with open(TASKS_FILE, encoding='utf-8') as f:
-            return json.load(f)
-    except Exception:
-        return []
+    if os.path.exists(TASKS_FILE):
+        sqlitedb.migrate_tasks_json(TASKS_FILE)
+    return sqlitedb.tasks_load()
 
 
 def _save(tasks: list) -> None:
     with LOCK:
-        tmp = TASKS_FILE + '.tmp'
-        with open(tmp, 'w', encoding='utf-8') as f:
-            json.dump(tasks, f, ensure_ascii=False, indent=2)
-        os.replace(tmp, TASKS_FILE)
+        sqlitedb.tasks_save(tasks)
 
 
 def _new_id(tasks: list) -> int:

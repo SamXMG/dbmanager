@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """auth LDAP/注册开关单测: mock ldap3 模块, 不依赖真实 AD 服务器。
 覆盖: 注册开关默认关/开、LDAP 未启用时本地登录回归、LDAP 认证成功(默认只读/按 users.json 配角色)、认证失败。
+数据层隔离: 数据已迁 SQLite, 测试必须在独立临时库上运行(防污染真实 dbmanager.db)。
 """
 import json
 import os
@@ -8,10 +9,17 @@ import sys
 import tempfile
 import types
 import unittest
+from unittest import mock
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
+
+# 隔离数据层: 在 import auth 之前把 DBM_DB_FILE 指到临时库, 防测试污染真实 dbmanager.db
+_TMP_ROOT = tempfile.mkdtemp(prefix="dbm_auth_test_")
+os.environ["DBM_DB_FILE"] = os.path.join(_TMP_ROOT, "dbmanager.db")
+
 import auth  # noqa: E402
+import sqlitedb  # noqa: E402
 
 
 # ---------- fake ldap3 ----------
@@ -84,14 +92,19 @@ class TestRegisterSwitch(unittest.TestCase):
 
 
 class TestLdapLogin(unittest.TestCase):
-    """LDAP 认证登录"""
+    """LDAP 认证登录（数据层已迁 SQLite; LDAP 配置运行时读取 _ldap_cfg, 用 mock 注入）"""
+
+    def _set_ldap(self, url="", base="", binddn="", bindpw=""):
+        """mock 运行时 LDAP 配置(等价于 dbmanager.conf 修改即时生效)"""
+        self._patch = mock.patch("auth._ldap_cfg", return_value={
+            "url": url, "base": base, "binddn": binddn, "bindpw": bindpw,
+            "attr": "sAMAccountName"})
+        self._patch.start()
 
     def setUp(self):
-        self._old_file = auth.USERS_FILE
-        d = tempfile.mkdtemp()
-        auth.USERS_FILE = os.path.join(d, "users.json")
-        json.dump({"admin": {"pwd_hash": "x", "salt": "y", "role": "admin"}},
-                  open(auth.USERS_FILE, "w", encoding="utf-8"))
+        sqlitedb.init_db()
+        # 每次测试前重置隔离库: 写入基础 admin(假哈希, 仅保证 has_users/权限形状)
+        sqlitedb.users_save({"admin": {"pwd_hash": "x", "salt": "y", "role": "admin"}})
         # 注入 fake ldap3
         self._old_ldap3 = sys.modules.get("ldap3")
         fake = types.ModuleType("ldap3")
@@ -102,29 +115,24 @@ class TestLdapLogin(unittest.TestCase):
             exceptions=types.SimpleNamespace(
                 LDAPInvalidCredentialsError=_LDAPInvalidCredentialsError))
         sys.modules["ldap3"] = fake
-        # 记录原 LDAP 配置
-        self._old_url, self._old_base = auth.LDAP_URL, auth.LDAP_BASE
-        self._old_bind = (auth.LDAP_BINDDN, auth.LDAP_BINDPW)
+        self._patch = None
         _FakeState.fail_bind = False
         _FakeState.entries_found = True
 
     def tearDown(self):
-        auth.USERS_FILE = self._old_file
-        auth.LDAP_URL, auth.LDAP_BASE = self._old_url, self._old_base
-        auth.LDAP_BINDDN, auth.LDAP_BINDPW = self._old_bind
+        if self._patch:
+            self._patch.stop()
         if self._old_ldap3 is None:
             sys.modules.pop("ldap3", None)
         else:
             sys.modules["ldap3"] = self._old_ldap3
 
     def test_ldap_disabled_local_login(self):
-        auth.LDAP_URL, auth.LDAP_BASE = "", ""
-        # 测试文件 admin 用真实 pbkdf2 哈希(便于测本地登录)
+        self._set_ldap()  # LDAP 未配置
+        # 用真实 pbkdf2 哈希写入隔离库(便于测本地登录)
         salt = "a" * 32
-        users = auth._load_users()
-        users["admin"] = {"pwd_hash": auth._hash("admin123", salt),
-                          "salt": salt, "role": "admin"}
-        json.dump(users, open(auth.USERS_FILE, "w", encoding="utf-8"))
+        sqlitedb.users_save({"admin": {"pwd_hash": auth._hash("admin123", salt),
+                                       "salt": salt, "role": "admin"}})
         st, payload = auth.login("admin", "admin123")
         self.assertEqual(st, "ok")
         self.assertEqual(payload[2], "admin")
@@ -132,39 +140,39 @@ class TestLdapLogin(unittest.TestCase):
         self.assertEqual(st, "fail")  # 本地密码错不降级 LDAP(本地账号优先)
 
     def test_ldap_login_success_default_read(self):
-        auth.LDAP_URL, auth.LDAP_BASE = "ldap://fake:389", "dc=test,dc=com"
+        self._set_ldap(url="ldap://fake:389", base="dc=test,dc=com")
         st, payload = auth.login("zhangsan", "adpass123")
         self.assertEqual(st, "ok")
         tok, role, user = payload
         self.assertEqual(user, "zhangsan")
-        self.assertEqual(role, "read")  # 未在 users.json 配置 -> 默认只读
+        self.assertEqual(role, "read")  # 未配置 -> 默认只读
 
     def test_ldap_login_role_from_users(self):
-        # 管理员预先在 users.json 给 LDAP 用户配 write 角色(无密码字段)
-        users = auth._load_users()
+        # 管理员预先给 LDAP 用户配 write 角色(无密码字段)
+        users = sqlitedb.users_load()
         users["lisi"] = {"role": "write"}
-        json.dump(users, open(auth.USERS_FILE, "w", encoding="utf-8"))
-        auth.LDAP_URL, auth.LDAP_BASE = "ldap://fake:389", "dc=test,dc=com"
+        sqlitedb.users_save(users)
+        self._set_ldap(url="ldap://fake:389", base="dc=test,dc=com")
         st, payload = auth.login("lisi", "adpass123")
         self.assertEqual(st, "ok")
         self.assertEqual(payload[1], "write")
 
     def test_ldap_bind_fail(self):
-        auth.LDAP_URL, auth.LDAP_BASE = "ldap://fake:389", "dc=test,dc=com"
+        self._set_ldap(url="ldap://fake:389", base="dc=test,dc=com")
         _FakeState.fail_bind = True
         st, _ = auth.login("zhangsan", "wrong")
         self.assertEqual(st, "fail")
 
     def test_ldap_two_step_binddn(self):
-        auth.LDAP_URL, auth.LDAP_BASE = "ldap://fake:389", "dc=test,dc=com"
-        auth.LDAP_BINDDN, auth.LDAP_BINDPW = "cn=admin,dc=test,dc=com", "adminpw"
+        self._set_ldap(url="ldap://fake:389", base="dc=test,dc=com",
+                       binddn="cn=admin,dc=test,dc=com", bindpw="adminpw")
         st, payload = auth.login("wangwu", "adpass123")
         self.assertEqual(st, "ok")
         self.assertEqual(payload[0] and True, True)  # 两步绑定路径可用
 
     def test_ldap_no_entries_fallback_fail(self):
-        auth.LDAP_URL, auth.LDAP_BASE = "ldap://fake:389", "dc=test,dc=com"
-        auth.LDAP_BINDDN, auth.LDAP_BINDPW = "cn=admin,dc=test,dc=com", "adminpw"
+        self._set_ldap(url="ldap://fake:389", base="dc=test,dc=com",
+                       binddn="cn=admin,dc=test,dc=com", bindpw="adminpw")
         _FakeState.entries_found = False
         st, _ = auth.login("ghost", "adpass123")
         self.assertEqual(st, "fail")

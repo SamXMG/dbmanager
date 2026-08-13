@@ -5,7 +5,7 @@ import random
 from sqlalchemy import MetaData, Table, inspect, select, text
 
 from dbcore import get_engine
-from services.core import _qi
+from services.core import _qi, safe_where_clause
 from services.metadata import get_columns
 
 
@@ -69,27 +69,32 @@ def transfer_data(ci, from_schema, from_table, to_db, to_schema, to_table, batch
 
 
 def stats_column(ci, schema, table, col, where=""):
-    """列统计: COUNT + MIN/MAX(通用) + SUM/AVG(数值列)"""
+    """列统计: COUNT + MIN/MAX(通用) + SUM/AVG(数值列)
+    where 走 safe_where_clause(与 get_data/export 对齐): 禁分号/注释 + 字段白名单, 防注入"""
     if (ci.get("db_type") or "") in ("mongodb", "redis"):
         raise ValueError("该数据库类型不支持列统计")
     t = (ci.get("db_type") or "mysql").lower()
     # 按列类型判断是否数值(避免 SQLite 对文本 SUM 静默返回 0)
     ctype = ""
+    col_names = []
     try:
-        ctype = next((c.get("type", "") for c in get_columns(ci, schema, table) if c.get("name") == col), "")
+        cols = get_columns(ci, schema, table)
+        col_names = [c.get("name", "") for c in cols]
+        ctype = next((c.get("type", "") for c in cols if c.get("name") == col), "")
     except Exception:
         pass
     is_num = any(k in str(ctype).upper() for k in ("INT", "DECIMAL", "NUMERIC", "FLOAT", "REAL", "DOUBLE", "MONEY", "NUM"))
     q = _qi(t, col)
     full = ((_qi(t, schema) + ".") if schema else "") + _qi(t, table)
-    w = (" WHERE " + where.strip()) if (where or "").strip() else ""
+    w = safe_where_clause(where, col_names)   # 注入防护: 字段白名单 + 禁分号/注释
+    w_sql = (" WHERE " + w) if w else ""
     with get_engine(ci).connect() as conn:
-        row = conn.execute(text("SELECT COUNT(*) AS cnt, MIN(%s) AS mn, MAX(%s) AS mx FROM %s%s" % (q, q, full, w))).mappings().first()
+        row = conn.execute(text("SELECT COUNT(*) AS cnt, MIN(%s) AS mn, MAX(%s) AS mx FROM %s%s" % (q, q, full, w_sql))).mappings().first()
     r = {"count": row["cnt"], "min": row["mn"], "max": row["mx"]}
     if is_num:
         try:  # 数值列 SUM/AVG
             with get_engine(ci).connect() as conn:
-                row2 = conn.execute(text("SELECT SUM(%s) AS sm, AVG(%s) AS av FROM %s%s" % (q, q, full, w))).mappings().first()
+                row2 = conn.execute(text("SELECT SUM(%s) AS sm, AVG(%s) AS av FROM %s%s" % (q, q, full, w_sql))).mappings().first()
             r["sum"] = row2["sm"]
             r["avg"] = row2["av"]
         except Exception:

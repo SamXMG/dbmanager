@@ -10,6 +10,10 @@ import { shutdown } from '@/api/connection'
 import { txCommit, txRollback } from '@/api/data'
 import ConnMgrModal from '@/components/ConnMgrModal.vue'
 import AuthModal from '@/components/AuthModal.vue'
+import UserAdminModal from '@/components/UserAdminModal.vue'
+import SessionModal from '@/components/SessionModal.vue'
+import SystemQueryModal from '@/components/SystemQueryModal.vue'
+import ServerConfigModal from '@/components/ServerConfigModal.vue'
 
 const router = useRouter()
 const conn = useConnectionStore()
@@ -19,6 +23,10 @@ const tabStore = useTabStore()
 
 const showConnMgr = ref(false)
 const showAuth = ref(false)
+const showUserAdmin = ref(false)
+const showSessions = ref(false)
+const showSysQuery = ref(false)
+const showServerConfig = ref(false)
 
 const info = computed(() => {
   if (!conn.conn) return ''
@@ -92,6 +100,10 @@ async function logout() {
           <button class="sm danger" @click="doRollback" title="回滚当前标签页所有未提交修改">回滚</button>
         </template>
       </template>
+      <button v-if="auth.isAdmin" class="sm" @click="showUserAdmin = true" title="用户列表/审批自助注册/新建账号/细粒度权限">账号管理</button>
+      <button v-if="auth.isAdmin" class="sm" @click="showSessions = true" title="在线用户列表与强制踢下线">在线用户</button>
+      <button v-if="auth.isAdmin" class="sm" @click="showSysQuery = true" title="对内置 SQLite 执行只读查询: 系统用户/权限/连接/审计/任务">系统查询</button>
+      <button v-if="auth.isAdmin" class="sm" @click="showServerConfig = true" title="编辑 dbmanager.conf: 监听地址/端口/HTTPS/注册/LDAP 等(重启生效)">服务器配置</button>
       <button v-if="auth.isLoggedIn" class="sm" @click="showAuth = true">改密</button>
       <button v-if="!auth.isLoggedIn" class="sm" @click="showAuth = true">登录</button>
       <button v-if="conn.connected" class="sm" @click="logout">断开</button>
@@ -100,6 +112,10 @@ async function logout() {
   </header>
   <ConnMgrModal v-if="showConnMgr" :show="showConnMgr" @close="showConnMgr = false" />
   <AuthModal v-if="showAuth" :show="showAuth" @done="showAuth = false" />
+  <UserAdminModal v-if="showUserAdmin" :show="showUserAdmin" @close="showUserAdmin = false" />
+  <SessionModal v-if="showSessions" @close="showSessions = false" />
+  <SystemQueryModal v-if="showSysQuery" @close="showSysQuery = false" />
+  <ServerConfigModal v-if="showServerConfig" @close="showServerConfig = false" />
 </template>
 
 <style scoped>

@@ -131,6 +131,14 @@ def handle_post(handler, path, q):
                         if not c:
                             handler._send_json(404, {"error": f"未找到连接: {b['name']}"})
                             return True
+                        # 命名连接入口权限校验(细粒度 ACL): 未配置权限的用户不受限(兼容老部署);
+                        # admin 始终放行。手动连接(无 name)等同用户自己的库, 不受连接级限制。
+                        u = auth.current_user(handler)
+                        if u and u["role"] != "admin" and not auth.can_access(
+                                u["user"], u["role"], b["name"], "read"):
+                            handler._send_json(403, {"error": "无权访问该连接(%s)" % b["name"],
+                                                      "perm_denied": True})
+                            return True
                         # 按名直连允许覆盖字段(如跨库切换 database): 保留保存连接的解密密码, 应用 body 覆盖
                         for k, v in b.items():
                             if k != "name":
@@ -169,5 +177,21 @@ def handle_post(handler, path, q):
                     else:
                         conn = handler._resolve_conn()  # 会话模式: 连接内列库, 无需再传密码
                     handler._send_json(200, get_databases(conn))
+                    return True
+    if path == "/api/conn/tables":
+                    # 权限配置辅助: 管理员拉取某保存连接的真实表名列表(仅 admin, 不建立会话)
+                    if not handler._require_admin():
+                        return True
+                    b = handler._body()
+                    c = get_connection_by_name((b or {}).get("name", ""))
+                    if not c:
+                        handler._send_json(404, {"error": "未找到连接"})
+                        return True
+                    try:
+                        tables = get_tables(c)
+                        names = [t.get("name") if isinstance(t, dict) else str(t) for t in tables]
+                        handler._send_json(200, {"tables": names})
+                    except Exception as e:
+                        handler._send_json(200, {"ok": False, "error": str(e)})
                     return True
     return False

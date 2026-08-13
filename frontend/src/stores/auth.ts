@@ -58,11 +58,11 @@ export const useAuthStore = defineStore('auth', {
       } catch { /* 未登录/网络错误: 保持空态 */ }
     },
 
-    /** 注册(返回 true 成功) */
+    /** 注册(返回后端提示, 如"等待管理员审批") */
     async doRegister(username: string, password: string) {
       try {
-        await register(username, password)
-        return { ok: true }
+        const r = await register(username, password)
+        return { ok: true, message: r.message }
       } catch (e: any) {
         return { ok: false, error: e.message || '注册失败' }
       }

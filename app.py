@@ -92,7 +92,7 @@ def _port_in_use(port):
 def _kill_old_instance(port):
     """自动接管: 占用端口的进程若为 dbmanager 旧实例(app.py)则杀掉, 返回是否已释放。
     仅杀命令行含 app.py 的进程(避免误杀其他程序); 非 dbmanager / 权限不足 / DBM_NO_KILL=1 时返回 False(维持原提示)。"""
-    if os.environ.get("DBM_NO_KILL"):
+    if config.conf("DBM_NO_KILL"):
         return False
     import subprocess
     try:
@@ -152,6 +152,13 @@ def _kill_old_instance(port):
 
 def run():
     _created = auth.ensure_default()  # 幂等: 创建默认 admin(admin 角色) + 旧部署自动升级 admin 角色
+    # 审计历史导入(SQLite audit_log 表, 仅首次/表空时) + 旧 tasks.json 迁移
+    try:
+        import sqlitedb
+        sqlitedb.audit_import_file(os.path.join(config.BASE_DIR, "logs", "audit.log"))
+        sqlitedb.migrate_tasks_json(os.path.join(config.BASE_DIR, "tasks.json"))
+    except Exception:
+        pass
     if _created or auth.is_default_pwd():
         logger.warning("=" * 64)
         logger.warning("安全提醒: 默认管理员口令仍为默认值(admin123 / DBM_DEFAULT_PWD), 存在弱口令风险!")
@@ -231,8 +238,8 @@ def run():
         t = threading.Thread(target=s.serve_forever, daemon=True)
         t.start()
         threads.append(t)
-    # 自动打开浏览器（设置环境变量 DBM_NO_OPEN=1 可禁用）
-    if not os.environ.get("DBM_NO_OPEN"):
+    # 自动打开浏览器（dbmanager.conf [server] no_open=1 或 DBM_NO_OPEN=1 可禁用）
+    if not config.conf("DBM_NO_OPEN"):
         try:
             webbrowser.open(url)
         except Exception:

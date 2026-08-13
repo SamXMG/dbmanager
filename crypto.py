@@ -134,6 +134,10 @@ def _load_rsa_key():
     try:
         with open(kf, "wb") as _f:
             _f.write(key.export_key("PEM"))
+        try:
+            os.chmod(kf, 0o600)   # 复核 P0-R3: 私钥仅本用户可读(Linux/Mac 同机防提权读)
+        except Exception:
+            pass
     except Exception:
         pass
     return key

@@ -49,3 +49,16 @@ _acl*.db
 
 # vue-tsc 临时产物
 frontend/_tsc_test.json
+
+# URL 编码残留的测试临时库(0字节, 沙箱回收站无法处理)
+%*.db
+
+# 程序自身数据(SQLite 存储)
+dbmanager.db
+dbmanager.db-wal
+dbmanager.db-shm
+users.json.bak
+connections.json.bak
+
+# 本机配置文件(含注释与潜在敏感项): 模板见 dbmanager.conf.example
+dbmanager.conf

@@ -69,9 +69,9 @@ async function doRegister() {
   const r = await authStore.doRegister(regUser.value, regPwd.value)
   regLoading.value = false
   if (r.ok) {
-    regMsg.value = '账号已创建，请登录'; regErr.value = false
-    loginUser.value = regUser.value; loginPwd.value = ''
-    setTimeout(() => { view.value = 'login'; regUser.value = ''; regPwd.value = ''; regPwd2.value = '' }, 1500)
+    // 注册进入待审批状态, 提示等待管理员审批(局域网一次性部署: 管理员审批放权)
+    regMsg.value = r.message || '注册已提交, 等待管理员审批后可登录'; regErr.value = false
+    regUser.value = ''; regPwd.value = ''; regPwd2.value = ''
   } else {
     regMsg.value = r.error || '注册失败'; regErr.value = true
   }
@@ -134,8 +134,8 @@ async function doChangePwd() {
 </template>
 
 <style scoped>
-.modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-.modal-box { background: var(--panel); border-radius: 8px; padding: 20px; width: 90%; max-width: 400px; border: 1px solid var(--border); }
+.modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; box-sizing: border-box; }
+.modal-box { background: var(--panel); border-radius: 8px; padding: 20px; width: 90%; max-width: 400px; border: 1px solid var(--border); max-height: 90vh; overflow-y: auto; box-sizing: border-box; }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .modal-header h3 { margin: 0; color: var(--text); }
 .field { margin-bottom: 10px; }

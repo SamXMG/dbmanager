@@ -13,7 +13,9 @@ import urllib.request
 
 BASE = "http://127.0.0.1:8770"
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-USERS = os.path.join(ROOT, "users.json")
+sys.path.insert(0, ROOT)
+import sqlitedb
+USERS = os.path.join(ROOT, "users.json")   # 遗留路径(迁移前兼容), 数据实际在 SQLite
 
 passed = failed = 0
 
@@ -55,11 +57,11 @@ def mk_user(name, pwd, role):
 
 def main():
     # ---- 准备: 临时账号 + 3 个 sqlite 库 ----
-    users = json.load(open(USERS, encoding="utf-8"))
+    users = sqlitedb.users_load()
     saved = dict(users)
     users.update(mk_user("alice", "alice123", "write"))
     users.update(mk_user("bob", "bob12345", "read"))
-    json.dump(users, open(USERS, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+    sqlitedb.users_save(users)
 
     dbs = {}
     for n in ("_aclA.db", "_aclB.db", "_aclC.db"):
@@ -79,12 +81,14 @@ def main():
 
     try:
         # ---- admin 登录 ----
-        st, d = req("POST", "/api/login", {"username": "admin", "password": "admin123"})
+        # 密码适配: CI/本地 e2e 可能设 DBM_DEFAULT_PWD 覆盖首次建库口令(强制改密 P0-1 要求非默认口令)
+        adm_pwd = os.environ.get("DBM_DEFAULT_PWD") or "admin123"
+        st, d = req("POST", "/api/login", {"username": "admin", "password": adm_pwd})
         adm_tok = d.get("token", "")
         check("admin 登录", st == 200)
         if d.get("must_change_pwd"):
             # 首次部署默认账号需先改密(否则建连接 403); 脚本适配产品行为
-            st2, _ = req("POST", "/api/password", {"old_password": "admin123", "new_password": "E2eAdmin@2026"}, adm_tok)
+            st2, _ = req("POST", "/api/password", {"old_password": adm_pwd, "new_password": "E2eAdmin@2026"}, adm_tok)
             check("admin 首次改密", st2 == 200)
 
         # admin 建连接: A(仅 alice 可见) / B(公开) / C(read_only, 仅 alice 可见)
@@ -193,9 +197,9 @@ def main():
                 req("POST", "/api/connections/delete", {"name": "ACL-A"}, t)
                 req("POST", "/api/connections/delete", {"name": "ACL-B"}, t)
                 req("POST", "/api/connections/delete", {"name": "ACL-C"}, t)
-        # 恢复初始快照(改密/建连接前的 users.json 状态), 避免污染后续 e2e
+        # 恢复初始快照(改密/建连接前的用户数据状态), 避免污染后续 e2e
         users = dict(saved)
-        json.dump(users, open(USERS, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+        sqlitedb.users_save(users)
         for p in dbs.values():
             try:
                 os.remove(p)

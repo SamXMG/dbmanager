@@ -29,6 +29,11 @@ accounts & RBAC, LDAP/AD, connection ACL, audit log, encrypted storage.
 - **安全**：AES-GCM 落盘 + Windows DPAPI 绑定机器 + RSA-OAEP 传输加密；
   PBKDF2-SHA256(12 万轮) 账号哈希；角色 read/write/admin；登录限流（5 次锁 5 分钟）；
   LDAP/AD 接入；连接可见性 ACL；生产库强制只读；审计日志（操作/用户/IP）
+- **权限与在线管理**：管理员可对每个用户按连接（库）配置读写权限与表级白名单/黑名单，
+  支持批量配置；在线用户面板实时显示登录时间/IP/当前操作/会话数，可一键强制踢下线（二次确认）
+- **服务器配置（admin）**：顶栏「服务器配置」直接读/改 `dbmanager.conf`（监听地址/端口/HTTPS/注册/LDAP 等），
+  敏感项掩码显示，保存后重启生效——无需手动编辑文件
+- **系统查询**：对内置 SQLite 执行只读 SQL（admin）：系统用户/权限/连接/审计日志/调度任务，直接可查
 - **部署**：单命令启动、IPv4/IPv6 双栈、可选 HTTPS（自签证书）、Docker 镜像、
   Windows 一键安装脚本
 
@@ -50,12 +55,8 @@ python app.py
 默认只监听本机（安全设计）。要开放给局域网：
 
 ```bash
-# 方式一: 一键脚本(Windows)
-#   双击 start_lan.bat
-
-# 方式二: 手动
-DBM_HOST=0.0.0.0 python app.py     # Linux/macOS
-# PowerShell: $env:DBM_HOST="0.0.0.0"; python app.py
+# ① 改配置: 编辑 dbmanager.conf, 将 [server] 下 host 改为 0.0.0.0
+# ② 启动: python app.py (Windows 也可双击 start_lan.bat)
 ```
 
 还需两步：
@@ -64,9 +65,9 @@ DBM_HOST=0.0.0.0 python app.py     # Linux/macOS
 2. 其他电脑浏览器访问 `http://<本机局域网IP>:8770`（本机 IP 用 `ipconfig` 查看）
 
 > ⚠️ 开放局域网后，同一网段任何人都能访问——务必先登录改掉默认密码，
-> 生产环境强烈建议配合 `DBM_SSL=1`（HTTPS）。
+> 生产环境强烈建议配合 `ssl=1`（HTTPS，见下节配置表）。
 
-> ⚠️ **安全警告**：首次启动 `ensure_default()` 会**自动创建** `users.json` 并生成默认管理员 `admin / admin123`（admin 角色）——即默认部署就是"认证开启 + 公开弱口令"，LAN/公网部署**必须立即登录修改默认密码**，否则内网任意人可登录接管（配合账号管理接口可进一步提权）。可用环境变量 `DBM_DEFAULT_PWD` 覆盖首次建库密码（仅首次创建生效）。仅在手动删除 `users.json` 且未设 `DBM_AUTH=1` 时才为单机无鉴权模式。
+> ⚠️ **安全警告**：首次启动 `ensure_default()` 会**自动创建**默认管理员 `admin / admin123`（admin 角色，数据存 `dbmanager.db`）——即默认部署就是"认证开启 + 公开弱口令"，LAN/公网部署**必须立即登录修改默认密码**，否则内网任意人可登录接管（配合账号管理接口可进一步提权）。可用配置项 `default_pwd`（或环境变量 `DBM_DEFAULT_PWD`）覆盖首次建库密码（仅首次创建生效）。仅在数据库无任何用户且未设 `auth_enabled=1`（`DBM_AUTH=1`）时才为单机无鉴权模式。
 
 ## Docker 部署
 
@@ -75,22 +76,33 @@ docker build -t dbmanager .
 docker run -p 8770:8770 -v dbmanager_data:/app/data dbmanager
 ```
 
-## 配置（环境变量）
+## 配置（dbmanager.conf 配置文件）
 
-| 变量 | 作用 | 默认 |
+日常配置写项目根 **`dbmanager.conf`**（UTF-8 INI，模板见 `dbmanager.conf.example`，改后重启生效）。
+
+> 优先级：**环境变量 > 配置文件 > 内置默认值**。环境变量保留给 CI/Docker/临时覆盖，
+> 日常使用无需设置任何环境变量。敏感项（网关令牌/默认密码/LDAP 密码）建议留空由系统自动管理。
+
+| 配置项（`[server]`） | 作用 | 默认 |
 |------|------|------|
-| `DBM_HOST` / `DBM_PORT` | 监听地址 / 端口（安全默认仅本机；局域网/公网访问显式设 `DBM_HOST=0.0.0.0`） | `127.0.0.1` / `8770` |
-| `DBM_DEV=1` | 开发模式（跳过登录、错误透传详情） | 关 |
-| `DBM_AUTH=1` | 强制启用账号体系（无 users.json 也启用） | 关 |
-| `DBM_DEFAULT_PWD` | 覆盖首次创建默认 admin 的密码（仅首建生效） | `admin123` |
-| `DBM_ALLOW_REGISTER=1` | 开放自助注册（默认只读角色） | 关 |
-| `DBM_LDAP_URL` / `DBM_LDAP_BASE` | 启用 LDAP/AD 认证（可选依赖 ldap3） | 关 |
-| `DBM_LDAP_ATTR` | LDAP 登录属性 | `sAMAccountName` |
-| `DBM_GATEWAY_TOKEN` | 固定公网网关令牌 | 首次启动自动生成 |
-| `DBM_SSL=1` / `DBM_SSL_CERT` / `DBM_SSL_KEY` | 启用 HTTPS | 关 |
-| `DBM_DEFAULT_CONN` | 默认连接（JSON 字符串，免手动连接） | 无 |
-| `DBM_NO_OPEN=1` / `DBM_NO_KILL=1` | 不自动开浏览器 / 不自动接管端口 | 关 |
-| `DBM_NO_KILL` 说明 | 双实例启动时自动终止旧实例 | 自动 |
+| `host` | 监听地址：`127.0.0.1`=仅本机（安全默认）；**`0.0.0.0`=开放局域网/公网** | `127.0.0.1` |
+| `port` | 监听端口 | `8770` |
+| `db_file` | 程序数据文件位置（如数据盘/共享目录） | 项目根 `dbmanager.db` |
+| `dev` | `1`=开发模式（跳过登录、错误透传详情） | 关 |
+| `log` | `1`=控制台输出每请求一行（调试用） | 关 |
+| `no_open` / `no_kill` | 不自动开浏览器 / 不自动接管端口 | 关 |
+| `ssl` / `ssl_cert` / `ssl_key` | `ssl=1` 启用 HTTPS（自动生成自签名证书）；或提供自有证书 | 关 |
+| `gateway_token` | 公网网关令牌（留空自动生成并保存 `.dbm_gateway`） | 自动 |
+| `default_conn` | 默认连接（JSON 字符串，免手动连接） | 无 |
+
+| 配置项（`[auth]`） | 作用 | 默认 |
+|------|------|------|
+| `default_pwd` | 首次创建默认 admin 的密码（仅首建生效；⚠️ 明文落盘，建议留空） | `admin123` |
+| `allow_register` | `0`=关闭自助注册（默认开启：成员注册后待管理员审批） | 开 |
+| `auth_enabled` | `1`=强制启用账号体系（数据库无用户也启用） | 关 |
+| `ldap_url` / `ldap_base` | 启用 LDAP/AD 认证（可选依赖 ldap3） | 关 |
+| `ldap_binddn` / `ldap_bindpw` | 可选绑定查询账号 | 无 |
+| `ldap_attr` | LDAP 登录属性 | `sAMAccountName` |
 
 ## 项目结构
 
@@ -102,8 +114,8 @@ dbcore.py       引擎管理（URL 构建/缓存/超时/连接测试）
 auth.py         账号体系（登录/RBAC/LDAP/限流）
 crypto.py       密码加解密（AES-GCM 落盘/RSA 传输/DPAPI）
 store.py        连接配置持久化
-config.py       配置与共享状态
-task_sched.py   调度任务（定时备份，tasks.json 持久化）
+config.py       配置与共享状态（dbmanager.conf 读取，优先级 环境变量 > 配置 > 默认）
+task_sched.py   调度任务（定时备份，tasks 存 SQLite）
 logging_conf.py 结构化日志（控制台 + logs/dbmanager.log 轮转）
 frontend/       Vue3 迁移版前端（Vite + TS + Pinia + CodeMirror 6）
 index.html+js/  旧版原生前端（迁移完成前并存，访问 /v2 用新版）
@@ -128,6 +140,17 @@ npm run build                      # 产物 frontend/dist, 后端 /v2 自动读�
 npx tsc --noEmit                   # 类型检查
 ```
 
+## 数据存储
+
+- **程序数据**：`dbmanager.db`（SQLite，项目根）——规范化表存储：用户账号/角色/审批状态（`users`）、
+  细粒度权限（`user_perms`/`user_perm_tables`）、保存的连接配置（`connections`，密码加密存储）、
+  审计日志（`audit_log`）、调度任务（`tasks`）。旧版 `users.json` / `connections.json` / `tasks.json`
+  首次启动自动迁移入库，源文件改名为 `.bak` 保留；确认无误后可删除。
+- **自定义位置**：`DBM_DB_FILE` 可指定数据库文件路径（如数据盘/共享目录）
+- **系统查询**：管理员顶栏「系统查询」可对内置 SQLite 执行只读 SELECT
+  （系统用户/权限/连接/审计/任务），`/api/audit` 提供结构化审计查询
+- 会话（在线登录/连接）在内存中，重启即清
+
 ## 日志
 
 - **运行日志**：`logs/dbmanager.log`（5MB × 3 轮转），含启动信息与请求日志
@@ -138,7 +161,7 @@ npx tsc --noEmit                   # 类型检查
 ## 安全
 
 - 默认账号 `admin/admin123` 首次启动自动创建 —— **生产环境请立即改密**
-  （前端「改密」或 `POST /api/password`），或先创建 `users.json` 再启动
+  （前端「改密」或 `POST /api/password`）
 - 连接密码 AES-GCM 加密落盘（Windows 上绑定当前用户 DPAPI），传输走 RSA-OAEP
 - 生产库可在连接配置中标记 `read_only`（强制只读，写操作 403）
 - 连接可见性 `visible_to` 控制谁能看到/使用该连接
