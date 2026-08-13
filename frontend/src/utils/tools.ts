@@ -43,12 +43,12 @@ export async function openQueryBuilder() {
     <div class="field"><label>选择列(勾选参与查询)</label><div id="qbCols" style="max-height:140px;overflow:auto;border:1px solid #eee;border-radius:6px;padding:6px"></div></div>
     <h4 style="margin:8px 0 4px;font-size:13px">条件(WHERE, AND 连接)</h4>
     <div id="qbCond"></div>
-    <button class="sm" onclick="window.__qbAdd && window.__qbAdd()">+ 条件</button>
+    <button class="sm" data-call="__qbAdd">+ 条件</button>
     <div class="field" style="margin-top:8px"><label>排序</label>
       <div class="row2"><select id="qbSortCol"><option value="">无</option></select><select id="qbSortDir"><option value="ASC">升序</option><option value="DESC">降序</option></select></div>
     </div>
     <div class="field"><label>LIMIT</label><input id="qbLimit" type="number" value="100" style="width:120px"></div>
-    <div class="acts"><button onclick="closeModal()">取消</button><button class="primary" onclick="window.__qbBuild && window.__qbBuild()">生成 SQL</button></div>`)
+    <div class="acts"><button data-action="close">取消</button><button class="primary" data-call="__qbBuild">生成 SQL</button></div>`)
   const sel = document.getElementById('qbTable') as HTMLSelectElement
   const loadCols = async () => {
     const [s, t] = sel.value.split('\u0001')
@@ -69,7 +69,7 @@ export async function openQueryBuilder() {
     if (box) box.insertAdjacentHTML('beforeend',
       `<div class="row2" style="margin-bottom:4px"><select class="qb-c">${cols.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('')}</select>` +
       `<select class="qb-op"><option value="=">=</option><option value="!=">!=</option><option value=">">&gt;</option><option value=">=">&gt;=</option><option value="<">&lt;</option><option value="<=">&lt;=</option><option value="LIKE">LIKE</option><option value="IN">IN</option><option value="IS NULL">IS NULL</option></select>` +
-      `<input class="qb-v" placeholder="值(IS NULL 可空)" style="flex:1"><button class="sm danger" onclick="this.parentNode.remove()">✕</button></div>`)
+      `<input class="qb-v" placeholder="值(IS NULL 可空)" style="flex:1"><button class="sm danger" data-action="remove">✕</button></div>`)
   }
   ;(window as unknown as Record<string, unknown>).__qbBuild = () => {
     const [s, t] = sel.value.split('\u0001')
@@ -109,7 +109,7 @@ export function openImport(s?: string, t?: string) {
     <div class="field"><label>导入方式</label><select id="impMode"><option value="insert">追加插入</option><option value="replace">清空后导入</option></select></div>
     <div id="impMap" style="max-height:200px;overflow:auto;border:1px solid #eee;border-radius:6px;padding:6px;margin-top:8px"></div>
     <div id="impPrev" style="color:#86909c;font-size:12px;margin-top:6px"></div>
-    <div class="acts"><button onclick="closeModal()">取消</button><button class="primary" onclick="window.__impRun && window.__impRun()" id="impGo">导入</button></div>`)
+    <div class="acts"><button data-action="close">取消</button><button class="primary" data-call="__impRun" id="impGo">导入</button></div>`)
   const fileEl = document.getElementById('impFile') as HTMLInputElement
   const parseAndMap = async () => {
     const f = fileEl.files?.[0]
@@ -196,7 +196,7 @@ export function openGenData(s?: string, t?: string) {
   ui.showModal(`<h3>生成测试数据 · ${esc(sc)}.${esc(tb)}</h3>
     <div class="field"><label>生成行数(上限 50000)</label><input id="gdRows" type="number" value="100" min="1" max="50000"></div>
     <p style="color:#86909c;font-size:12px">按列类型智能生成(自增主键/只读列跳过)</p>
-    <div class="acts"><button onclick="closeModal()">取消</button><button class="primary" onclick="window.__gdRun && window.__gdRun()">生成</button></div>`)
+    <div class="acts"><button data-action="close">取消</button><button class="primary" data-call="__gdRun">生成</button></div>`)
   ;(window as unknown as Record<string, unknown>).__gdRun = async () => {
     const n = parseInt((document.getElementById('gdRows') as HTMLInputElement).value, 10) || 100
     if (!confirm(`确认生成 ${n} 行测试数据到 ${sc}.${tb}？`)) return
@@ -228,7 +228,7 @@ export function openRestore() {
   ui.showModal(`<h3>还原备份</h3>
     <p style="color:#d4660a;font-size:12px">⚠ 将执行备份脚本中的 CREATE/INSERT(仅 DDL+DML)。建议先备份当前库。</p>
     <div class="field"><label>SQL 脚本(.sql)</label><input type="file" id="rsFile" accept=".sql,.txt"></div>
-    <div class="acts"><button onclick="closeModal()">取消</button><button class="primary" onclick="window.__rsRun && window.__rsRun()">还原</button></div>`)
+    <div class="acts"><button data-action="close">取消</button><button class="primary" data-call="__rsRun">还原</button></div>`)
   ;(window as unknown as Record<string, unknown>).__rsRun = async () => {
     const f = (document.getElementById('rsFile') as HTMLInputElement).files?.[0]
     if (!f) { ui.toast('请选择 SQL 文件', true); return }
@@ -250,7 +250,7 @@ export async function openSchemaDiff(s: string, t: string) {
   ui.showModal(`<h3>结构对比 · ${esc(s)}.${esc(t)}</h3>
     <div class="field"><label>目标连接</label><select id="sdDst">${conns.map(c => `<option value="${esc(c.name)}">${esc(c.name)} (${esc(c.db_type)})</option>`).join('')}</select></div>
     <div id="sdOut" style="max-height:240px;overflow:auto;border:1px solid #eee;border-radius:6px;padding:8px;margin-top:8px;font-size:12px">对比结果将显示在这里</div>
-    <div class="acts"><button onclick="closeModal()">关闭</button><button class="primary" onclick="window.__sdRun && window.__sdRun()">对比</button></div>`)
+    <div class="acts"><button data-action="close">关闭</button><button class="primary" data-call="__sdRun">对比</button></div>`)
   ;(window as unknown as Record<string, unknown>).__sdRun = async () => {
     const dstName = (document.getElementById('sdDst') as HTMLSelectElement).value
     const conn = connStore.conn
@@ -273,7 +273,7 @@ export async function openDbUsers() {
   try {
     const d = await getDbUsers()
     if (!d.supported) {
-      ui.showModal('<h3>用户与权限</h3><div class="empty2" style="padding:20px">当前数据库类型不支持用户与权限管理</div><div class="acts"><button onclick="closeModal()">关闭</button></div>')
+      ui.showModal('<h3>用户与权限</h3><div class="empty2" style="padding:20px">当前数据库类型不支持用户与权限管理</div><div class="acts"><button data-action="close">关闭</button></div>')
       return
     }
     const sec = (title: string, rows: Record<string, unknown>[], cols: [string, string][]) => {
@@ -291,10 +291,10 @@ export async function openDbUsers() {
       ${sec('数据库用户', d.users, [['name', '用户名'], ['type', '类型'], ['default_schema', '默认架构'], ['login', '关联登录']])}
       ${sec('角色成员', d.roles, [['role', '角色'], ['member', '成员']])}
       ${sec('显式权限', d.permissions, [['grantee', '授权对象'], ['permission', '权限'], ['state', '状态'], ['object', '对象']])}
-      <div class="acts"><button class="primary" onclick="closeModal()">关闭</button></div>`)
+      <div class="acts"><button class="primary" data-action="close">关闭</button></div>`)
   } catch (e) {
     ui.toast('加载用户权限失败: ' + (e as Error).message, true)
-    ui.showModal(`<h3>用户与权限</h3><div class="empty2" style="padding:20px">加载失败: ${esc((e as Error).message)}</div><div class="acts"><button onclick="closeModal()">关闭</button></div>`)
+    ui.showModal(`<h3>用户与权限</h3><div class="empty2" style="padding:20px">加载失败: ${esc((e as Error).message)}</div><div class="acts"><button data-action="close">关闭</button></div>`)
   }
 }
 
@@ -329,7 +329,7 @@ export function openRenameTable(s: string, t: string) {
   ui.showModal(`<h3>重命名表</h3>
     <div class="field"><label>原表名</label><div>${esc(s ? s + '.' : '')}${esc(t)}</div></div>
     <div class="field"><label>新表名</label><input id="rnNew" value="${esc(t)}" autofocus></div>
-    <div class="acts"><button onclick="closeModal()">取消</button><button class="primary" onclick="window.__rnRun && window.__rnRun()">重命名</button></div>`)
+    <div class="acts"><button data-action="close">取消</button><button class="primary" data-call="__rnRun">重命名</button></div>`)
   ;(window as unknown as Record<string, unknown>).__rnRun = async () => {
     const new_name = (document.getElementById('rnNew') as HTMLInputElement).value.trim()
     if (!new_name || new_name === t) { ui.toast('请输入不同的新表名', true); return }
@@ -349,7 +349,7 @@ export function openCopyTable(s: string, t: string) {
       <option value="with">复制结构 + 数据</option>
       <option value="only">仅复制结构</option>
     </select></div>
-    <div class="acts"><button onclick="closeModal()">取消</button><button class="primary" onclick="window.__cpRun && window.__cpRun()">复制</button></div>`)
+    <div class="acts"><button data-action="close">取消</button><button class="primary" data-call="__cpRun">复制</button></div>`)
   ;(window as unknown as Record<string, unknown>).__cpRun = async () => {
     const new_name = (document.getElementById('cpNew') as HTMLInputElement).value.trim()
     const with_data = (document.getElementById('cpMode') as HTMLSelectElement).value === 'with'
@@ -372,7 +372,7 @@ export function openMaintainTable(s: string, t: string) {
     </select></div>
     <p style="color:#86900c;font-size:12px">不同数据库支持的操作不同(根据方言自动映射)</p>
     <div id="mtResult" style="max-height:240px;overflow:auto;border:1px solid #eee;border-radius:6px;padding:6px;font-size:12px;display:none"></div>
-    <div class="acts"><button onclick="closeModal()">关闭</button><button class="primary" onclick="window.__mtRun && window.__mtRun()">执行</button></div>`)
+    <div class="acts"><button data-action="close">关闭</button><button class="primary" data-call="__mtRun">执行</button></div>`)
   ;(window as unknown as Record<string, unknown>).__mtRun = async () => {
     const op = (document.getElementById('mtOp') as HTMLSelectElement).value
     try {
@@ -393,7 +393,7 @@ export function openNewTable(db: string, s: string) {
   ui.showModal(`<h3>新建表 · ${esc(db)}${s ? '.' + esc(s) : ''}</h3>
     <div class="field"><label>表名</label><input id="ntName" autofocus></div>
     <p style="color:#86900c;font-size:12px">将创建空表; 字段设计请打开表后右键「设计表」</p>
-    <div class="acts"><button onclick="closeModal()">取消</button><button class="primary" onclick="window.__ntRun && window.__ntRun()">创建</button></div>`)
+    <div class="acts"><button data-action="close">取消</button><button class="primary" data-call="__ntRun">创建</button></div>`)
   ;(window as unknown as Record<string, unknown>).__ntRun = async () => {
     const name = (document.getElementById('ntName') as HTMLInputElement).value.trim()
     if (!name) { ui.toast('请填写表名', true); return }

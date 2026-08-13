@@ -9,6 +9,7 @@ import { useTabStore } from '@/stores/tab'
 import { shutdown } from '@/api/connection'
 import { txCommit, txRollback } from '@/api/data'
 import { confirmDanger } from '@/utils/confirm'
+import Icon from '@/components/Icon.vue'
 // 复核 P1-9: 低频管理模态懒加载(打开时才拉取); AuthModal 登录弹窗首屏必经, 保持同步
 import AuthModal from '@/components/AuthModal.vue'
 const ConnMgrModal = defineAsyncComponent(() => import('@/components/ConnMgrModal.vue'))
@@ -45,7 +46,7 @@ function toggleTheme() {
 /** 事务模式: 开启=ui.toggleTx(); 关闭=先回滚未提交修改(对齐旧版) */
 async function toggleTx() {
   if (ui.transactionMode) {
-    if (confirm('关闭事务模式将回滚所有未提交的修改，确认？')) {
+    if (!(await confirmDanger('关闭事务模式将回滚所有未提交的修改，确认？', '关闭事务模式'))) {
       await doRollback()
       ui.toggleTx()
     }
@@ -95,7 +96,7 @@ async function logout() {
         {{ auth.name || '未登录' }}<span v-if="auth.roleLabel"> ({{ auth.roleLabel }})</span>
       </span>
       <button v-if="!conn.connected" class="sm" @click="showConnMgr = true">我的连接</button>
-      <button class="sm" @click="toggleTheme" title="切换深浅色主题">🌓 主题</button>
+      <button class="sm" @click="toggleTheme" title="切换深浅色主题"><Icon name="moon" :size="16"/> 主题</button>
       <template v-if="conn.connected">
         <button class="sm" @click="toggleTx" :class="{ 'tx-on': ui.transactionMode }" title="事务模式: 开启后增删改进入事务, 可统一提交/回滚">
           事务: {{ ui.transactionMode ? '开' : '关' }}

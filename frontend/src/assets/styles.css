@@ -325,7 +325,7 @@
       margin: 1px 6px;
       user-select: none;
     }
-    .tnode:hover { background: var(--panel3, #f2f3f5); color: var(--text1, #1d2129); }
+    .tnode:hover { background: var(--panel3, #f2f3f5); color: var(--text, #1d2129); }
     .tnode .caret { width: 12px; color: var(--text3, #86909c); font-size: 10px; flex-shrink: 0; }
     .tnode .tl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
     /* 嵌套树: 组头不再吸顶(层级结构避免遮挡), 子层缩进 */
@@ -409,7 +409,7 @@
     .status-bar .st-spacer { flex: 1; }
     .status-bar .st-btn {
       border: 1px solid #d5d8dc;
-      background: var(--color-background-primary, #fff);
+      background: var(--panel, #fff);
       border-radius: 3px;
       font-size: 12px;
       padding: 1px 8px;
@@ -961,7 +961,7 @@
       position: absolute;
       z-index: 9999;
       min-width: 160px;
-      background: var(--color-background-primary, #fff);
+      background: var(--panel, #fff);
       border: 1px solid #d5d8dc;
       border-radius: 8px;
       padding: 4px;
@@ -1040,7 +1040,7 @@
       min-width: 240px;
       max-height: 260px;
       overflow-y: auto;
-      background: var(--color-background-primary, #fff);
+      background: var(--panel, #fff);
       border: 1px solid #d5d8dc;
       border-radius: 8px;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);

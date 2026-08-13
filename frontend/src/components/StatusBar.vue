@@ -6,6 +6,7 @@ import { useDatabaseStore } from '@/stores/database'
 import { useTabStore } from '@/stores/tab'
 import { useAuthStore } from '@/stores/auth'
 import { useUIStore } from '@/stores/ui'
+import Icon from '@/components/Icon.vue'
 
 const connStore = useConnectionStore()
 const dbStore = useDatabaseStore()
@@ -29,11 +30,11 @@ const counts = computed(() => {
 
 <template>
   <div class="status-bar" v-if="connStore.connected">
-    <span class="st-item">🔗 {{ connStore.conn?.name || connStore.conn?.server || '-' }}</span>
-    <span class="st-item">🗄️ {{ dbStore.curDb || connStore.conn?.database || '全部库' }}</span>
+    <span class="st-item"><Icon name="link" :size="13"/> {{ connStore.conn?.name || connStore.conn?.server || '-' }}</span>
+    <span class="st-item"><Icon name="database" :size="13"/> {{ dbStore.curDb || connStore.conn?.database || '全部库' }}</span>
     <span class="st-item obj">{{ curTableLabel || counts }}</span>
     <span class="st-spacer"></span>
-    <span class="st-item">👤 {{ authStore.isLoggedIn ? authStore.name + (authStore.roleLabel ? ' · ' + authStore.roleLabel : '') : '未登录' }}</span>
+    <span class="st-item"><Icon name="user" :size="13"/> {{ authStore.isLoggedIn ? authStore.name + (authStore.roleLabel ? ' · ' + authStore.roleLabel : '') : '未登录' }}</span>
     <button class="st-btn" :class="{ active: ui.view === 'browse' }" @click="ui.switchView('browse')" title="数据浏览">表</button>
     <button class="st-btn" :class="{ active: ui.view === 'sql' }" @click="ui.switchView('sql')" title="SQL 工作台">SQL</button>
   </div>

@@ -6,6 +6,7 @@ import { confirmDanger } from '@/utils/confirm'
 import { useUIStore } from '@/stores/ui'
 import { getRoutineSource, getRoutineParams } from '@/api/database'
 import { saveRoutine, dropRoutine, executeRoutine } from '@/api/routine'
+import Icon from '@/components/Icon.vue'
 
 const ui = useUIStore()
 const target = computed(() => ui.routine)
@@ -123,8 +124,8 @@ async function doDrop() {
           <pre v-if="execResult" class="rt-result">{{ execResult }}</pre>
           <div class="rt-acts">
             <button class="sm" @click="doExecute" :disabled="executing" title="执行...">▶ 执行</button>
-            <button class="sm danger" @click="doDrop" title="DROP 删除">🗑 删除</button>
-            <button class="sm primary" @click="doSave" :disabled="saving" title="DROP 后重建">💾 保存重建</button>
+            <button class="sm danger" @click="doDrop" title="DROP 删除"><Icon name="trash" :size="13"/> 删除</button>
+            <button class="sm primary" @click="doSave" :disabled="saving" title="DROP 后重建"><Icon name="save" :size="13"/> 保存重建</button>
           </div>
         </template>
       </div>

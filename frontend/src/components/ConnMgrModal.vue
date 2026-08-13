@@ -6,6 +6,7 @@ import { useConnectionStore } from '@/stores/connection'
 import { useAuthStore } from '@/stores/auth'
 import { saveConnection, testConn, deleteConnection } from '@/api/connection'
 import { syncTablesFromConnection } from '@/stores/database'
+import Icon from '@/components/Icon.vue'
 
 const props = defineProps<{ show: boolean }>()
 const emit = defineEmits<{ close: [] }>()
@@ -166,7 +167,7 @@ onMounted(() => { connStore.refreshConnList() })
           <div v-if="!connStore.connList.length" class="empty2">还没有保存的连接，点上方「+ 新建连接」添加一个。</div>
           <div v-for="c in connStore.connList" :key="c.name" class="conn-row">
             <div class="meta" @dblclick="doConnect(c.name!)">
-              <b>{{ c.name }}{{ c.visible_to && c.visible_to.length ? ' 🔒' : '' }}{{ c.mode === 'read_only' ? ' 🛡️' : '' }}</b>
+              <b>{{ c.name }}<template v-if="c.visible_to && c.visible_to.length"><Icon name="lock" :size="13"/></template><template v-if="c.mode === 'read_only'"><Icon name="shield" :size="13"/></template></b>
               <div class="det">{{ [c.db_type, (c.server||'')+(c.port?':'+c.port:''), c.database, c.uid].filter(Boolean).join(' · ') }}</div>
             </div>
             <div class="acts">

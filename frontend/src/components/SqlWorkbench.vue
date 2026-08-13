@@ -156,7 +156,7 @@ function showCellDetail(col: string, v: unknown) {
   }
   ui.showModal(`<h3>${esc(col)} <span style="color:#86909c;font-weight:400;font-size:12px">(完整内容 ${full.length} 字符)</span></h3>
     <pre style="max-height:60vh;overflow:auto;white-space:pre-wrap;word-break:break-all;background:#f7f8fa;border:1px solid #e5e6eb;padding:10px;border-radius:6px;margin:8px 0">${esc(full)}</pre>
-    <div class="acts"><button onclick="window.__copySqlCell && window.__copySqlCell()">复制全文</button><button onclick="closeModal()">关闭</button></div>`)
+    <div class="acts"><button data-call="__copySqlCell">复制全文</button><button data-action="close">关闭</button></div>`)
 }
 
 // ---- 历史 / 收藏 ----

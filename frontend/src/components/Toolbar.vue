@@ -41,7 +41,7 @@ async function addRow() {
   const lines = (meta?.columns || []).map(c => {
     return `<div class="row2" style="margin-bottom:6px"><label style="width:120px;flex-shrink:0">${c.name}</label><input id="add_${c.name}" placeholder="${(c.type || '')}" style="flex:1"></div>`
   }).join('')
-  ui.showModal(`<h3>新增行 · ${cur.s}.${cur.t}</h3>${lines}<div class="acts"><button onclick="closeModal()">取消</button><button class="primary" id="addOk">插入</button></div>`)
+  ui.showModal(`<h3>新增行 · ${cur.s}.${cur.t}</h3>${lines}<div class="acts"><button data-action="close">取消</button><button class="primary" id="addOk">插入</button></div>`)
   setTimeout(() => {
     const ok = document.getElementById('addOk')
     if (ok) ok.onclick = async () => {
@@ -120,7 +120,7 @@ function pasteInsert() {
   ui.showModal(`<h3>批量粘贴插入 · ${cur.s}.${cur.t}</h3>
     <p style="color:#86909c;font-size:12px;margin:4px 0 8px">从 Excel/表格复制数据后粘贴到下方(第一行为列名, 或直接数据), 按列顺序映射</p>
     <textarea id="piText" style="width:100%;height:140px;box-sizing:border-box;padding:8px;font-family:Consolas,monospace;font-size:12px" placeholder="粘贴 Excel 复制的单元格..."></textarea>
-    <div class="acts"><button onclick="closeModal()">取消</button><button class="primary" id="piGo">导入 {{ meta.columns.length }} 列</button></div>`)
+    <div class="acts"><button data-action="close">取消</button><button class="primary" id="piGo">导入 {{ meta.columns.length }} 列</button></div>`)
   setTimeout(() => {
     const go = document.getElementById('piGo')
     if (go) go.onclick = async () => {
@@ -178,7 +178,7 @@ function showStats() {
   const opts = (meta.columns || []).map(c => `<option value="${c.name}">${c.name}</option>`).join('')
   ui.showModal(`<h3>列统计 · ${cur.s}.${cur.t}</h3>
     <div class="field"><label>列</label><select id="stCol">${opts}</select></div>
-    <div class="acts"><button onclick="closeModal()">取消</button><button class="primary" id="stGo">统计</button></div>`)
+    <div class="acts"><button data-action="close">取消</button><button class="primary" id="stGo">统计</button></div>`)
   setTimeout(() => {
     const go = document.getElementById('stGo')
     if (go) go.onclick = async () => {
@@ -192,7 +192,7 @@ function showStats() {
       if ('sum' in d) rows += `<tr><td>SUM</td><td>${d.sum ?? '-'}</td></tr>`
       if ('avg' in d) rows += `<tr><td>AVG</td><td>${d.avg ?? '-'}</td></tr>`
       ui.showModal(`<h3>统计: ${col}</h3><table class="p-tbl"><tbody>${rows}</tbody></table>
-        <div class="acts"><button onclick="closeModal()">关闭</button></div>`)
+        <div class="acts"><button data-action="close">关闭</button></div>`)
     }
   }, 0)
 }
@@ -222,7 +222,7 @@ function redisNewKey() {
     </select></div>
     <div class="field"><label>初始值</label><input id="rkVal" placeholder="String 为值; Hash/List/Set 为单个元素; ZSet 为成员(score=0)"></div>
     <div class="field"><label>过期秒数(留空=永久)</label><input id="rkTtl" type="number" placeholder="如 3600"></div>
-    <div class="acts"><button onclick="closeModal()">取消</button><button class="primary" id="rkGo">创建</button></div>`)
+    <div class="acts"><button data-action="close">取消</button><button class="primary" id="rkGo">创建</button></div>`)
   setTimeout(() => {
     const go = document.getElementById('rkGo')
     if (go) go.onclick = async () => {
@@ -250,7 +250,7 @@ async function redisTtl() {
   ui.showModal(`<h3>键 ${cur.t} 的 TTL</h3>
     <div class="field"><label>当前过期时间</label><div style="color:var(--text2)">${now}</div></div>
     <div class="field"><label>新过期秒数(0=永久)</label><input id="rtTtl" type="number" placeholder="如 3600"></div>
-    <div class="acts"><button onclick="closeModal()">取消</button><button class="primary" id="rtGo">应用</button></div>`)
+    <div class="acts"><button data-action="close">取消</button><button class="primary" id="rtGo">应用</button></div>`)
   setTimeout(() => {
     const go = document.getElementById('rtGo')
     if (go) go.onclick = async () => {

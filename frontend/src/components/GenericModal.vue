@@ -1,17 +1,38 @@
 <script setup lang="ts">
 // 通用弹窗(阶段5): 渲染 ui.modal(innerHTML, showModal 注入)
 // 修复: 之前 ui.modal 存了 HTML 但无组件渲染 -> 所有 showModal 弹窗(新增行/统计/看全文/ER图等)都不显示
-// P0-5 加固: v-html 前过 DOMPurify 白名单净化, 阻断脚本/事件注入类 XSS。
-//   - 允许 onclick/onchange: 兼容 window.__fn 内联回调模式(函数名固定、参数不内联用户数据, 调用方已 esc)
-//   - 其余事件属性/script/iframe/外链/危险 URL 一律被 DOMPurify 剔除
+// P0-5 加固: v-html 前过 DOMPurify 白名单净化(script/事件属性/外链一律剔除)。
+// CSP 兼容(修复): 后端 script-src 'self' 禁内联事件处理器 -> 弹窗按钮不再用 onclick,
+//   改用声明式 data-action / data-call, 由本组件统一事件委托分发:
+//   - data-action="close"   -> 关闭弹窗
+//   - data-action="remove"  -> 删除最近的行容器(.row2, 查询构建器条件行)
+//   - data-call="__xxx"     -> 调用 window.__xxx()(调用方自行挂载)
 import { computed } from 'vue'
 import DOMPurify from 'dompurify'
 import { useUIStore } from '@/stores/ui'
 
 const ui = useUIStore()
-const safeHtml = computed(() =>
-  ui.modal ? DOMPurify.sanitize(ui.modal, { ADD_ATTR: ['onclick', 'onchange'] }) : '',
-)
+// 默认白名单净化: 内联事件(onclick 等)一律剔除, XSS 面最小化
+const safeHtml = computed(() => (ui.modal ? DOMPurify.sanitize(ui.modal) : ''))
+
+function onModalClick(e: MouseEvent) {
+  const target = e.target as HTMLElement | null
+  const el = target?.closest?.('[data-action], [data-call]') as HTMLElement | null
+  if (!el) return
+  const action = el.getAttribute('data-action')
+  if (action === 'close') { ui.closeModal(); return }
+  if (action === 'remove') {
+    const row = el.closest('.row2')
+    if (row) row.remove()
+    else el.remove()
+    return
+  }
+  const call = el.getAttribute('data-call')
+  if (call) {
+    const fn = (window as unknown as Record<string, unknown>)[call]
+    if (typeof fn === 'function') (fn as () => void)()
+  }
+}
 </script>
 
 <template>
@@ -19,7 +40,7 @@ const safeHtml = computed(() =>
     <div v-if="ui.modal" class="g-modal-mask" role="dialog" aria-modal="true"
          aria-label="对话框" @click.self="ui.closeModal()"
          @keydown.esc="ui.closeModal()">
-      <div class="g-modal" v-html="safeHtml"></div>
+      <div class="g-modal" v-html="safeHtml" @click="onModalClick"></div>
     </div>
   </Teleport>
 </template>

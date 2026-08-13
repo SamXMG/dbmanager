@@ -2,6 +2,12 @@
 
 本项目遵循[语义化版本](https://semver.org/lang/zh-CN/)。发版流程：更新 `config.py VERSION` 与 `frontend/package.json version` → 追加本节 → 打 tag `vX.Y.Z`（自动触发 Release 构建）。
 
+## [Unreleased] - 弹窗按钮 CSP 兼容修复
+
+### 修复
+- **弹窗按钮失效(用户反馈)**：后端 CSP `script-src 'self'`（无 `unsafe-inline`）拒绝执行 v-html 渲染的内联 `onclick` 处理器，导致所有 `ui.showModal` 弹窗（向导/确认框/编辑弹窗/统计等）的关闭/取消/确认按钮全部不生效。修复：弹窗按钮从内联 onclick 改为**声明式 `data-action`/`data-call`**（37 处），`GenericModal` 容器统一**事件委托**分发（`close` 关闭 / `remove` 删条件行 / `__xxx` 调 window 回调）；DOMPurify 移除 `ADD_ATTR` 放行，内联事件属性默认全剔除（XSS 面最小化，与 CSP 形成双层防护）
+- 新增 `GenericModal` 事件委托回归测试 5 项（含 CSP 语义下按钮可用性）；devDependencies 增 `jsdom`/`@vue/test-utils`
+
 ## [Unreleased] - 配置中心化
 
 ### 新增

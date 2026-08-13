@@ -271,7 +271,7 @@ function openEditRow(i: number) {
     `<div class="row2" style="margin-bottom:6px"><label style="width:120px;flex-shrink:0">${esc(c.name)}</label>` +
     `<input id="ed_${esc(c.name)}" value="${esc(fmt(row[c.name]))}" placeholder="${esc(c.type || '')}" style="flex:1"></div>`).join('')
   ui.showModal(`<h3>编辑行 · ${esc(cur.s)}.${esc(cur.t)}</h3>${lines}` +
-    `<div class="acts"><button onclick="closeModal()">取消</button><button class="primary" id="edOk">保存</button></div>`)
+    `<div class="acts"><button data-action="close">取消</button><button class="primary" id="edOk">保存</button></div>`)
   setTimeout(() => {
     const ok = document.getElementById('edOk')
     if (ok) ok.onclick = async () => {

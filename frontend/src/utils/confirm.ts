@@ -9,8 +9,8 @@ export function confirmDanger(message: string, title = '确认操作'): Promise<
     ui.showModal(`<h3>${esc(title)}</h3>
       <p style="color:var(--text2,#86909c);font-size:13px;margin:8px 0 16px;white-space:pre-wrap">${esc(message)}</p>
       <div class="acts">
-        <button class="sm" onclick="window.__cfCancel && window.__cfCancel()">取消</button>
-        <button class="sm danger" style="background:#d54941;border-color:#d54941;color:#fff" onclick="window.__cfOk && window.__cfOk()">确认执行</button>
+        <button class="sm" data-call="__cfCancel">取消</button>
+        <button class="sm danger" style="background:#d54941;border-color:#d54941;color:#fff" data-call="__cfOk">确认执行</button>
       </div>`)
     ;(window as unknown as Record<string, unknown>).__cfCancel = () => { ui.closeModal(); resolve(false) }
     ;(window as unknown as Record<string, unknown>).__cfOk = () => { ui.closeModal(); resolve(true) }

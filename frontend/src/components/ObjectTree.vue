@@ -214,7 +214,7 @@ async function openEr(s: string, t: string) {
     const svg = genErSvg(s, t, tables, rels)
     ui.showModal(`<h3>ER 关系图 · ${esc(s ? s + '.' : '')}${esc(t)} <span style="color:#86909c;font-weight:400;font-size:12px">(${tables.length} 表 · ${rels.length} 关系)</span></h3>
       <div style="overflow:auto;max-height:70vh">${svg}</div>
-      <div class="acts"><button class="primary" onclick="closeModal()">关闭</button></div>`)
+      <div class="acts"><button class="primary" data-action="close">关闭</button></div>`)
   } catch (e) { ui.toast('ER 图加载失败: ' + (e as Error).message, true) }
 }
 
@@ -275,7 +275,7 @@ async function openTransfer(db: string, s: string, t: string) {
     <div class="field"><label>目标库</label><select id="trDb">${opts.map(d => `<option value="${esc(d)}" ${d === cur ? 'selected' : ''}>${esc(d)}</option>`).join('')}</select></div>
     <div class="field"><label>目标表(须已存在)</label><input id="trTable" placeholder="如 ${esc(t)}_copy"></div>
     <p style="color:#d4660a;font-size:12px">⚠ 源表全部数据将插入目标表</p>
-    <div class="acts"><button onclick="closeModal()">取消</button><button class="primary" id="trGo">开始同步</button></div>`)
+    <div class="acts"><button data-action="close">取消</button><button class="primary" id="trGo">开始同步</button></div>`)
   setTimeout(() => {
     const go = document.getElementById('trGo')
     if (go) go.onclick = async () => {
@@ -302,7 +302,7 @@ async function openSchemaSync(s: string, t: string) {
   } else {
     html += `<div class="field"><label>目标连接</label><select id="syncDst">${conns.map(c => `<option value="${esc(c.name)}">${esc(c.name)} (${esc(c.db_type)} · ${esc(c.server || '')})</option>`).join('')}</select></div>
       <div class="field"><label>模式</label><select id="syncMode"><option value="append">追加(不清空目标)</option><option value="replace">清空目标后复制</option></select></div>
-      <div class="acts"><button onclick="closeModal()">取消</button><button class="primary" id="syncGo">开始同步</button></div>`
+      <div class="acts"><button data-action="close">取消</button><button class="primary" id="syncGo">开始同步</button></div>`
   }
   ui.showModal(html)
   setTimeout(() => {

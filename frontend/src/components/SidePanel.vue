@@ -7,6 +7,7 @@ import { useDatabaseStore } from '@/stores/database'
 import { syncTablesFromConnection } from '@/stores/database'
 import { useTabStore } from '@/stores/tab'
 import { useRouter } from 'vue-router'
+import Icon from '@/components/Icon.vue'
 
 const connStore = useConnectionStore()
 const dbStore = useDatabaseStore()
@@ -48,7 +49,7 @@ async function switchConn(name: string) {
         <span class="sc-state" v-if="connStore.conn?.name === c.name">✓</span>
       </div>
     </div>
-    <div class="side-crumb" v-if="crumb" :title="crumb">📍 {{ crumb }}</div>
+    <div class="side-crumb" v-if="crumb" :title="crumb"><Icon name="pin" :size="13"/> {{ crumb }}</div>
     <ObjectTree />
   </div>
 </template>
