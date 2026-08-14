@@ -11,7 +11,6 @@ from services.metadata import get_columns, get_pk, get_table_obj, get_tables
 
 def backup_database(ci, schema=None):
     """生成整库备份 SQL, 返回 (sql_text, filename)"""
-    import datetime
     db_type = (ci.get("db_type") or "mysql").lower()
     if db_type == "mongodb":
         raise ValueError("MongoDB 备份请使用官方 mongodump 工具")

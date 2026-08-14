@@ -9,7 +9,6 @@
 - 自助注册：默认关闭（内网合规），DBM_ALLOW_REGISTER=1 开启
 """
 import hashlib
-import json
 import os
 import re
 import secrets
@@ -179,7 +178,6 @@ def ldap_auth(username, password):
         return False
     try:
         from ldap3 import Server, Connection, ALL
-        import ldap3
     except Exception:
         return False
     try:

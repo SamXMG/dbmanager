@@ -14,7 +14,7 @@ ADAPTER = "WLAN"  # 活动网卡名（中文 Windows 通常为 WLAN）
 def _run(cmd, timeout=25):
     try:
         return subprocess.run(cmd, capture_output=True, timeout=timeout)
-    except Exception as e:
+    except Exception:
         return None
 
 

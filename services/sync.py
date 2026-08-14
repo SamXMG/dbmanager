@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """dbmanager - ops 结构同步: 跨库/跨连接数据同步 + 表结构对比DDL"""
-from sqlalchemy import delete, insert, inspect, select, text
+from sqlalchemy import delete, insert, select, text
 
 from dbcore import conn_hash, get_engine
 from services.core import _clear_count_cache, _col_ddl, _qi
-from services.metadata import get_columns, get_pk, get_table_obj
+from services.metadata import get_columns, get_table_obj
 
 
 def sync_table(src, dst, schema, table, mode="append"):

@@ -142,13 +142,9 @@ def main():
             headers=h, method="POST")
         try:
             resp = urllib.request.urlopen(r)
-            st2, d2 = resp.status, json.loads(resp.read().decode())
+            st2 = resp.status
         except urllib.error.HTTPError as e:
             st2 = e.code
-            try:
-                d2 = json.loads(e.read().decode())
-            except Exception:
-                d2 = {}
         check("read_only 连接写行 -> 403", st2 == 403, str(st2))
         # 只读 SELECT 放行
         r = urllib.request.Request(BASE + "/api/data?s=main&t=t1&page=1&size=10&where=&order=",

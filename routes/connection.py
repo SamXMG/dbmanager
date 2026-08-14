@@ -1,33 +1,20 @@
 # -*- coding: utf-8 -*-
 """dbmanager - routes.connection: 连接: 测试/建立会话/库列表/保存连接/注册/改密/公钥/配置"""
-import json
-import os
-import threading
-import time
 
-from urllib.parse import parse_qs, urlsplit
 
 import auth
 import config
-import task_sched
 
 from config import DEFAULT_PORT, HOST, PORT
 from crypto import rsa_public_pem
 from dbcore import (
-    _norm_db_type, build_url, conn_hash, get_engine, get_mongo, get_redis,
     test_connection, is_safe_server, _safe_sqlite_path,
 )
 from ops import (
-    _xlsx_bytes, alter_table, backup_database, commit_transaction, diff_schema,
-    drop_routine, execute_routine, execute_schema_sync, explain_query,
-    export_data, export_schema_doc, gen_data, get_columns, get_data,
-    get_databases, get_er_data, get_indexes, get_relations, get_routine_params,
-    get_routine_source, get_routines, get_tables, get_users_privs, import_data,
-    mutate, parse_xlsx_import, restore_sql, rollback_transaction, run_sql,
-    save_routine, stats_column, sync_table, transfer_data,
+    get_databases, get_tables,
 )
 from store import (
-    delete_connection, get_connection_by_name, list_connections, save_connection,
+    delete_connection, get_connection_by_name, save_connection,
 )
 
 

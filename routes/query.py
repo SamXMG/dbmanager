@@ -1,33 +1,16 @@
 # -*- coding: utf-8 -*-
 """dbmanager - routes.query: 查询与数据: 分页浏览/SQL控制台/行增改删/事务/统计/造数/同步"""
-import json
-import os
-import threading
-import time
 
-from urllib.parse import parse_qs, urlsplit
 
-import auth
-import config
-import task_sched
 
-from config import DEFAULT_PORT, HOST, PORT
-from crypto import rsa_public_pem
-from dbcore import (
-    _norm_db_type, build_url, conn_hash, get_engine, get_mongo, get_redis,
-    test_connection,
-)
 from ops import (
-    _xlsx_bytes, alter_table, backup_database, commit_transaction, diff_schema,
-    drop_routine, execute_routine, execute_schema_sync, explain_query,
-    export_data, export_schema_doc, gen_data, get_columns, get_data,
-    get_databases, get_er_data, get_indexes, get_relations, get_routine_params,
-    get_routine_source, get_routines, get_tables, get_users_privs, import_data,
-    mutate, mutate_batch_delete, parse_xlsx_import, restore_sql, rollback_transaction, run_sql,
-    save_routine, stats_column, sync_table, transfer_data,
+    commit_transaction, explain_query,
+    gen_data, get_data,
+    mutate, mutate_batch_delete, rollback_transaction, run_sql,
+    stats_column, sync_table, transfer_data,
 )
 from store import (
-    delete_connection, get_connection_by_name, list_connections, save_connection,
+    get_connection_by_name,
 )
 
 

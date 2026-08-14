@@ -1,35 +1,17 @@
 # -*- coding: utf-8 -*-
 """dbmanager - routes.admin: 管理: 登录/用户/网关/调度任务/关机"""
-import json
 import os
 import subprocess
 import sys
 import threading
-import time
 
-from urllib.parse import parse_qs, urlsplit
 
 import auth
 import config
 import task_sched
 
-from config import DEFAULT_PORT, HOST, PORT
-from crypto import rsa_public_pem
-from dbcore import (
-    _norm_db_type, build_url, conn_hash, get_engine, get_mongo, get_redis,
-    test_connection,
-)
-from ops import (
-    _xlsx_bytes, alter_table, backup_database, commit_transaction, diff_schema,
-    drop_routine, execute_routine, execute_schema_sync, explain_query,
-    export_data, export_schema_doc, gen_data, get_columns, get_data,
-    get_databases, get_er_data, get_indexes, get_relations, get_routine_params,
-    get_routine_source, get_routines, get_tables, get_users_privs, import_data,
-    mutate, parse_xlsx_import, restore_sql, rollback_transaction, run_sql,
-    save_routine, stats_column, sync_table, transfer_data,
-)
 from store import (
-    delete_connection, get_connection_by_name, list_connections, save_connection,
+    list_connections,
 )
 import sqlitedb  # 系统数据查询(/api/sysdb)与审计查询(/api/audit)
 
@@ -437,7 +419,6 @@ def handle_post(handler, path, q):
                     if not sql:
                         handler._send_json(400, {"error": "请输入 SQL"})
                         return True
-                    import re as _re
                     ok_msg, msg = _sysdb_validate(sql)
                     if not ok_msg:
                         handler._send_json(400, {"error": msg})

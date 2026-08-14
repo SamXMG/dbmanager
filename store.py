@@ -3,7 +3,6 @@
 存 SQLite(dbmanager.db, connections 表, 密码字段保持密文);
 旧 connections.json 首次启动自动迁移(源文件改名 .bak)。
 """
-import json
 import os
 
 from config import DEFAULT_PORT, SUPPORTED

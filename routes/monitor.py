@@ -5,10 +5,8 @@
 两个端点均不含业务数据, 已加入鉴权豁免(_auth_blocked/_must_change_blocked);
 公网暴露时仍受网关令牌保护(_gateway_blocked 不豁免)。
 """
-import json
 import os
 import sys
-import time
 
 import auth
 import config

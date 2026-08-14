@@ -4,7 +4,6 @@ URL 构建、引擎缓存(上限32)、超时设置、连接测试、事务模式
 """
 import hashlib
 import os
-from typing import Any
 from urllib.parse import quote, quote_plus
 
 from sqlalchemy import create_engine, text

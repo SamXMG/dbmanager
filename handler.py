@@ -13,10 +13,6 @@ import json
 import logging
 import os
 import secrets
-import shutil
-import socket
-import sqlite3
-import subprocess
 import sys
 import threading
 import time
@@ -29,24 +25,17 @@ import sqlitedb  # 程序数据(SQLite): 用户/权限/连接/审计/任务
 
 logger = logging.getLogger("handler")
 from config import (
-    DEFAULT_PORT, HOST, PORT, SESSIONS, SESSION_TTL, conf,
+    HOST, PORT, SESSIONS, SESSION_TTL, conf,
 )
-from crypto import maybe_decrypt_pwd, rsa_public_pem
-from dbcore import _norm_db_type, test_connection
+from crypto import maybe_decrypt_pwd
+from dbcore import _norm_db_type
 from store import (
-    delete_connection, get_connection_by_name, list_connections, save_connection,
+    list_connections,
 )
 from routes import ROUTE_MODS
 from ops import (
-    _xlsx_bytes, alter_table, backup_database, commit_transaction, diff_schema,
-    drop_routine, execute_routine, execute_schema_sync, explain_query, export_data,
-    export_schema_doc,
-    get_columns, get_data, get_databases, get_er_data, get_indexes, get_relations,
-    get_routine_params, get_routine_source, get_routines, get_tables, get_users_privs,
-    import_data, mutate, parse_xlsx_import, restore_sql, rollback_transaction,
-    run_sql, save_routine, stats_column, gen_data, sync_table, transfer_data,
+    mutate,
 )
-import task_sched  # 简单调度器(P2-2): 定时备份任务
 
 def parse_conn_header(handler):
     raw = handler.headers.get("X-Conn")
@@ -133,7 +122,7 @@ def _safe_error(e):
 # Prometheus 指标: 轻量计数器, /api/metrics 输出; 无第三方依赖
 # 指标本体在独立模块 metrics.py(零依赖), 避免 routes 反向 import handler 的循环导入
 # ------------------------------
-from metrics import METRICS, METRICS_LOCK, record as _metrics_record
+from metrics import record as _metrics_record
 
 
 def _req_log(method: str):
@@ -771,10 +760,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
 # 网关令牌 / HTTPS·SSL / 内网判定(优化路线图 1.1: 已拆至独立模块 handler_security.py, re-export 保持兼容)
 from handler_security import (  # noqa: E402
-    GATEWAY_TOKEN, GATEWAY_HASH, GATEWAY_SESSIONS, GATEWAY_SESSION_TTL,
-    GATEWAY_FAIL, GATEWAY_MAX_FAIL, GATEWAY_LOCK_SEC, GATEWAY_TOKEN_FILE,
-    SSL_CERT, SSL_KEY, USE_HTTPS, _gen_self_signed_cert, _ssl_setup,
-    _is_https, _scheme, _client_is_internal, _gateway_cookie_ok, _gateway_allowed,
+    GATEWAY_HASH, GATEWAY_SESSIONS, GATEWAY_SESSION_TTL,
+    GATEWAY_FAIL, GATEWAY_MAX_FAIL, GATEWAY_LOCK_SEC, _is_https, _scheme, _gateway_allowed,
 )
 
 

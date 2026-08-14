@@ -53,7 +53,7 @@ def _xlsx_col_letter(i):
 def _xlsx_bytes(columns, rows):
     """生成最小 xlsx(首行表头 + 数据), 返回 bytes; columns 为列名列表, rows 为 dict 行"""
     from xml.sax.saxutils import escape as _xesc
-    import zipfile, io
+    import io
     parts = []
     for ri, row in enumerate(rows):
         cells = []
@@ -84,7 +84,7 @@ def _xlsx_bytes(columns, rows):
 
 def parse_xlsx_import(data):
     """解析 xlsx 文件为 (表头行, 数据行) 二维数组; 第一行视为表头。支持 sharedStrings 与 inlineStr。"""
-    import zipfile, io, re
+    import io, re
     from xml.etree import ElementTree as ET
     X = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
     with zipfile.ZipFile(io.BytesIO(data)) as z:

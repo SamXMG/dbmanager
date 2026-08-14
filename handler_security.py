@@ -100,7 +100,7 @@ def _gen_self_signed_cert(cert_path, key_path):
            "-subj", "/CN=DBManager.local", "-addext", "subjectAltName=" + san]
     try:
         subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-    except subprocess.CalledProcessError as e:
+    except subprocess.CalledProcessError:
         # openssl 不可用时回退 cryptography（需 pip install cryptography）
         try:
             from cryptography import x509

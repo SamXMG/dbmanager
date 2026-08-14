@@ -117,19 +117,19 @@ def alter_table(ci, schema, table, action, payload, tx_key=""):
                 return {"ok": True, "new_table": new, "with_data": with_data}
             if action == "maintain":
                 op = (payload.get("op") or "check").lower()
-                ddl, key = {
+                ddl = {
                     "mysql": {
                         "check": f"CHECK TABLE {full}", "optimize": f"OPTIMIZE TABLE {full}",
                         "repair": f"REPAIR TABLE {full}", "analyze": f"ANALYZE TABLE {full}",
                     },
                     "postgresql": {"check": f"VACUUM (VERBOSE) {full}", "optimize": f"VACUUM ANALYZE {full}",
                                    "analyze": f"ANALYZE {full}", "repair": f"VACUUM FULL {full}"},
-                    "sqlite": {"check": f"PRAGMA integrity_check({full})", "optimize": f"VACUUM",
-                               "analyze": f"ANALYZE {full}", "repair": f"VACUUM"},
+                    "sqlite": {"check": f"PRAGMA integrity_check({full})", "optimize": "VACUUM",
+                               "analyze": f"ANALYZE {full}", "repair": "VACUUM"},
                     "mssql": {"check": f"DBCC CHECKTABLE('{str(schema).replace(chr(39), chr(39)*2)}.{str(table).replace(chr(39), chr(39)*2)}')",
                               "optimize": f"ALTER INDEX ALL ON {full} REBUILD",
-                              "analyze": f"UPDATE STATISTICS {full}", "repair": f"DBCC CHECKDB"},
-                }[t][op], ("op", op)
+                              "analyze": f"UPDATE STATISTICS {full}", "repair": "DBCC CHECKDB"},
+                }[t][op]
                 try:  # VACUUM/CHECK TABLE 等无返回行的 DDL
                     rows = conn.execute(text(ddl)).mappings().fetchall()
                 except ResourceClosedError:
