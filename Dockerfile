@@ -1,7 +1,8 @@
-# dbmanager 容器镜像: 单命令自托管
+# dbmanager 容器镜像: 多阶段构建(路线图 P1-6 Docker 瘦身)
 # 构建: docker build -t dbmanager .
 # 运行: docker run -p 8770:8770 -v dbmanager_data:/app/data dbmanager
 # 访问: http://<host>:8770/v2 (Vue3 前端)
+# 瘦身要点: 编译工具链(gcc/g++/unixodbc-dev)只在 pybuilder 阶段; runtime 仅保留运行依赖
 
 # ---- 阶段1: 前端构建(frontend/dist) ----
 FROM node:20-alpine AS fe
@@ -11,15 +12,25 @@ RUN npm ci
 COPY frontend/ ./
 RUN npm run build
 
-# ---- 阶段2: Python 运行时 ----
+# ---- 阶段2: Python 依赖预编译(builder) ----
+# 编译型驱动(psycopg2/oracledb 等)需要 gcc/g++/unixodbc-dev —— 仅在此阶段
+FROM python:3.12-slim AS pybuilder
+WORKDIR /build
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        gcc g++ unixodbc-dev \
+    && rm -rf /var/lib/apt/lists/*
+COPY requirements.txt ./
+RUN pip wheel --no-cache-dir -r requirements.txt -w /build/wheels
+
+# ---- 阶段3: Python 运行时(无编译工具链) ----
 FROM python:3.12-slim
 
 ENV PYTHONUNBUFFERED=1 \
     DBM_NO_OPEN=1
 
-# 系统依赖: curl(ODBC 安装脚本用) + unixODBC(SQL Server 驱动运行时)
+# 运行时只需 unixodbc(无 -dev) + curl(ODBC 安装脚本) + gnupg
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        curl gnupg unixodbc unixodbc-dev gcc g++ \
+        curl gnupg unixodbc \
     && rm -rf /var/lib/apt/lists/*
 
 # 微软 ODBC Driver 18 for SQL Server(可选; 不连 SQL Server 可去掉, 启动不受影响)
@@ -32,7 +43,9 @@ RUN curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor
 WORKDIR /app
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# 从 builder 拷预编译 wheel, 离线安装(无需 gcc/g++)
+COPY --from=pybuilder /build/wheels ./wheels
+RUN pip install --no-cache-dir --no-index ./wheels && rm -rf ./wheels
 
 # 后端全部源码(含重构后的 services/routes 分层)
 COPY app.py config.py crypto.py dbcore.py handler.py ops.py store.py tunnel.py auth.py \

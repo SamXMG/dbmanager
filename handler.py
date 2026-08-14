@@ -283,6 +283,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("X-Frame-Options", "DENY")
+        if _is_https():
+            self.send_header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
         for _c in getattr(self, "_extra_cookies", []):
             self.send_header("Set-Cookie", _c)
         origin = self.headers.get("Origin")
@@ -314,6 +316,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("X-Frame-Options", "DENY")
+        if _is_https():
+            self.send_header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
         # 基础 CSP: 前端全部外部脚本(CSP 收紧后页面须正常渲染, 已在冒烟验证)
         self.send_header("Content-Security-Policy",
                          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
