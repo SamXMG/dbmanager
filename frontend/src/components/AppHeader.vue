@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // 顶栏: 连接信息/用户/角色/主题切换/事务(真实现: 开关+提交/回滚)/停止服务
 import { ref, computed, defineAsyncComponent } from 'vue'
-import { t, getLocale, setLocale } from '@/i18n'
+import { tr, getLocale, setLocale } from '@/i18n'
 import type { Lang } from '@/i18n'
 import { errMsg } from '@/utils/err'
 import { useRouter } from 'vue-router'
@@ -102,31 +102,31 @@ async function logout() {
     <span class="db" v-if="conn.connected">{{ info }}</span>
     <div class="right">
       <span v-if="conn.connected" style="font-size:13px;color:var(--text2);margin-right:8px">
-        {{ auth.name || t('header.notLoggedIn') }}<span v-if="auth.roleLabel"> ({{ auth.roleLabel }})</span>
+        {{ auth.name || tr('header.notLoggedIn') }}<span v-if="auth.roleLabel"> ({{ auth.roleLabel }})</span>
       </span>
-      <button v-if="!conn.connected" class="sm" @click="showConnMgr = true">{{ t('header.myConnections') }}</button>
-      <button class="sm" @click="toggleTheme" :title="t('header.theme')"><Icon name="moon" :size="16"/> {{ t('header.theme') }}</button>
-      <select v-model="lang" class="sm" :title="t('lang.label')" :aria-label="t('lang.label')">
+      <button v-if="!conn.connected" class="sm" @click="showConnMgr = true">{{ tr('header.myConnections') }}</button>
+      <button class="sm" @click="toggleTheme" :title="tr('header.theme')"><Icon name="moon" :size="16"/> {{ tr('header.theme') }}</button>
+      <select v-model="lang" class="sm" :title="tr('lang.label')" :aria-label="tr('lang.label')">
         <option value="zh-CN">中文</option>
         <option value="en">English</option>
       </select>
       <template v-if="conn.connected">
-        <button class="sm" @click="toggleTx" :class="{ 'tx-on': ui.transactionMode }" :title="t('header.tx')">
-          {{ t('header.tx') }}: {{ ui.transactionMode ? t('header.txOn') : t('header.txOff') }}
+        <button class="sm" @click="toggleTx" :class="{ 'tx-on': ui.transactionMode }" :title="tr('header.tx')">
+          {{ tr('header.tx') }}: {{ ui.transactionMode ? tr('header.txOn') : tr('header.txOff') }}
         </button>
         <template v-if="ui.transactionMode">
-          <button class="sm primary" @click="doCommit" :title="t('header.commit')">{{ t('header.commit') }}</button>
-          <button class="sm danger" @click="doRollback" :title="t('header.rollback')">{{ t('header.rollback') }}</button>
+          <button class="sm primary" @click="doCommit" :title="tr('header.commit')">{{ tr('header.commit') }}</button>
+          <button class="sm danger" @click="doRollback" :title="tr('header.rollback')">{{ tr('header.rollback') }}</button>
         </template>
       </template>
-      <button v-if="auth.isAdmin" class="sm" @click="showUserAdmin = true" :title="t('header.userAdmin')">{{ t('header.userAdmin') }}</button>
-      <button v-if="auth.isAdmin" class="sm" @click="showSessions = true" :title="t('header.sessions')">{{ t('header.sessions') }}</button>
-      <button v-if="auth.isAdmin" class="sm" @click="showSysQuery = true" :title="t('header.sysQuery')">{{ t('header.sysQuery') }}</button>
-      <button v-if="auth.isAdmin" class="sm" @click="showServerConfig = true" :title="t('header.serverConfig')">{{ t('header.serverConfig') }}</button>
-      <button v-if="auth.isLoggedIn" class="sm" @click="showAuth = true">{{ t('header.changePwd') }}</button>
-      <button v-if="!auth.isLoggedIn" class="sm" @click="showAuth = true">{{ t('header.login') }}</button>
-      <button v-if="conn.connected" class="sm" @click="logout">{{ t('header.logout') }}</button>
-      <button v-if="conn.connected" class="sm danger" @click="doShutdown">{{ t('header.shutdown') }}</button>
+      <button v-if="auth.isAdmin" class="sm" @click="showUserAdmin = true" :title="tr('header.userAdmin')">{{ tr('header.userAdmin') }}</button>
+      <button v-if="auth.isAdmin" class="sm" @click="showSessions = true" :title="tr('header.sessions')">{{ tr('header.sessions') }}</button>
+      <button v-if="auth.isAdmin" class="sm" @click="showSysQuery = true" :title="tr('header.sysQuery')">{{ tr('header.sysQuery') }}</button>
+      <button v-if="auth.isAdmin" class="sm" @click="showServerConfig = true" :title="tr('header.serverConfig')">{{ tr('header.serverConfig') }}</button>
+      <button v-if="auth.isLoggedIn" class="sm" @click="showAuth = true">{{ tr('header.changePwd') }}</button>
+      <button v-if="!auth.isLoggedIn" class="sm" @click="showAuth = true">{{ tr('header.login') }}</button>
+      <button v-if="conn.connected" class="sm" @click="logout">{{ tr('header.logout') }}</button>
+      <button v-if="conn.connected" class="sm danger" @click="doShutdown">{{ tr('header.shutdown') }}</button>
     </div>
   </header>
   <ConnMgrModal v-if="showConnMgr" :show="showConnMgr" @close="showConnMgr = false" />
@@ -138,8 +138,8 @@ async function logout() {
   <!-- P1-10: 停服状态遮罩(SPA 内状态, 不清空 DOM) -->
   <div v-if="stopped" class="stopped-mask">
     <div class="stopped-card">
-      <h3>{{ t('stopped.title') }}</h3>
-      <p>{{ t('stopped.desc') }}</p>
+      <h3>{{ tr('stopped.title') }}</h3>
+      <p>{{ tr('stopped.desc') }}</p>
     </div>
   </div>
 </template>

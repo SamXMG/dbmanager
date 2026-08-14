@@ -1,8 +1,9 @@
 // 轻量 i18n(无第三方依赖): 语言持久化到 localStorage(dbm_lang), 默认 zh-CN。
-// 用法: import { t, getLocale, setLocale } from '@/i18n'
-//   t('header.login')            // 当前语言
-//   t('common.deleted_n', { n: 3 }) // 带参数替换 {n}
-// 新增文案: 加 key 到 locales/zh-CN.ts(源) 与 locales/en.ts(译文), 模板用 t('key') 取代硬编码串。
+// 用法: import { tr, getLocale, setLocale } from '@/i18n'
+//   tr('header.login')            // 当前语言
+//   tr('common.deleted_n', { n: 3 }) // 带参数替换 {n}
+// 新增文案: 加 key 到 locales/zh-CN.ts(源) 与 locales/en.ts(译文), 模板用 tr('key') 取代硬编码串。
+// 注意: 函数命名为 tr(而非 t), 因为 t 在本项目常作"表名"参数/循环变量, 易遮蔽。
 import { ref } from 'vue'
 import { zhCN } from './locales/zh-CN'
 import { en } from './locales/en'
@@ -45,7 +46,7 @@ export function setLocale(lang: Lang): void {
   document.documentElement.lang = lang === 'en' ? 'en' : 'zh-CN'
 }
 
-export function t(key: string, params?: Record<string, string | number>): string {
+export function tr(key: string, params?: Record<string, string | number>): string {
   const cat = catalogs[current.value] || catalogs[FALLBACK]
   let text = cat[key] ?? catalogs[FALLBACK][key] ?? key
   if (params) {

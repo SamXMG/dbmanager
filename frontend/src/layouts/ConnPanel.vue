@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { errMsg as toErrMsg } from '@/utils/err'
+import { tr } from '@/i18n'
 import { useRouter } from 'vue-router'
 import { useConnectionStore } from '@/stores/connection'
 import { useAuthStore } from '@/stores/auth'
@@ -41,7 +42,7 @@ const cloudVendor = ref('')
 const isSqlite = computed(() => dbType.value === 'sqlite')
 
 const DB_TYPES = [
-  { value: 'sqlite', label: 'SQLite（文件）' },
+  { value: 'sqlite', label: 'conn.sqliteFile' },
   { value: 'mysql', label: 'MySQL' },
   { value: 'postgresql', label: 'PostgreSQL' },
   { value: 'mssql', label: 'SQL Server' },
@@ -54,13 +55,13 @@ const DB_TYPES = [
 ]
 
 const CLOUD_VENDORS: Record<string, { name: string; def: string; ports: Record<string, number>; tip: string }> = {
-  aliyun: { name: '阿里云', def: 'mysql', ports: { mysql: 3306, postgresql: 5432, mssql: 1433, oracle: 1521, mongodb: 27017 }, tip: '需在云控制台开启公网访问并配置白名单；生产环境建议用内网地址 + SSH 隧道' },
-  tencent: { name: '腾讯云', def: 'mysql', ports: { mysql: 3306, postgresql: 5432, mssql: 1433, mongodb: 27017 }, tip: '需在控制台开通外网地址并放行安全组；内网建议 SSH 隧道' },
-  huawei: { name: '华为云', def: 'mysql', ports: { mysql: 3306, postgresql: 5432, mssql: 1433, mongodb: 27017 }, tip: '需绑定弹性IP/开启公网，并配置安全组放行来源IP' },
-  aws: { name: 'Amazon AWS', def: 'postgresql', ports: { mysql: 3306, postgresql: 5432, mssql: 1433, oracle: 1521, mongodb: 27017 }, tip: '需在安全组(Security Group)放行来源IP；VPC 内建议 SSH 隧道' },
-  azure: { name: 'Microsoft Azure', def: 'mssql', ports: { mysql: 3306, postgresql: 5432, mssql: 1433, mongodb: 27017 }, tip: '需在防火墙规则中添加客户端IP；内网可用 SSH 隧道' },
-  oracle_cloud: { name: 'Oracle Cloud', def: 'oracle', ports: { oracle: 1521, mysql: 3306, postgresql: 5432 }, tip: '需在 OCI 网络安全组放行端口；Autonomous DB 建议公网端点 + 隧道' },
-  mongo_cloud: { name: 'MongoDB Atlas', def: 'mongodb', ports: { mongodb: 27017 }, tip: '需在 Atlas Network Access 白名单中加入来源 IP' },
+  aliyun: { name: 'cloud.aliyun', def: 'mysql', ports: { mysql: 3306, postgresql: 5432, mssql: 1433, oracle: 1521, mongodb: 27017 }, tip: 'cloud.aliyun.tip' },
+  tencent: { name: 'cloud.tencent', def: 'mysql', ports: { mysql: 3306, postgresql: 5432, mssql: 1433, mongodb: 27017 }, tip: 'cloud.tencent.tip' },
+  huawei: { name: 'cloud.huawei', def: 'mysql', ports: { mysql: 3306, postgresql: 5432, mssql: 1433, mongodb: 27017 }, tip: 'cloud.huawei.tip' },
+  aws: { name: 'cloud.aws', def: 'postgresql', ports: { mysql: 3306, postgresql: 5432, mssql: 1433, oracle: 1521, mongodb: 27017 }, tip: 'cloud.aws.tip' },
+  azure: { name: 'cloud.azure', def: 'mssql', ports: { mysql: 3306, postgresql: 5432, mssql: 1433, mongodb: 27017 }, tip: 'cloud.azure.tip' },
+  oracle_cloud: { name: 'cloud.oracle_cloud', def: 'oracle', ports: { oracle: 1521, mysql: 3306, postgresql: 5432 }, tip: 'cloud.oracle_cloud.tip' },
+  mongo_cloud: { name: 'cloud.mongo_cloud', def: 'mongodb', ports: { mongodb: 27017 }, tip: 'cloud.mongo_cloud.tip' },
 }
 
 const DEF_PORTS: Record<string, number> = { mysql: 3306, postgresql: 5432, mssql: 1433, oracle: 1521, mongodb: 27017, redis: 6379, oceanbase: 2881, tidb: 4000, kingbase: 54321 }
@@ -113,10 +114,10 @@ async function doConnect() {
     }
     await connStore.connectAndGo(payload)
     syncTablesFromConnection() // 表数据同步到树 store
-    successMsg.value = '连接成功'
+    successMsg.value = tr('conn.connectOk')
     setTimeout(() => router.push('/main'), 300)
   } catch (e: unknown) {
-    errMsg.value = toErrMsg(e, '连接失败')
+    errMsg.value = toErrMsg(e, tr('conn.failConnect'))
   } finally {
     loading.value = false
   }
@@ -126,24 +127,24 @@ async function doTest() {
   errMsg.value = ''; successMsg.value = ''
   try {
     const r = await testConn(buildPayload())
-    if (r.ok) successMsg.value = '✓ ' + (r.message || '连接成功')
-    else errMsg.value = '✗ ' + (r.error || '连接失败')
+    if (r.ok) successMsg.value = '✓ ' + (r.message || tr('conn.connectOk'))
+    else errMsg.value = '✗ ' + (r.error || tr('conn.failConnect'))
   } catch (e: unknown) {
-    errMsg.value = toErrMsg(e, '测试失败')
+    errMsg.value = toErrMsg(e, tr('conn.failTest'))
   }
 }
 
 async function loadDbs() {
   errMsg.value = ''; successMsg.value = ''
-  if (isSqlite.value) { errMsg.value = 'SQLite 无需加载库列表'; return }
-  if (!server.value.trim() || !uid.value.trim()) { errMsg.value = '请先填服务器与账号'; return }
+  if (isSqlite.value) { errMsg.value = tr('conn.sqliteNoDbList'); return }
+  if (!server.value.trim() || !uid.value.trim()) { errMsg.value = tr('conn.fillServerUid'); return }
   try {
     const payload = buildPayload()
     delete (payload as { database?: unknown }).database
     dbList.value = await listDatabases(payload)
-    successMsg.value = `已加载 ${dbList.value.length} 个数据库`
+    successMsg.value = tr('conn.loadedDbs', { n: dbList.value.length })
   } catch (e: unknown) {
-    errMsg.value = toErrMsg(e, '加载失败')
+    errMsg.value = toErrMsg(e, tr('conn.failLoad'))
   }
 }
 
@@ -167,10 +168,10 @@ async function doQuickConnect(name: string) {
   try {
     await connStore.connectAndGo({ name })
     syncTablesFromConnection() // 表数据同步到树 store
-    successMsg.value = '连接成功: ' + name
+    successMsg.value = tr('conn.connectOkName', { name })
     setTimeout(() => router.push('/main'), 300)
   } catch (e: unknown) {
-    errMsg.value = toErrMsg(e, '连接失败')
+    errMsg.value = toErrMsg(e, tr('conn.failConnect'))
   } finally {
     loading.value = false
   }
@@ -188,105 +189,105 @@ onMounted(async () => {
 <template>
   <div class="conn-panel">
     <header class="conn-head">
-      <h2>连接数据库</h2>
-      <p class="sub">支持 SQLite / MySQL / PostgreSQL / SQL Server / Oracle / MongoDB / Redis。</p>
+      <h2>{{ tr('conn.title') }}</h2>
+      <p class="sub">{{ tr('conn.sub') }}</p>
     </header>
 
     <div class="conn-body">
       <!-- 我的连接: 点击直接连接(无需密码) -->
       <div class="field" v-if="connStore.connList.length">
-        <label>我的连接（点击直接连接，无需输入密码）</label>
+        <label>{{ tr('conn.myConnLabel') }}</label>
         <div class="conn-list">
-          <div v-for="c in connStore.connList" :key="c.name" class="conn-row" @click="doQuickConnect(c.name!)" :title="'连接 ' + c.name">
+          <div v-for="c in connStore.connList" :key="c.name" class="conn-row" @click="doQuickConnect(c.name!)" :title="tr('conn.connectTitle') + ' ' + c.name">
             <span class="dot" :class="{ on: connStore.conn?.name === c.name }"></span>
             <span class="nm">{{ c.name }}</span>
             <span class="det">{{ [c.db_type, c.server, c.database].filter(Boolean).join(' · ') }}</span>
-            <span class="go">连接 →</span>
+            <span class="go">{{ tr('conn.connect') }}</span>
           </div>
         </div>
       </div>
 
       <!-- Navicat 快速连接(填入表单) -->
       <div class="field" v-if="connStore.connList.length">
-        <label>快速填入表单</label>
+        <label>{{ tr('conn.quickFill') }}</label>
         <div class="row2">
           <select v-model="quickConn" @change="applyQuick">
-            <option value="">— 选择连接填入表单 —</option>
+            <option value="">{{ tr('conn.chooseConn') }}</option>
             <option v-for="c in connStore.connList" :key="c.name" :value="c.name!">{{ c.name }}</option>
           </select>
-          <button type="button" @click="applyQuick">填入</button>
+          <button type="button" @click="applyQuick">{{ tr('conn.fill') }}</button>
         </div>
       </div>
 
       <!-- 云厂商模板 -->
       <div class="field">
-        <label>云厂商快速模板</label>
+        <label>{{ tr('conn.cloudTemplate') }}</label>
         <select v-model="cloudVendor" @change="onCloudChange">
-          <option value="">— 不使用 —</option>
-          <option v-for="(v, k) in CLOUD_VENDORS" :key="k" :value="k">{{ v.name }}</option>
+          <option value="">{{ tr('conn.noCloud') }}</option>
+          <option v-for="(v, k) in CLOUD_VENDORS" :key="k" :value="k">{{ tr(v.name) }}</option>
         </select>
-        <div v-if="cloudVendor && CLOUD_VENDORS[cloudVendor]" class="tip">{{ CLOUD_VENDORS[cloudVendor].tip }}</div>
+        <div v-if="cloudVendor && CLOUD_VENDORS[cloudVendor]" class="tip">{{ tr(CLOUD_VENDORS[cloudVendor].tip) }}</div>
       </div>
 
       <!-- 数据库类型 -->
       <div class="field">
-        <label>数据库类型</label>
+        <label>{{ tr('conn.dbType') }}</label>
         <select v-model="dbType">
-          <option v-for="t in DB_TYPES" :key="t.value" :value="t.value">{{ t.label }}</option>
+          <option v-for="t in DB_TYPES" :key="t.value" :value="t.value">{{ tr(t.label) }}</option>
         </select>
       </div>
 
       <!-- SQLite 字段 -->
       <div v-if="isSqlite" class="field">
-        <label>数据库文件路径</label>
-        <input v-model="sqlitePath" placeholder="如 C:\data\mydb.sqlite 或 :memory:" />
+        <label>{{ tr('conn.sqlitePath') }}</label>
+        <input v-model="sqlitePath" :placeholder="tr('conn.sqlitePlaceholder')" />
       </div>
 
       <!-- 非 SQLite 字段 -->
       <template v-else>
         <div class="field">
-          <label>服务器 (SERVER)</label>
-          <input v-model="server" placeholder="如 localhost 或 192.168.1.10\sql2019" />
+          <label>{{ tr('conn.server') }}</label>
+          <input v-model="server" :placeholder="tr('conn.serverPlaceholder')" />
         </div>
         <div class="field">
-          <label>端口 (PORT，可选)</label>
-          <input v-model="port" placeholder="默认按类型自动填充" />
+          <label>{{ tr('conn.port') }}</label>
+          <input v-model="port" :placeholder="tr('conn.portPlaceholder')" />
         </div>
         <div class="field">
-          <label>数据库 (DATABASE)</label>
+          <label>{{ tr('conn.database') }}</label>
           <div class="row2">
-            <input v-model="database" list="dbListDl" placeholder="数据库名" />
+            <input v-model="database" list="dbListDl" :placeholder="tr('conn.database')" />
             <datalist id="dbListDl"><option v-for="d in dbList" :key="d" :value="d" /></datalist>
-            <button type="button" @click="loadDbs">加载</button>
+            <button type="button" @click="loadDbs">{{ tr('conn.load') }}</button>
           </div>
         </div>
         <div class="field">
-          <label>用户名 (UID)</label>
-          <input v-model="uid" placeholder="数据库登录账号" />
+          <label>{{ tr('conn.uid') }}</label>
+          <input v-model="uid" :placeholder="tr('conn.uidPlaceholder')" />
         </div>
       </template>
 
       <div class="field">
-        <label>密码 (PASSWORD)</label>
-        <input v-model="pwd" type="password" placeholder="数据库密码" @keyup.enter="doConnect" />
+        <label>{{ tr('conn.password') }}</label>
+        <input v-model="pwd" type="password" :placeholder="tr('conn.pwdPlaceholder')" @keyup.enter="doConnect" />
       </div>
 
       <!-- SSH 隧道 -->
       <div class="field">
-        <label><input type="checkbox" v-model="sshEnabled" /> 使用 SSH 隧道</label>
+        <label><input type="checkbox" v-model="sshEnabled" /> {{ tr('conn.useSsh') }}</label>
         <template v-if="sshEnabled">
-          <div class="field"><label>SSH 主机</label><input v-model="sshHost" placeholder="跳板机地址" /></div>
-          <div class="field"><label>SSH 端口</label><input v-model="sshPort" placeholder="22" /></div>
-          <div class="field"><label>SSH 用户</label><input v-model="sshUser" placeholder="SSH 用户名" /></div>
-          <div class="field"><label>SSH 密码</label><input v-model="sshPwd" type="password" placeholder="SSH 密码（与密钥二选一）" /></div>
-          <div class="field"><label>SSH 密钥文件</label><input v-model="sshKey" placeholder="私钥文件路径（可选）" /></div>
+          <div class="field"><label>{{ tr('conn.sshHost') }}</label><input v-model="sshHost" :placeholder="tr('conn.sshHostPlaceholder')" /></div>
+          <div class="field"><label>{{ tr('conn.sshPort') }}</label><input v-model="sshPort" :placeholder="tr('conn.sshPortPlaceholder')" /></div>
+          <div class="field"><label>{{ tr('conn.sshUser') }}</label><input v-model="sshUser" :placeholder="tr('conn.sshUserPlaceholder')" /></div>
+          <div class="field"><label>{{ tr('conn.sshPwd') }}</label><input v-model="sshPwd" type="password" :placeholder="tr('conn.sshPwdPlaceholder')" /></div>
+          <div class="field"><label>{{ tr('conn.sshKey') }}</label><input v-model="sshKey" :placeholder="tr('conn.sshKeyPlaceholder')" /></div>
         </template>
       </div>
 
       <!-- 保存为我的连接 -->
       <div class="field">
-        <label><input type="checkbox" v-model="saveAsMyConn" /> 保存为我的连接</label>
-        <input v-if="saveAsMyConn" v-model="connName" placeholder="连接名称" style="margin-top:6px" />
+        <label><input type="checkbox" v-model="saveAsMyConn" /> {{ tr('conn.saveAsMy') }}</label>
+        <input v-if="saveAsMyConn" v-model="connName" :placeholder="tr('conn.connNamePlaceholder')" style="margin-top:6px" />
       </div>
     </div>
 
@@ -295,8 +296,8 @@ onMounted(async () => {
       <div v-if="errMsg" class="err-msg">{{ errMsg }}</div>
       <div v-if="successMsg" class="ok-msg">{{ successMsg }}</div>
       <div class="conn-actions">
-        <button class="primary" :disabled="loading" @click="doConnect">{{ loading ? '连接中...' : '连接' }}</button>
-        <button @click="doTest">测试连接</button>
+        <button class="primary" :disabled="loading" @click="doConnect">{{ loading ? tr('conn.connecting') : tr('conn.connectBtn') }}</button>
+        <button @click="doTest">{{ tr('conn.testConn') }}</button>
       </div>
     </footer>
   </div>

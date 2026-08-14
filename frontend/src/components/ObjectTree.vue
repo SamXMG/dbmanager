@@ -5,6 +5,7 @@
 import { computed, ref } from 'vue'
 import { errMsg } from '@/utils/err'
 import { confirmDanger } from '@/utils/confirm'
+import { tr } from '@/i18n'
 import Icon from '@/components/Icon.vue'
 import { useDatabaseStore, type DbObjects } from '@/stores/database'
 import { useConnectionStore } from '@/stores/connection'
@@ -38,19 +39,19 @@ function unpin(p: { db: string; s: string; t: string }, e: MouseEvent) {
   e.stopPropagation()
   togglePinnedTable(p.db, p.s, p.t)
   pinnedList.value = getPinnedTables()
-  ui.toast('已取消固定')
+  ui.toast(tr('tree.unpinned'))
 }
 
 const connName = computed(() =>
-  (connStore.conn && (connStore.conn.name || connStore.conn.server || connStore.conn.database)) || '连接')
+  (connStore.conn && (connStore.conn.name || connStore.conn.server || connStore.conn.database)) || tr('header.notLoggedIn'))
 
 const OBJ_ICON: Record<string, string> = { Table: 'table', View: 'view', Procedure: 'code', Function: 'code', Trigger: 'bell' }
 
 // P1-9 去重: esc/quoteIdent 统一从 utils/sqlIdent.ts 导入(原组件内本地定义删除)
 import { esc, quoteIdent } from '@/utils/sqlIdent'
-async function copyText(t: string) {
-  try { await navigator.clipboard.writeText(t); ui.toast('已复制: ' + t.slice(0, 60)) }
-  catch { ui.toast('复制失败(浏览器限制)', true) }
+async function copyText(txt: string) {
+  try { await navigator.clipboard.writeText(txt); ui.toast(tr('tree.copied', { text: txt.slice(0, 60) })) }
+  catch { ui.toast(tr('tree.copyFailed'), true) }
 }
 
 /** 表/视图/过程/函数/触发器 右键菜单(Navicat 化) */
@@ -63,92 +64,92 @@ function onTableCtx(e: MouseEvent, db: string, s: string, t: string, type: strin
   // 非表对象(存储过程/函数/触发器): 极简菜单(目前只有"编辑源码")
   if (type !== 'Table' && type !== 'View') {
     ui.showCtxMenu(e.clientX, e.clientY, [
-      { label: '编辑源码', fn: () => ui.openRoutine(s, t, type) },
+      { label: tr('ctx.editSource'), fn: () => ui.openRoutine(s, t, type) },
     ])
     return
   }
   // 通用项: 复制表名 / SELECT / INSERT 模板
   const pinned = isPinned(db, s, t)
   const items: CtxItem[] = [
-    { label: '打开', fn: () => tabStore.openTable(s, t, db) },
+    { label: tr('ctx.open'), fn: () => tabStore.openTable(s, t, db) },
   ]
   // --- 结构 ---
   items.push({ sep: true },
-    { label: '设计表(可视化字段/索引/外键/触发器)', fn: () => ui.openDesigner(s, t) },
+    { label: tr('ctx.designTable'), fn: () => ui.openDesigner(s, t) },
   )
-  if (w) items.push({ label: '新建表...', fn: () => openNewTable(db, s) })
+  if (w) items.push({ label: tr('ctx.newTable'), fn: () => openNewTable(db, s) })
   // --- 维护 ---
   if (w) items.push({ sep: true },
-    { label: '重命名表...', fn: () => openRenameTable(s, t) },
-    { label: '复制表...', fn: () => openCopyTable(s, t) },
-    { label: '维护表(检查/优化/分析/修复)', fn: () => openMaintainTable(s, t) },
-    { label: '清空表(保留自增)', danger: true, fn: async () => {
-      if (!await confirmDanger(`清空表 ${fullName}？\n保留自增(下次插入从原值继续)`)) return
+    { label: tr('ctx.renameTable'), fn: () => openRenameTable(s, t) },
+    { label: tr('ctx.copyTable'), fn: () => openCopyTable(s, t) },
+    { label: tr('ctx.maintainTable'), fn: () => openMaintainTable(s, t) },
+    { label: tr('ctx.clearTable'), danger: true, fn: async () => {
+      if (!await confirmDanger(tr('confirm.clearTable', { name: fullName }))) return
       await execAlter(s, t, 'clear_table', {})
-      ui.toast('已清空'); dbStore.loadObjects(db, true)
+      ui.toast(tr('tree.cleared')); dbStore.loadObjects(db, true)
     }},
-    { label: '截断表(重置自增)', danger: true, fn: async () => {
-      if (!await confirmDanger(`截断表 ${fullName}？\n清空全部行并重置自增(SQLite 用 DELETE 模拟)`)) return
+    { label: tr('ctx.truncateTable'), danger: true, fn: async () => {
+      if (!await confirmDanger(tr('confirm.truncateTable', { name: fullName }))) return
       await execAlter(s, t, 'truncate_table', {})
-      ui.toast('已截断'); dbStore.loadObjects(db, true)
+      ui.toast(tr('tree.truncated')); dbStore.loadObjects(db, true)
     }},
-    { label: '删除表', danger: true, fn: async () => {
-      if (!await confirmDanger(`⚠ 删除表 ${fullName}？\n该操作不可恢复！`)) return
+    { label: tr('ctx.dropTable'), danger: true, fn: async () => {
+      if (!await confirmDanger(tr('confirm.dropTable', { name: fullName }))) return
       await execAlter(s, t, 'drop_table', {})
-      ui.toast('已删除'); dbStore.loadObjects(db, true)
+      ui.toast(tr('tree.deleted')); dbStore.loadObjects(db, true)
     }},
   )
   // --- 数据 ---
   items.push({ sep: true },
-    { label: '导入向导...', fn: () => openImport(s, t) },
-    { label: '生成测试数据...', fn: () => openGenData(s, t) },
+    { label: tr('ctx.importWizard'), fn: () => openImport(s, t) },
+    { label: tr('ctx.genTestData'), fn: () => openGenData(s, t) },
   )
-  if (type === 'Table') items.push({ label: '新建触发器', fn: () => sqlStore.newTrigger(s, t) })
-  items.push({ label: '导出当前表(CSV/Excel)', fn: () => {
+  if (type === 'Table') items.push({ label: tr('ctx.newTrigger'), fn: () => sqlStore.newTrigger(s, t) })
+  items.push({ label: tr('ctx.exportTable'), fn: () => {
     const url = `${API_BASE}/api/export?s=${encodeURIComponent(s)}&t=${encodeURIComponent(t)}&where=&fmt=csv`
     window.open(url, '_blank')
   }})
   // --- 模型/同步 ---
   items.push({ sep: true },
-    { label: 'ER 关系图', fn: () => openEr(s, t) },
+    { label: tr('ctx.erDiagram'), fn: () => openEr(s, t) },
   )
   if (type === 'Table') {
     items.push(
-      { label: '结构对比...(跨连接)', fn: () => openSchemaDiff(s, t) },
-      { label: '同步结构到其他连接', fn: () => openSchemaSync(s, t) },
-      { label: '数据同步到其他库/连接', fn: () => openTransfer(db, s, t) },
+      { label: tr('ctx.schemaDiff'), fn: () => openSchemaDiff(s, t) },
+      { label: tr('ctx.syncStructure'), fn: () => openSchemaSync(s, t) },
+      { label: tr('ctx.syncData'), fn: () => openTransfer(db, s, t) },
     )
   }
   // --- 通用 ---
   items.push({ sep: true },
-    { label: '复制表名', fn: () => copyText(fullName) },
-    { label: '复制 SELECT SQL', fn: () => copyText('SELECT * FROM ' + quoteIdent(dbType, s) + '.' + quoteIdent(dbType, t)) },
+    { label: tr('ctx.copyTableName'), fn: () => copyText(fullName) },
+    { label: tr('ctx.copySelectSql'), fn: () => copyText('SELECT * FROM ' + quoteIdent(dbType, s) + '.' + quoteIdent(dbType, t)) },
   )
-  if (type === 'Table') items.push({ label: '生成 INSERT 模板', fn: () => genInsertSql(db, s, t) })
+  if (type === 'Table') items.push({ label: tr('ctx.genInsert'), fn: () => genInsertSql(db, s, t) })
   items.push({ sep: true },
-    { label: '创建快捷方式(固定到树顶部)', fn: () => {
+    { label: tr('ctx.createShortcut'), fn: () => {
       const was = togglePinnedTable(db, s, t)
       pinnedList.value = getPinnedTables()
-      ui.toast(was.find(p => p.db === db && p.s === (s || '') && p.t === t) ? '已取消固定' : '已固定(树顶部可看到)')
+      ui.toast(was.find(p => p.db === db && p.s === (s || '') && p.t === t) ? tr('tree.unpinned') : tr('tree.pinnedTop'))
     }},
-    { label: pinned ? '取消固定(已固定)' : '固定到顶部(快捷方式)', fn: () => {
+    { label: pinned ? tr('tree.unpin') : tr('tree.pinTop'), fn: () => {
       const was = togglePinnedTable(db, s, t)
       pinnedList.value = getPinnedTables()
-      ui.toast(was.find(p => p.db === db && p.s === (s || '') && p.t === t) ? '已取消固定' : '已固定')
+      ui.toast(was.find(p => p.db === db && p.s === (s || '') && p.t === t) ? tr('tree.unpinned') : tr('tree.pinned'))
     }},
     { sep: true },
-    { label: '调度任务...(定时备份)', fn: () => { ui.showTasks = true } },
-    { label: '备份整库', fn: () => openBackup() },
-    { label: '还原备份...', fn: () => openRestore() },
+    { label: tr('ctx.scheduleTask'), fn: () => { ui.showTasks = true } },
+    { label: tr('ctx.backupDb'), fn: () => openBackup() },
+    { label: tr('ctx.restoreBackup'), fn: () => openRestore() },
     { sep: true },
-    { label: '用户与权限', fn: () => openDbUsers() },
-    { label: '导出数据字典', fn: () => exportSchemaDoc() },
+    { label: tr('ctx.usersPermissions'), fn: () => openDbUsers() },
+    { label: tr('ctx.exportDict'), fn: () => exportSchemaDoc() },
     { sep: true },
-    { label: '刷新', fn: async () => {
+    { label: tr('ctx.refresh'), fn: async () => {
       loadingDb.value = db
       await dbStore.loadObjects(db, true)
       loadingDb.value = ''
-      ui.toast('已刷新')
+      ui.toast(tr('tree.refreshed'))
     }},
   )
   ui.showCtxMenu(e.clientX, e.clientY, items)
@@ -158,21 +159,21 @@ function onTableCtx(e: MouseEvent, db: string, s: string, t: string, type: strin
 function onDbCtx(e: MouseEvent, db: string) {
   e.preventDefault(); e.stopPropagation()
   ui.showCtxMenu(e.clientX, e.clientY, [
-    { label: '新建查询', fn: () => { sqlStore.setSqlText(`-- 当前库: ${db}\nSELECT * FROM ` + db + '.LIMIT 100'); ui.switchView('sql') } },
-    { label: '新建表...', fn: () => openNewTable(db, '') },
+    { label: tr('ctx.newQuery'), fn: () => { sqlStore.setSqlText(`-- 当前库: ${db}\nSELECT * FROM ` + db + '.LIMIT 100'); ui.switchView('sql') } },
+    { label: tr('ctx.newTable'), fn: () => openNewTable(db, '') },
     { sep: true },
-    { label: '备份整库', fn: () => openBackup() },
-    { label: '还原备份...', fn: () => openRestore() },
-    { label: '调度任务...(定时备份)', fn: () => { ui.showTasks = true } },
+    { label: tr('ctx.backupDb'), fn: () => openBackup() },
+    { label: tr('ctx.restoreBackup'), fn: () => openRestore() },
+    { label: tr('ctx.scheduleTask'), fn: () => { ui.showTasks = true } },
     { sep: true },
-    { label: '导出数据字典', fn: () => exportSchemaDoc() },
-    { label: '用户与权限', fn: () => openDbUsers() },
+    { label: tr('ctx.exportDict'), fn: () => exportSchemaDoc() },
+    { label: tr('ctx.usersPermissions'), fn: () => openDbUsers() },
     { sep: true },
-    { label: '刷新', fn: async () => {
+    { label: tr('ctx.refresh'), fn: async () => {
       loadingDb.value = db
       await dbStore.loadObjects(db, true)
       loadingDb.value = ''
-      ui.toast('已刷新')
+      ui.toast(tr('tree.refreshed'))
     }},
   ])
 }
@@ -181,7 +182,7 @@ function onDbCtx(e: MouseEvent, db: string) {
 function onConnCtx(e: MouseEvent) {
   e.preventDefault(); e.stopPropagation()
   ui.showCtxMenu(e.clientX, e.clientY, [
-    { label: '刷新对象树', fn: async () => {
+    { label: tr('ctx.refreshTree'), fn: async () => {
       try {
         const conn = connStore.conn
         if (!conn) return
@@ -190,8 +191,8 @@ function onConnCtx(e: MouseEvent) {
                                          database: conn.database, uid: conn.uid, pwd: '' })
         dbStore.loadTables([], dbs || [])
         for (const db of dbStore.databases) await dbStore.loadObjects(db, true)
-        ui.toast('已刷新')
-      } catch (e) { ui.toast('刷新失败: ' + errMsg(e), true) }
+        ui.toast(tr('tree.refreshed'))
+      } catch (e) { ui.toast(tr('tree.refreshFailed', { msg: errMsg(e) }), true) }
     }},
   ])
 }
@@ -220,11 +221,11 @@ function openSchemaSync(s: string, t: string) {
 async function genInsertSql(db: string, s: string, t: string) {
   try {
     const cols = await getColumns(s, t)
-    if (!cols.length) { ui.toast('无字段', true); return }
+    if (!cols.length) { ui.toast(tr('tree.noColumns'), true); return }
     const dbType = connStore.conn?.db_type || 'mysql'
     const q = (n: string) => quoteIdent(dbType, n)
     copyText(`INSERT INTO ${q(s)}.${q(t)} (${cols.map(c => q(c.name)).join(', ')}) VALUES (${cols.map(() => '?').join(', ')});`)
-  } catch (e) { ui.toast('生成失败: ' + errMsg(e), true) }
+  } catch (e) { ui.toast(tr('tree.genFailed', { msg: errMsg(e) }), true) }
 }
 
 // 搜索平铺(已加载对象)
@@ -247,8 +248,8 @@ const flatItems = computed(() => {
 function dbSchemas(db: string): string[] {
   const obj = dbStore.dbObjects(db)
   if (!obj) return []
-  const all = [...obj.tables.map(t => t.schema || '(默认)'),
-               ...(obj.routines || []).map(r => r.schema || '(默认)')]
+  const all = [...obj.tables.map(t => t.schema || tr('tree.defaultSchema')),
+               ...(obj.routines || []).map(r => r.schema || tr('tree.defaultSchema'))]
   // 全部等于库名(MySQL 语义) -> 省略 schema 层
   if (all.every(s => s === db)) return []
   return [...new Set(all)]
@@ -258,16 +259,16 @@ function typeGroups(db: string, schema: string | null) {
   const obj = dbStore.dbObjects(db)
   if (!obj) return []
   const inSch = (arr: Array<{ schema?: string; name: string; type?: string }>) =>
-    schema ? arr.filter(x => (x.schema || '(默认)') === schema) : arr
+    schema ? arr.filter(x => (x.schema || tr('tree.defaultSchema')) === schema) : arr
   const tables = inSch(obj.tables).filter(t => t.type !== 'View')
   const views = inSch(obj.tables).filter(t => t.type === 'View')
   const routines = inSch(obj.routines || [])
   return [
-    { label: '表', items: tables, icon: 'table' },
-    { label: '视图', items: views, icon: 'view' },
-    { label: '存储过程', items: routines.filter(r => r.type === 'Procedure'), icon: 'code' },
-    { label: '函数', items: routines.filter(r => r.type === 'Function'), icon: 'code' },
-    { label: '触发器', items: routines.filter(r => r.type === 'Trigger'), icon: 'bell' },
+    { label: tr('tree.groupTable'), items: tables, icon: 'table' },
+    { label: tr('tree.groupView'), items: views, icon: 'view' },
+    { label: tr('tree.groupProc'), items: routines.filter(r => r.type === 'Procedure'), icon: 'code' },
+    { label: tr('tree.groupFunc'), items: routines.filter(r => r.type === 'Function'), icon: 'code' },
+    { label: tr('tree.groupTrigger'), items: routines.filter(r => r.type === 'Trigger'), icon: 'bell' },
   ]
 }
 
@@ -292,11 +293,11 @@ function openObj(db: string, s: string, name: string, type: string) {
 <template>
   <div class="obj-tree">
     <div class="s-head">
-      <input v-model="filter" placeholder="搜索表/集合/键..." />
+      <input v-model="filter" :placeholder="tr('tree.searchPlaceholder')" />
       <div v-if="pinnedList.length" class="pinned-bar">
-        <span class="pin-label"><Icon name="pin" :size="13"/> 固定</span>
+        <span class="pin-label"><Icon name="pin" :size="13"/> {{ tr('tree.pinned') }}</span>
         <span v-for="p in pinnedList" :key="p.db + '.' + p.s + '.' + p.t" class="pin-item"
-              :title="p.db + '.' + p.s + '.' + p.t + ' (右键取消)'"
+              :title="p.db + '.' + p.s + '.' + p.t + tr('tree.rightClickToUnpin')"
               @dblclick="openPinned(p)" @contextmenu.prevent="unpin(p, $event)">
           {{ p.s && p.s !== p.db ? p.s + '.' : '' }}{{ p.t }}
           <span class="x" @click.stop="unpin(p, $event)">×</span>
@@ -313,7 +314,7 @@ function openObj(db: string, s: string, name: string, type: string) {
           <span><Icon :name="OBJ_ICON[it.type] || 'table'" :size="13" /> {{ it.s && it.s !== it.db ? it.s + '.' : '' }}{{ it.name }}</span>
           <span class="ty">{{ it.type }}</span>
         </div>
-        <div v-if="!flatItems.length" class="empty2">无匹配对象</div>
+        <div v-if="!flatItems.length" class="empty2">{{ tr('tree.noMatch') }}</div>
       </template>
 
       <!-- 树形模式 -->
@@ -323,7 +324,7 @@ function openObj(db: string, s: string, name: string, type: string) {
           <span><Icon name="link" :size="13"/> {{ connName }}</span>
         </div>
         <div v-if="!dbStore.databases.length" class="empty2" style="padding:8px 12px">
-          无库信息(展开连接库: {{ connStore.conn?.database || '-' }})
+          {{ tr('tree.noDbInfo', { db: connStore.conn?.database || '-' }) }}
         </div>
 
         <template v-for="db in dbStore.databases" :key="db">
@@ -347,7 +348,7 @@ function openObj(db: string, s: string, name: string, type: string) {
                     <span class="ty">{{ (t.type || 'Table') }}</span>
                   </div>
                 </div>
-                <div v-else class="empty2" style="padding:2px 12px">无</div>
+                <div v-else class="empty2" style="padding:2px 12px">{{ tr('tree.none') }}</div>
               </div>
             </template>
             <!-- 有 schema 层(MSSQL dbo/guest) -->
@@ -362,19 +363,19 @@ function openObj(db: string, s: string, name: string, type: string) {
                     <div class="grp-head"><Icon :name="g.icon" :size="13" /> {{ g.label }} ({{ g.items.length }})</div>
                     <div v-if="g.items.length" class="grp-body">
                       <div v-for="t in g.items" :key="t.name" class="item"
-                           @dblclick="openObj(db, sch === '(默认)' ? '' : sch, t.name, (t.type || 'Table'))"
-                           @contextmenu="onTableCtx($event, db, sch === '(默认)' ? '' : sch, t.name, (t.type || 'Table'))">
+                           @dblclick="openObj(db, sch === tr('tree.defaultSchema') ? '' : sch, t.name, (t.type || 'Table'))"
+                           @contextmenu="onTableCtx($event, db, sch === tr('tree.defaultSchema') ? '' : sch, t.name, (t.type || 'Table'))">
                         <span><Icon :name="t.type === 'View' ? 'view' : 'table'" :size="13" /> {{ t.name }}</span>
                         <span class="ty">{{ (t.type || 'Table') }}</span>
                       </div>
                     </div>
-                    <div v-else class="empty2" style="padding:2px 12px">无</div>
+                    <div v-else class="empty2" style="padding:2px 12px">{{ tr('tree.none') }}</div>
                   </div>
                 </div>
               </template>
             </template>
           </div>
-          <div v-else-if="dbStore.expanded.has(db)" class="empty2" style="padding:4px 12px">加载中...</div>
+          <div v-else-if="dbStore.expanded.has(db)" class="empty2" style="padding:4px 12px">{{ tr('tree.loading') }}</div>
         </template>
       </template>
     </div>

@@ -3,6 +3,7 @@
 // 对应旧版 js/grid.js 全量网格功能
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { confirmDanger } from '@/utils/confirm'
+import { tr } from '@/i18n'
 import { useGridStore, type GridColumn } from '@/stores/grid'
 import { useTabStore } from '@/stores/tab'
 import { useUIStore } from '@/stores/ui'
@@ -65,9 +66,10 @@ function sortIcon(col: string): string {
 }
 
 // ---- 列筛选(列头 ▾ 弹面板: op + 值) ----
+// 符号(op 码)原样显示, 中文标签改为 i18n key, 模板内 tr() 翻译(随语言切换)
 const FILTER_OPS = [
   ['eq', '='], ['ne', '≠'], ['gt', '>'], ['ge', '≥'], ['lt', '<'], ['le', '≤'],
-  ['contains', '包含'], ['starts', '开头'], ['ends', '结尾'], ['isnull', '为空'], ['isnotnull', '非空'],
+  ['contains', 'filter.contains'], ['starts', 'filter.startsWith'], ['ends', 'filter.ends'], ['isnull', 'filter.isnull'], ['isnotnull', 'filter.isnotnull'],
 ] as const
 const filterPop = ref<{ col: string; x: number; y: number } | null>(null)
 const filterOp = ref('contains')
@@ -115,7 +117,7 @@ let editVal = ''
 function onEditInput(e: Event) { editVal = (e.target as HTMLInputElement).value }
 async function onEditCommit() {
   const ok = await grid.commitEdit(editVal)
-  if (!ok) ui.toast('保存失败(可能只读或无主键)', true)
+  if (!ok) ui.toast(tr('grid.saveFailed'), true)
 }
 
 // ---- 分页 ----
@@ -208,9 +210,9 @@ function startResize(e: MouseEvent, colName: string) {
 // ---- 右键菜单(对齐旧版 cellCtxMenu/rowCtxMenu) ----
 // P1-9 去重: esc 统一从 utils/sqlIdent.ts 导入(原组件内本地定义删除)
 import { esc } from '@/utils/sqlIdent'
-async function copyText(t: string, okMsg = '已复制') {
-  try { await navigator.clipboard.writeText(t); ui.toast(okMsg) }
-  catch { ui.toast('复制失败', true) }
+async function copyText(txt: string, okMsg = tr('grid.copied')) {
+  try { await navigator.clipboard.writeText(txt); ui.toast(okMsg) }
+  catch { ui.toast(tr('grid.copyFailed'), true) }
 }
 
 /** 单元格右键: 编辑此字段 / 复制值 / 设为 NULL / 复制整行 JSON */
@@ -221,20 +223,20 @@ function onCellCtx(e: MouseEvent, i: number, c: string) {
   if (!row) return
   const val = row[c]
   const items: CtxItem[] = []
-  if (auth.canWrite) items.push({ label: '编辑此字段', fn: () => grid.startEdit(i, grid.columns.findIndex(x => x.name === c)) })
-  items.push({ label: '复制值', fn: () => copyText(val == null ? 'NULL' : String(val), '已复制值') })
+  if (auth.canWrite) items.push({ label: tr('grid.editField'), fn: () => grid.startEdit(i, grid.columns.findIndex(x => x.name === c)) })
+  items.push({ label: tr('grid.copyValue'), fn: () => copyText(val == null ? 'NULL' : String(val), tr('grid.copiedValue')) })
   if (auth.canWrite && val !== null && val !== undefined) {
-    items.push({ label: '设为 NULL', danger: true, fn: () => setCellNull(i, c) })
+    items.push({ label: tr('grid.setNull'), danger: true, fn: () => setCellNull(i, c) })
   }
   items.push({ sep: true }, {
-    label: '复制整行 JSON', fn: () => copyText(JSON.stringify(row, null, 2), '已复制整行 JSON'),
+    label: tr('grid.copiedRowJson'), fn: () => copyText(JSON.stringify(row, null, 2), tr('grid.copiedRowJson')),
   })
   ui.showCtxMenu(e.clientX, e.clientY, items)
 }
 async function setCellNull(i: number, c: string) {
-  if (!await confirmDanger(`确认将 ${c} 置为 NULL？`)) return
+  if (!await confirmDanger(tr('grid.confirmNull', { col: c }))) return
   const ok = await grid.setCellNull(i, grid.columns.findIndex(x => x.name === c))
-  ui.toast(ok ? '已置空' : '置空失败', !ok)
+  ui.toast(ok ? tr('grid.setNullOk') : tr('grid.setNullFail'), !ok)
 }
 
 /** 行右键: 编辑行(弹窗)/ 复制行 JSON / 复制整行(TSV) / 删除行 */
@@ -243,18 +245,18 @@ function onRowCtx(e: MouseEvent, i: number) {
   const row = grid.rows[i]
   if (!row) return
   const items: CtxItem[] = []
-  if (auth.canWrite) items.push({ label: '编辑行', fn: () => openEditRow(i) })
+  if (auth.canWrite) items.push({ label: tr('grid.editRow'), fn: () => openEditRow(i) })
   items.push(
-    { label: '复制行 JSON', fn: () => copyText(JSON.stringify(row, null, 2), '已复制行 JSON') },
-    { label: '复制整行(TSV)', fn: () => copyText(grid.columns.map(c => fmt(row[c.name])).join('\t'), '已复制整行') },
+    { label: tr('grid.copyRowJson'), fn: () => copyText(JSON.stringify(row, null, 2), tr('grid.copiedRowJson')) },
+    { label: tr('grid.copyRowTsv'), fn: () => copyText(grid.columns.map(c => fmt(row[c.name])).join('\t'), tr('grid.copiedRowTsv')) },
   )
   if (auth.canWrite) {
     items.push({ sep: true }, {
-      label: '删除行', danger: true, fn: async () => {
-        if (!await confirmDanger('确认删除该行？')) return
+      label: tr('grid.deleteRow'), danger: true, fn: async () => {
+        if (!await confirmDanger(tr('grid.confirmDeleteRow'))) return
         grid.selectRow(i, false, false)
         const ok = await grid.deleteSelected()
-        ui.toast(ok ? '已删除' : '删除失败', !ok)
+        ui.toast(ok ? tr('grid.deleted') : tr('grid.deleteFail'), !ok)
       },
     })
   }
@@ -266,14 +268,14 @@ function openEditRow(i: number) {
   const cur = tab.current
   const row = grid.rows[i]
   const cols = tab.currentMeta?.columns || []
-  if (!cur || !row || !cols.length) { ui.toast('无法编辑(无列信息)', true); return }
+  if (!cur || !row || !cols.length) { ui.toast(tr('grid.cantEdit'), true); return }
   ui.openModal('EditRowModal', { s: cur.s, t: cur.t, row, columns: cols, i })
 }
 
 async function copyRow(i: number) {
   const row = grid.rows[i]
   if (!row) return
-  await copyText(grid.columns.map(c => fmt(row[c.name])).join('\t'), '已复制')
+  await copyText(grid.columns.map(c => fmt(row[c.name])).join('\t'), tr('grid.copied'))
 }
 </script>
 
@@ -283,7 +285,7 @@ async function copyRow(i: number) {
     <div ref="dgScroll" class="dg-scroll" @scroll="onScroll">
       <!-- 空态 -->
       <div v-if="!grid.columns.length && !grid.loading" class="empty2" style="padding:24px;text-align:center">
-        双击左侧表打开数据
+        {{ tr('grid.emptyOpen') }}
       </div>
 
       <table v-else class="dg">
@@ -294,15 +296,15 @@ async function copyRow(i: number) {
         <thead>
           <tr>
             <th class="rowidx">
-              <input type="checkbox" :checked="allChecked()" @change="toggleAll" title="全选当前页" />
+              <input type="checkbox" :checked="allChecked()" @change="toggleAll" :title="tr('grid.selectAllPage')" />
             </th>
             <th v-for="c in grid.columns" :key="c.name" @click="onHeadClick(c.name)"
-                :data-c="c.name" :class="{ sorted: grid.sort?.col === c.name }" :title="'排序: ' + c.name">
+                :data-c="c.name" :class="{ sorted: grid.sort?.col === c.name }" :title="tr('grid.sortTitle', { name: c.name })">
               <span class="col-name">{{ c.name }}</span>
               <span class="sort">{{ sortIcon(c.name) }}</span>
-              <span class="fbtn" :class="{ on: !!grid.filters[c.name] }" title="筛选"
+              <span class="fbtn" :class="{ on: !!grid.filters[c.name] }" :title="tr('grid.filter')"
                     @click.stop="openFilter(c.name, $event)">▾</span>
-              <span class="th-resize" title="拖动调整列宽" @mousedown.stop="startResize($event, c.name)"></span>
+              <span class="th-resize" :title="tr('grid.resizeCol')" @mousedown.stop="startResize($event, c.name)"></span>
             </th>
           </tr>
         </thead>
@@ -325,40 +327,40 @@ async function copyRow(i: number) {
             </template>
           </tr>
           <tr v-if="virtualMode && botPadH" class="vs-spacer"><td colspan="99" :style="{ height: botPadH + 'px' }"></td></tr>
-          <tr v-if="grid.loading"><td class="rowidx"></td><td colspan="99" class="loading-td">加载中...</td></tr>
-          <tr v-else-if="!grid.rows.length"><td class="rowidx"></td><td colspan="99" class="loading-td">无数据</td></tr>
+          <tr v-if="grid.loading"><td class="rowidx"></td><td colspan="99" class="loading-td">{{ tr('grid.loading') }}</td></tr>
+          <tr v-else-if="!grid.rows.length"><td class="rowidx"></td><td colspan="99" class="loading-td">{{ tr('grid.noData') }}</td></tr>
         </tbody>
       </table>
     </div>
 
     <!-- 列筛选面板 -->
     <div v-if="filterPop" class="filter-pop" :style="{ left: filterPop.x + 'px', top: filterPop.y + 'px' }" @click.stop>
-      <div class="fp-title">筛选: {{ filterPop.col }}</div>
+      <div class="fp-title">{{ tr('grid.filterTitle', { col: filterPop.col }) }}</div>
       <select v-model="filterOp">
-        <option v-for="[k, lbl] in FILTER_OPS" :key="k" :value="k">{{ lbl }}</option>
+        <option v-for="[k, lbl] in FILTER_OPS" :key="k" :value="k">{{ tr(lbl) }}</option>
       </select>
       <input v-if="filterOp !== 'isnull' && filterOp !== 'isnotnull'" v-model="filterVal"
-             placeholder="值..." @keydown.enter="applyFilter" />
+             :placeholder="tr('grid.valuePlaceholder')" @keydown.enter="applyFilter" />
       <div class="fp-acts">
-        <button class="sm" @click="clearFilter">清除</button>
-        <button class="sm primary" @click="applyFilter">应用</button>
+        <button class="sm" @click="clearFilter">{{ tr('grid.clear') }}</button>
+        <button class="sm primary" @click="applyFilter">{{ tr('grid.apply') }}</button>
       </div>
     </div>
 
     <!-- 分页 -->
     <div class="pager" v-if="grid.total > 0 || !totalKnown">
-      <button class="sm" :disabled="grid.page <= 1 || !totalKnown" @click="goPage(grid.page - 1)">‹ 上一页</button>
-      <span class="page-info" v-if="totalKnown">第 {{ grid.page }} / {{ pageCount() }} 页 · 共 {{ grid.total }} 行</span>
-      <span class="page-info" v-else>共 {{ grid.total }} 行 (总数未知, 不可翻页)</span>
-      <button class="sm" :disabled="grid.page >= pageCount() || !totalKnown" @click="goPage(grid.page + 1)">下一页 ›</button>
+      <button class="sm" :disabled="grid.page <= 1 || !totalKnown" @click="goPage(grid.page - 1)">{{ tr('grid.prevPage') }}</button>
+      <span class="page-info" v-if="totalKnown">{{ tr('grid.pageInfo', { page: grid.page, totalPages: pageCount(), rows: grid.total }) }}</span>
+      <span class="page-info" v-else>{{ tr('grid.pageInfoUnknown', { rows: grid.total }) }}</span>
+      <button class="sm" :disabled="grid.page >= pageCount() || !totalKnown" @click="goPage(grid.page + 1)">{{ tr('grid.nextPage') }}</button>
       <span class="spacer"></span>
       <select :value="grid.pageSize" @change="grid.loadData(1, Number(($event.target as HTMLSelectElement).value))">
-        <option :value="50">50/页</option>
-        <option :value="100">100/页</option>
-        <option :value="200">200/页</option>
-        <option :value="500">500/页</option>
-        <option :value="1000">1000/页</option>
-        <option :value="2000">2000/页</option>
+        <option :value="50">{{ tr('grid.perPage', { n: 50 }) }}</option>
+        <option :value="100">{{ tr('grid.perPage', { n: 100 }) }}</option>
+        <option :value="200">{{ tr('grid.perPage', { n: 200 }) }}</option>
+        <option :value="500">{{ tr('grid.perPage', { n: 500 }) }}</option>
+        <option :value="1000">{{ tr('grid.perPage', { n: 1000 }) }}</option>
+        <option :value="2000">{{ tr('grid.perPage', { n: 2000 }) }}</option>
       </select>
     </div>
   </div>
