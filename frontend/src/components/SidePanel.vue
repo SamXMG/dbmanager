@@ -57,12 +57,12 @@ async function switchConn(name: string) {
 
 <style scoped>
 .side-panel { display: flex; flex-direction: column; height: 100%; min-height: 0; border-right: 1px solid var(--border); }
-.side-conns { border-bottom: 1px solid var(--border); padding: 4px 0; max-height: 150px; overflow: auto; flex-shrink: 0; }
-.sc-title { padding: 3px 10px; font-size: 11px; color: var(--text3); }
-.side-crumb { padding: 4px 10px; font-size: 12px; color: var(--primary); border-bottom: 1px solid var(--border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
-.sc-item { display: flex; align-items: center; gap: 6px; padding: 3px 10px; cursor: pointer; font-size: 13px; }
-.sc-item:hover { background: rgba(128,128,128,0.08); }
-.sc-item.cur { background: rgba(22,93,255,0.08); font-weight: 600; }
+.side-conns { border-bottom: 1px solid var(--border); padding: 8px 0; max-height: 170px; overflow: auto; flex-shrink: 0; }
+.sc-title { padding: 2px 12px 6px; font-size: 11px; color: var(--text3); font-weight: 600; letter-spacing: .03em; }
+.side-crumb { padding: 5px 10px; margin: 4px 8px 8px; font-size: 12px; color: var(--primary); background: var(--primary-bg); border-radius: var(--radius); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
+.sc-item { display: flex; align-items: center; gap: 8px; margin: 2px 8px; padding: 7px 10px; cursor: pointer; font-size: 13px; border: 1px solid transparent; border-radius: var(--radius); transition: background .15s ease, border-color .15s ease, color .15s ease; }
+.sc-item:hover { background: var(--panel2); }
+.sc-item.cur { background: var(--primary-bg); border-color: var(--primary); color: var(--primary); font-weight: 600; }
 .sc-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text3); flex-shrink: 0; }
 .sc-dot.on { background: var(--success); }
 .sc-nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }

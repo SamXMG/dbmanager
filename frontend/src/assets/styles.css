@@ -166,7 +166,7 @@
       width: 100%;
       padding: 8px 10px;
       border: 1px solid var(--border2);
-      border-radius: 6px;
+      border-radius: var(--radius);
       font-size: 13px;
     }
 
@@ -182,15 +182,20 @@
     button {
       padding: 6px 12px;
       border: 1px solid var(--border2);
-      border-radius: 6px;
+      border-radius: var(--radius);
       background: var(--panel);
       cursor: pointer;
       font-size: 13px;
       color: var(--text);
+      transition: background .15s ease, border-color .15s ease, box-shadow .15s ease, transform .08s ease, color .15s ease;
     }
 
     button:hover {
       background: var(--panel2);
+    }
+
+    button:active {
+      transform: translateY(1px);
     }
 
     button.primary {
@@ -201,7 +206,7 @@
 
     button.primary:hover {
       background: var(--primary);
-      filter: brightness(0.92);
+      filter: brightness(0.94);
     }
 
     button.danger {
@@ -212,17 +217,39 @@
 
     button.danger:hover {
       background: var(--danger-solid);
-      filter: brightness(0.9);
+      filter: brightness(0.92);
     }
 
     button.sm {
-      padding: 3px 8px;
+      padding: 4px 10px;
       font-size: 12px;
     }
 
     button:disabled {
       opacity: .5;
       cursor: not-allowed;
+    }
+
+    /* 表单控件: 统一圆角 + 聚焦环(现代一致观感, 排除 checkbox/radio) */
+    input:not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea {
+      font-family: inherit;
+      font-size: 13px;
+      color: var(--text);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      background: var(--panel);
+      padding: 7px 10px;
+      box-sizing: border-box;
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    input:not([type="checkbox"]):not([type="radio"]):focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: var(--ring);
     }
 
     /* 主界面 */
@@ -261,7 +288,7 @@
       width: 100%;
       padding: 7px 9px;
       border: 1px solid var(--border2);
-      border-radius: 6px;
+      border-radius: var(--radius);
       font-size: 13px;
     }
 
@@ -512,7 +539,7 @@
       min-width: 220px;
       padding: 7px 9px;
       border: 1px solid var(--border2);
-      border-radius: 6px;
+      border-radius: var(--radius);
       font-size: 13px;
     }
 
@@ -807,7 +834,8 @@
 
     .modal {
       background: var(--panel);
-      border-radius: 10px;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-card);
       width: 680px;
       max-width: 92vw;
       max-height: 86vh;
@@ -908,7 +936,8 @@
       background: var(--header-bg);
       color: #fff;
       padding: 10px 16px;
-      border-radius: 8px;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-card);
       font-size: 13px;
       opacity: 0;
       transition: .25s;
@@ -1107,7 +1136,7 @@
       flex: 0 0 300px;
       padding: 5px 10px;
       border: 1px solid var(--border2);
-      border-radius: 6px;
+      border-radius: var(--radius);
       font-size: 12px;
       outline: none;
     }
@@ -1160,7 +1189,7 @@
       flex: 0 0 220px;
       padding: 4px 8px;
       border: 1px solid var(--border2);
-      border-radius: 5px;
+      border-radius: var(--radius);
       font-size: 12px;
       outline: none;
       background: var(--panel);
@@ -1268,7 +1297,7 @@
       width: 100%;
       padding: 6px 8px;
       border: 1px solid var(--border2);
-      border-radius: 6px;
+      border-radius: var(--radius);
       font-size: 13px;
     }
 

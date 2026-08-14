@@ -22,10 +22,10 @@ function tabLabel(t: Tab): string {
 </template>
 
 <style scoped>
-.doc-tabs { display: flex; align-items: center; gap: 2px; padding: 0 8px; border-bottom: 1px solid var(--border); overflow-x: auto; flex-shrink: 0; }
-.doctab { display: flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 13px; cursor: pointer; border: 1px solid transparent; border-radius: 6px 6px 0 0; white-space: nowrap; }
-.doctab:hover { background: rgba(128,128,128,0.08); }
-.doctab.active { background: var(--panel, #fff); border-color: var(--border); border-bottom-color: transparent; font-weight: 600; }
-.x { color: var(--text3); font-size: 14px; line-height: 1; padding: 0 2px; }
-.x:hover { color: var(--danger-solid); }
+.doc-tabs { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-bottom: 1px solid var(--border); overflow-x: auto; flex-shrink: 0; background: var(--panel2); }
+.doctab { display: flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 13px; cursor: pointer; border: 1px solid var(--border); border-radius: var(--radius); background: var(--panel3); color: var(--text2); white-space: nowrap; transition: background .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease; }
+.doctab:hover { background: var(--panel2); border-color: var(--border2); color: var(--text); }
+.doctab.active { background: var(--panel); border-color: var(--primary); color: var(--primary); font-weight: 600; box-shadow: var(--ring); }
+.x { color: var(--text3); font-size: 14px; line-height: 1; padding: 0 2px; border-radius: 4px; }
+.x:hover { color: var(--danger-solid); background: var(--danger-bg); }
 </style>
