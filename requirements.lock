@@ -29,3 +29,6 @@ scramp==1.4.17
 six==1.17.0
 sortedcontainers==2.4.0
 urllib3==2.7.0
+# 测试(路线图 P1-5): 覆盖率报告与门槛
+pytest-cov==7.1.0
+coverage==7.15.4

@@ -37,8 +37,9 @@ jobs:
         run: mypy scanner.py handler_security.py services/core.py config.py dbcore.py
       - name: Import integrity (no circular imports)
         run: python -c "import app; print('import app OK')"
-      - name: Unit tests (pytest: unittest 兼容 + pytest 风格增量, 路线图 2.2)
-        run: python -m pytest tests/ -q
+      - name: Unit tests (pytest + coverage, 路线图 P1-5)
+        # 门槛 15% 为当前实测基线(services/routes 16%), M2 补测试后逐里程碑抬升 30→45→60
+        run: python -m pytest tests/ -q --cov=services --cov=routes --cov-report=xml --cov-fail-under=15
       - name: HTTP full-chain smoke (real server + SQLite)
         run: python tests/e2e_http_smoke.py 18777
         env:
