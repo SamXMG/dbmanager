@@ -65,7 +65,7 @@ def py_to_json(v):
 # ------------------------------
 # 元数据(跨库统一, 基于 SQLAlchemy inspect; 带 60s TTL 缓存避免反复反射)
 # ------------------------------
-META_CACHE = {}
+META_CACHE: dict[str, object] = {}
 META_TTL = 60
 META_MAX = 300
 

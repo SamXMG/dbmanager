@@ -11,11 +11,12 @@
 import configparser
 import os
 import threading
+from typing import Any
 
 # 基础路径(所有模块共用, 各模块据此定位同目录文件)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # INDEX_FILE(旧前端入口)已随双前端退役删除(路线图 1.2)
-SERVERS = []  # 由 app.run() 赋值(IPv4/IPv6 监听实例), 供 shutdown 接口读取
+SERVERS: list = []  # 由 app.run() 赋值(IPv4/IPv6 监听实例), 供 shutdown 接口读取
 
 # SQLite 连接数据库路径沙箱根(防 ../../ 逃逸读取/创建系统文件)。
 # 默认 BASE_DIR/data; 可用 DBM_DATA_ROOT 环境变量覆盖; DBM_SQLITE_ALLOW_ROOTS 追加额外允许根(逗号分隔)。
@@ -117,16 +118,16 @@ PORT = conf_int("DBM_PORT")
 LOCK = threading.Lock()
 
 # 前端静态资源(双前端退役, 路线图 1.2): 旧 js/ css/ 已删除, 唯一入口为 Vue3 构建产物
-STATIC_DIRS = {}
+STATIC_DIRS: dict[str, str] = {}
 
 # Vue3 迁移版(frontend/ 子目录, 与旧前端并存; /v2 入口 serve 其构建产物)
 VUE_DIST_DIR = os.path.join(BASE_DIR, "frontend", "dist")
 VUE_INDEX_FILE = os.path.join(VUE_DIST_DIR, "index.html")
 
-ENGINE_CACHE = {}          # hash -> Engine
+ENGINE_CACHE: dict[str, Any] = {}          # hash -> Engine
 ENGINE_CACHE_MAX = 32      # 引擎缓存上限, 超出丢弃最旧(防长期运行连接池无限累积)
-TX_CONN = {}               # hash -> (Connection, Engine)  事务模式下的持久连接
-SESSIONS = {}              # token -> (已解析连接, 创建时间); 密码仅存服务端内存, 用于按名直连
+TX_CONN: dict[tuple[str, str], tuple] = {}   # (conn_hash, tx_key) -> (Connection, Engine)  事务模式下的持久连接
+SESSIONS: dict[str, tuple] = {}              # token -> (已解析连接, 创建时间); 密码仅存服务端内存, 用于按名直连
 SESSION_TTL = 12 * 3600    # 会话有效期 12 小时, 过期需重新连接
 CONN_IDLE_TIMEOUT = 1800   # 30 分钟闲置自动回收
 QUERY_TIMEOUT = 30         # 查询超时(秒)

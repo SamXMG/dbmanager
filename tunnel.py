@@ -6,9 +6,9 @@ get_engine/build_url 前调用 start_tunnel 建立本地随机端口转发, 连�
 import socket
 import threading
 
-import paramiko
+import paramiko  # type: ignore[import-untyped]
 
-_TUNNELS = {}          # key -> (client, local_port)
+_TUNNELS: dict[str, tuple] = {}          # key -> (client, local_port)
 _LOCK = threading.Lock()
 
 

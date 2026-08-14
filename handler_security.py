@@ -64,10 +64,10 @@ GATEWAY_TOKEN = _load_gateway_token()
 GATEWAY_HASH = hashlib.sha256(GATEWAY_TOKEN.encode("utf-8")).hexdigest()
 
 # 网关会话(登录成功签发随机 token, cookie 只存会话 id, 不存哈希本身, 可单独吊销)
-GATEWAY_SESSIONS = {}       # token -> 过期时间戳
+GATEWAY_SESSIONS: dict[str, float] = {}       # token -> 过期时间戳
 GATEWAY_SESSION_TTL = 8 * 3600
 # 登录限流: 按客户端 IP 计数, 连续失败超阈值锁定, 防暴力破解
-GATEWAY_FAIL = {}           # IP -> [连续失败次数, 首次失败时间戳]
+GATEWAY_FAIL: dict[str, list] = {}           # IP -> [连续失败次数, 首次失败时间戳]
 GATEWAY_MAX_FAIL = 5        # 连续失败 5 次
 GATEWAY_LOCK_SEC = 300      # 锁定 5 分钟
 

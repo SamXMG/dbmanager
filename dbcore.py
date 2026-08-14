@@ -4,6 +4,7 @@ URL 构建、引擎缓存(上限32)、超时设置、连接测试、事务模式
 """
 import hashlib
 import os
+from typing import Any
 from urllib.parse import quote, quote_plus
 
 from sqlalchemy import create_engine, text
@@ -275,7 +276,7 @@ def test_connection(ci: dict):
         eng.dispose()
 
 # MongoDB 客户端缓存(与 SQLAlchemy 引擎缓存分离; 上限同引擎)
-MONGO_CACHE = {}
+MONGO_CACHE: dict[str, object] = {}
 
 def get_mongo(ci: dict):
     """获取(并缓存) MongoDB 客户端; 建连即 ping 验证, 失败抛异常"""
@@ -288,7 +289,7 @@ def get_mongo(ci: dict):
             return c
     host = ci.get("server") or "localhost"
     port = int(ci.get("port") or 27017)
-    kw = {"serverSelectionTimeoutMS": 8000, "connectTimeoutMS": 8000}
+    kw: dict[str, object] = {"serverSelectionTimeoutMS": 8000, "connectTimeoutMS": 8000}
     uid = ci.get("uid")
     if uid:
         kw["username"] = uid
@@ -312,11 +313,11 @@ def get_mongo(ci: dict):
     return client
 
 # Redis 客户端缓存
-REDIS_CACHE = {}
+REDIS_CACHE: dict[str, object] = {}
 
 def get_redis(ci: dict):
     """获取(并缓存) Redis 客户端; 建连即 ping 验证, 失败抛异常"""
-    import redis as redis_mod
+    import redis as redis_mod  # type: ignore[import-untyped]
     ci = _apply_tunnel(ci)   # 支持 SSH 隧道
     h = conn_hash(ci)
     with LOCK:
@@ -326,8 +327,8 @@ def get_redis(ci: dict):
     host = ci.get("server") or "localhost"
     port = int(ci.get("port") or 6379)
     try:
-        from redis.backoff import ExponentialBackoff
-        from redis.retry import Retry
+        from redis.backoff import ExponentialBackoff  # type: ignore[import-untyped]
+        from redis.retry import Retry  # type: ignore[import-untyped]
         _retry = Retry(ExponentialBackoff(0.5), 1)   # 连接失败快速报错(共2次尝试)
     except Exception:
         _retry = None
