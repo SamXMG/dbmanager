@@ -9,7 +9,8 @@
       "python": "C:/Users/10294/.workbuddy/binaries/python/envs/default/Scripts/python.exe",
       "console": "integratedTerminal",
       "justMyCode": false,
-      "cwd": "${workspaceFolder}"
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "build-frontend"
     }
   ]
 }

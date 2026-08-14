@@ -37,9 +37,9 @@ frontend/.vite/
 # 连接配置原子写临时文件(含敏感连接信息, 绝不入库)
 connections.json.tmp
 
-# 调度任务运行时数据(P2-2): 任务配置 + 备份产物
-tasks.json
-tasks.json.tmp
+# 调度任务运行时数据(P2-2): 任务配置 + 备份产物(仅根目录, 避免误伤 .vscode/tasks.json)
+/tasks.json
+/tasks.json.tmp
 backups/
 _ci_smoke*.db
 
