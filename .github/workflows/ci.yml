@@ -27,10 +27,9 @@ jobs:
       - name: Static check (ruff F+E9, 与 pyflakes 语义对齐)
         shell: bash
         run: |
-          ruff check --select F,E9 . 2>&1 | tail -20
+          ruff check --select F,E9 .
           python -m pyflakes *.py routes/*.py services/*.py tests/*.py 2>&1 | grep -i "undefined" && exit 1 || exit 0
-      - name: Format check (ruff format, 纯增量门禁; 存量 53 文件待对齐)
-        continue-on-error: true   # 收敛命令: ruff format .(本地跑一次即对齐, 对齐后可移除本行转硬门禁)
+      - name: Format check (ruff format, 硬门禁; 存量已对齐 0 不合规)
         shell: bash
         run: ruff format --check .
       - name: Type check (mypy 1.14.1, 路线图 P1-4: 5 文件已收敛 0 error, 转硬门禁)
