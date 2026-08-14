@@ -140,6 +140,8 @@ jobs:
         run: npm run test
       - name: Type check (vue-tsc)
         run: npm run typecheck
+      - name: Lint (ESLint, 路线图 P1-3; 存量警告预算 200, M2 收敛后收紧到 0)
+        run: npx eslint . --max-warnings 200
       - name: Build
         run: npm run build
       - name: Dependency vulnerability scan (npm audit, production deps only)
