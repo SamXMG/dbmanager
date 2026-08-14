@@ -1,0 +1,22 @@
+// English translations (keys mirror zh-CN.ts). Add new user-facing strings here.
+export const en: Record<string, string> = {
+  'header.myConnections': 'My Connections',
+  'header.theme': 'Theme',
+  'header.tx': 'Transaction',
+  'header.txOn': 'On',
+  'header.txOff': 'Off',
+  'header.commit': 'Commit',
+  'header.rollback': 'Rollback',
+  'header.userAdmin': 'Account Management',
+  'header.sessions': 'Online Users',
+  'header.sysQuery': 'System Query',
+  'header.serverConfig': 'Server Config',
+  'header.changePwd': 'Change Password',
+  'header.login': 'Login',
+  'header.logout': 'Disconnect',
+  'header.shutdown': 'Stop Service',
+  'header.notLoggedIn': 'Not logged in',
+  'stopped.title': 'Service Stopped',
+  'stopped.desc': 'To use it again, please re-run the program (python app.py).',
+  'lang.label': 'Language',
+}

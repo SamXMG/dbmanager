@@ -1,0 +1,22 @@
+// 中文文案源(键名与 en.ts 一一对应)。新增/修改用户可见文案在此登记。
+export const zhCN: Record<string, string> = {
+  'header.myConnections': '我的连接',
+  'header.theme': '主题',
+  'header.tx': '事务',
+  'header.txOn': '开',
+  'header.txOff': '关',
+  'header.commit': '提交',
+  'header.rollback': '回滚',
+  'header.userAdmin': '账号管理',
+  'header.sessions': '在线用户',
+  'header.sysQuery': '系统查询',
+  'header.serverConfig': '服务器配置',
+  'header.changePwd': '改密',
+  'header.login': '登录',
+  'header.logout': '断开',
+  'header.shutdown': '停止服务',
+  'header.notLoggedIn': '未登录',
+  'stopped.title': '服务已停止',
+  'stopped.desc': '如要再次使用，请重新运行本程序（python app.py）。',
+  'lang.label': '语言',
+}

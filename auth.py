@@ -8,6 +8,7 @@
 - 内网 LDAP/AD 接入：设置 DBM_LDAP_URL + DBM_LDAP_BASE 启用（ldap3 库，未安装自动降级）；LDAP 认证通过的用户按 users.json 配角色，未配置默认 read
 - 自助注册：默认关闭（内网合规），DBM_ALLOW_REGISTER=1 开启
 """
+
 import hashlib
 import os
 import re
@@ -16,12 +17,13 @@ import threading
 import time
 
 from config import BASE_DIR, conf
+from i18n import t  # 轻量 i18n: 用户可见文案走 t("key"), 默认 zh_CN 行为不变
 import sqlitedb  # 用户/权限数据存 SQLite(dbmanager.db); 旧 users.json 首次启动自动迁移
 
-USERS_FILE = os.path.join(BASE_DIR, "users.json")   # 遗留路径: 仅用于迁移检测与老部署兼容
-USER_SESSIONS = {}          # token -> {user, role, exp, login_time, ip, last_active}
-SESSION_TTL = 12 * 3600     # 登录会话 12 小时
-USER_ACTIVITY = {}          # 用户 -> {path: 最后操作路径, _t: 记录时间}(在线管理面板"当前操作", 节流写入)
+USERS_FILE = os.path.join(BASE_DIR, "users.json")  # 遗留路径: 仅用于迁移检测与老部署兼容
+USER_SESSIONS = {}  # token -> {user, role, exp, login_time, ip, last_active}
+SESSION_TTL = 12 * 3600  # 登录会话 12 小时
+USER_ACTIVITY = {}  # 用户 -> {path: 最后操作路径, _t: 记录时间}(在线管理面板"当前操作", 节流写入)
 _LOCK = threading.Lock()
 
 # 登录限流: 同一 IP+用户名 连续失败 MAX_FAIL 次锁定 LOCK_SEC 秒
@@ -37,8 +39,8 @@ DEFAULT_PWD = conf("DBM_DEFAULT_PWD") or "admin123"
 # LDAP/AD 接入（内网可选）: 配置后 LDAP 用户可直接登录, users.json 管理角色与本地管理员
 # 注意: 以下为 import 时的快照(兼容旧代码引用); 运行时判定一律走 _ldap_cfg() 动态读取,
 # 使 dbmanager.conf 修改(如管理界面改 LDAP 项)无需重启即可生效。
-LDAP_URL = conf("DBM_LDAP_URL")       # 如 ldap://192.168.1.10:389
-LDAP_BASE = conf("DBM_LDAP_BASE")     # 如 dc=company,dc=com
+LDAP_URL = conf("DBM_LDAP_URL")  # 如 ldap://192.168.1.10:389
+LDAP_BASE = conf("DBM_LDAP_BASE")  # 如 dc=company,dc=com
 LDAP_BINDDN = conf("DBM_LDAP_BINDDN")  # 可选: 绑定查询账号(有则先按用户名查 DN)
 LDAP_BINDPW = conf("DBM_LDAP_BINDPW")
 LDAP_ATTR = conf("DBM_LDAP_ATTR") or "sAMAccountName"  # 用户名属性(AD 默认, OpenLDAP 常用 uid)
@@ -76,7 +78,7 @@ def auth_enabled():
         return True
     if sqlitedb.has_users():
         return True
-    return os.path.exists(USERS_FILE)   # 老部署迁移前兜底
+    return os.path.exists(USERS_FILE)  # 老部署迁移前兜底
 
 
 def _migrate_admin_role():
@@ -114,8 +116,7 @@ def ensure_default():
         salt = secrets.token_hex(16)
         h = hashlib.pbkdf2_hmac("sha256", DEFAULT_PWD.encode(), bytes.fromhex(salt), 120000).hex()
         # is_default: 默认账号标记(强制首改密依据), 改密成功后清除
-        _save({DEFAULT_USER: {"pwd_hash": h, "salt": salt, "role": "admin",
-                              "is_default": True}})
+        _save({DEFAULT_USER: {"pwd_hash": h, "salt": salt, "role": "admin", "is_default": True}})
         return True
     except Exception:
         return False
@@ -158,8 +159,7 @@ def _load_users():
 
 
 def _hash(pwd, salt_hex):
-    return hashlib.pbkdf2_hmac("sha256", pwd.encode("utf-8"),
-                               bytes.fromhex(salt_hex), 120000).hex()
+    return hashlib.pbkdf2_hmac("sha256", pwd.encode("utf-8"), bytes.fromhex(salt_hex), 120000).hex()
 
 
 def _save(users):
@@ -184,17 +184,14 @@ def ldap_auth(username, password):
         server = Server(c["url"], get_info=ALL)
         if c["binddn"]:
             # 两步: 先用绑定账号查用户 DN, 再以用户 DN 验证密码
-            with Connection(server, user=c["binddn"], password=c["bindpw"],
-                            auto_bind=True, receive_timeout=5) as conn:
-                conn.search(c["base"], "(%s=%s)" % (c["attr"], username),
-                            attributes=["distinguishedName"])
+            with Connection(server, user=c["binddn"], password=c["bindpw"], auto_bind=True, receive_timeout=5) as conn:
+                conn.search(c["base"], "(%s=%s)" % (c["attr"], username), attributes=["distinguishedName"])
                 if not conn.entries:
                     return False
                 user_dn = str(conn.entries[0].distinguishedName)
         else:
             user_dn = "%s=%s,%s" % (c["attr"], username, c["base"])
-        with Connection(server, user=user_dn, password=password,
-                        auto_bind=True, receive_timeout=5):
+        with Connection(server, user=user_dn, password=password, auto_bind=True, receive_timeout=5):
             return True
     except Exception:
         return False
@@ -215,8 +212,7 @@ def login(username, password, ip=""):
         LOGIN_FAIL.pop(key, None)
     users = _load_users()
     u = users.get(username)
-    if u and u.get("salt") and secrets.compare_digest(
-            _hash(password, u["salt"]), u.get("pwd_hash", "")):
+    if u and u.get("salt") and secrets.compare_digest(_hash(password, u["salt"]), u.get("pwd_hash", "")):
         LOGIN_FAIL.pop(key, None)
         status = u.get("status", "active")
         if status == "pending":
@@ -225,8 +221,7 @@ def login(username, password, ip=""):
             return ("rejected", None)
         tok = secrets.token_hex(16)
         with _LOCK:
-            USER_SESSIONS[tok] = _new_session_entry(username,
-                                                    u.get("role", "read"), ip)
+            USER_SESSIONS[tok] = _new_session_entry(username, u.get("role", "read"), ip)
         return ("ok", (tok, u.get("role", "read"), username))
     # 本地无此账号(或密码不符)且启用了 LDAP -> 走 AD 认证
     if ldap_enabled() and ldap_auth(username, password):
@@ -247,15 +242,14 @@ def change_password(username, old_pwd, new_pwd):
     """修改当前用户密码；返回 (ok, message)"""
     users = _load_users()
     u = users.get(username)
-    if not u or not u.get("salt") or not secrets.compare_digest(
-            _hash(old_pwd, u["salt"]), u.get("pwd_hash", "")):
-        return False, "旧密码错误"
+    if not u or not u.get("salt") or not secrets.compare_digest(_hash(old_pwd, u["salt"]), u.get("pwd_hash", "")):
+        return False, t("auth.old_pwd_wrong")
     if not new_pwd or len(new_pwd) < 6:
-        return False, "新密码至少 6 位"
+        return False, t("auth.new_pwd_min")
     salt = secrets.token_hex(16)
     u["pwd_hash"] = _hash(new_pwd, salt)
     u["salt"] = salt
-    u.pop("is_default", None)   # 清除默认账号标记(强制改密完成)
+    u.pop("is_default", None)  # 清除默认账号标记(强制改密完成)
     _save(users)
     return True, "密码已更新"
 
@@ -263,9 +257,10 @@ def change_password(username, old_pwd, new_pwd):
 def list_users():
     """账号列表(不含哈希), 含审批状态(status)"""
     users = _load_users()
-    return [{"username": k, "role": v.get("role", "read"),
-             "status": v.get("status", "active")}
-            for k, v in sorted(users.items())]
+    return [
+        {"username": k, "role": v.get("role", "read"), "status": v.get("status", "active")}
+        for k, v in sorted(users.items())
+    ]
 
 
 def approve_user(username, role, action, cur_role=None):
@@ -274,7 +269,7 @@ def approve_user(username, role, action, cur_role=None):
     users = _load_users()
     u = users.get(username)
     if not u:
-        return False, "账号不存在"
+        return False, t("auth.user_not_found")
     if u.get("status", "active") != "pending":
         return False, "该账号不是待审批状态"
     if cur_role not in (None, "admin"):
@@ -310,13 +305,15 @@ def save_user(username, role, password=None, cur_role=None):
         if len(password) < 6:
             return False, "密码至少 6 位"
         salt = secrets.token_hex(16)
-        users[username] = {"pwd_hash": _hash(password, salt),
-                           "salt": salt,
-                           "role": users.get(username, {}).get("role", role),
-                           "status": "active"}
+        users[username] = {
+            "pwd_hash": _hash(password, salt),
+            "salt": salt,
+            "role": users.get(username, {}).get("role", role),
+            "status": "active",
+        }
     elif username in users:
         users[username]["role"] = role
-        users[username]["status"] = "active"   # 管理员调整角色即视为启用
+        users[username]["status"] = "active"  # 管理员调整角色即视为启用
     else:
         return False, "账号不存在(未提供初始密码)"
     _save(users)
@@ -326,13 +323,13 @@ def save_user(username, role, password=None, cur_role=None):
 def delete_user(username, cur_user):
     """删除账号；不能删除自己"""
     if username == cur_user:
-        return False, "不能删除当前登录账号"
+        return False, t("auth.cannot_delete_self")
     users = _load_users()
     if username not in users:
         return False, "账号不存在"
     users.pop(username, None)
     _save(users)
-    return True, "已删除"
+    return True, t("auth.deleted")
 
 
 # 自助注册限流: 同 IP 每窗口最多 MAX 次
@@ -361,9 +358,12 @@ def register(username, password, ip=""):
     if username in users:
         return False, "用户名已存在"
     salt = secrets.token_hex(16)
-    users[username] = {"pwd_hash": _hash(password, salt),
-                       "salt": salt, "role": "read",
-                       "status": "pending"}   # 待审批: 管理员 approve 后方可登录
+    users[username] = {
+        "pwd_hash": _hash(password, salt),
+        "salt": salt,
+        "role": "read",
+        "status": "pending",
+    }  # 待审批: 管理员 approve 后方可登录
     _save(users)
     cnt, ts = f if f else (0, now)
     REGISTER_FAIL[key] = [cnt + 1, ts if cnt else now]
@@ -394,8 +394,14 @@ def logout(token):
 def _new_session_entry(username, role, ip=""):
     """创建会话记录: 含登录时间/来源 IP/最后活跃(在线用户管理所需字段)"""
     now = time.time()
-    return {"user": username, "role": role, "exp": now + SESSION_TTL,
-            "login_time": now, "ip": ip or "", "last_active": now}
+    return {
+        "user": username,
+        "role": role,
+        "exp": now + SESSION_TTL,
+        "login_time": now,
+        "ip": ip or "",
+        "last_active": now,
+    }
 
 
 def touch_activity(username, path):
@@ -455,6 +461,7 @@ def user_name(handler):
 #   - admin 角色全量放行; 未配置 perms 的用户不受限(兼容老部署)
 # ---------------------------------------------------------------------------
 
+
 def user_perms(username):
     """返回指定用户的连接级权限配置: {连接名: {read, write, tables, deny_tables}}"""
     try:
@@ -483,14 +490,14 @@ def set_user_perms(usernames, perms, cur_role=None):
         clean[name.strip()] = d
     users = _load_users()
     miss = []
-    for un in (usernames or []):
+    for un in usernames or []:
         if un not in users:
             miss.append(un)
             continue
         if clean:
             users[un]["perms"] = clean
         else:
-            users[un].pop("perms", None)   # 清空 = 恢复无限制(兼容老部署行为)
+            users[un].pop("perms", None)  # 清空 = 恢复无限制(兼容老部署行为)
     _save(users)
     if miss:
         return True, "已保存(跳过不存在账号: %s)" % ", ".join(miss)
@@ -543,11 +550,14 @@ def list_sessions():
             continue
         key = s["user"]
         if key not in by_user:
-            by_user[key] = {"user": key, "role": s.get("role", "read"),
-                            "login_time": s.get("login_time", 0),
-                            "ip": s.get("ip", ""),
-                            "last_active": s.get("last_active", 0),
-                            "sessions": 1}
+            by_user[key] = {
+                "user": key,
+                "role": s.get("role", "read"),
+                "login_time": s.get("login_time", 0),
+                "ip": s.get("ip", ""),
+                "last_active": s.get("last_active", 0),
+                "sessions": 1,
+            }
         else:
             by_user[key]["sessions"] += 1
             by_user[key]["login_time"] = min(by_user[key]["login_time"], s.get("login_time", 0))

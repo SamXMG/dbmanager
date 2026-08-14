@@ -1,6 +1,8 @@
 <script setup lang="ts">
 // 顶栏: 连接信息/用户/角色/主题切换/事务(真实现: 开关+提交/回滚)/停止服务
 import { ref, computed, defineAsyncComponent } from 'vue'
+import { t, getLocale, setLocale } from '@/i18n'
+import type { Lang } from '@/i18n'
 import { errMsg } from '@/utils/err'
 import { useRouter } from 'vue-router'
 import { useConnectionStore } from '@/stores/connection'
@@ -31,6 +33,12 @@ const showUserAdmin = ref(false)
 const showSessions = ref(false)
 const showSysQuery = ref(false)
 const showServerConfig = ref(false)
+
+// i18n: 语言选择双向绑定(切换即重渲染所有使用 t() 的文案)
+const lang = computed<Lang>({
+  get: () => getLocale(),
+  set: (v) => setLocale(v),
+})
 
 const info = computed(() => {
   if (!conn.conn) return ''
@@ -94,27 +102,31 @@ async function logout() {
     <span class="db" v-if="conn.connected">{{ info }}</span>
     <div class="right">
       <span v-if="conn.connected" style="font-size:13px;color:var(--text2);margin-right:8px">
-        {{ auth.name || '未登录' }}<span v-if="auth.roleLabel"> ({{ auth.roleLabel }})</span>
+        {{ auth.name || t('header.notLoggedIn') }}<span v-if="auth.roleLabel"> ({{ auth.roleLabel }})</span>
       </span>
-      <button v-if="!conn.connected" class="sm" @click="showConnMgr = true">我的连接</button>
-      <button class="sm" @click="toggleTheme" title="切换深浅色主题"><Icon name="moon" :size="16"/> 主题</button>
+      <button v-if="!conn.connected" class="sm" @click="showConnMgr = true">{{ t('header.myConnections') }}</button>
+      <button class="sm" @click="toggleTheme" :title="t('header.theme')"><Icon name="moon" :size="16"/> {{ t('header.theme') }}</button>
+      <select v-model="lang" class="sm" :title="t('lang.label')" :aria-label="t('lang.label')">
+        <option value="zh-CN">中文</option>
+        <option value="en">English</option>
+      </select>
       <template v-if="conn.connected">
-        <button class="sm" @click="toggleTx" :class="{ 'tx-on': ui.transactionMode }" title="事务模式: 开启后增删改进入事务, 可统一提交/回滚">
-          事务: {{ ui.transactionMode ? '开' : '关' }}
+        <button class="sm" @click="toggleTx" :class="{ 'tx-on': ui.transactionMode }" :title="t('header.tx')">
+          {{ t('header.tx') }}: {{ ui.transactionMode ? t('header.txOn') : t('header.txOff') }}
         </button>
         <template v-if="ui.transactionMode">
-          <button class="sm primary" @click="doCommit" title="提交当前标签页所有未提交修改">提交</button>
-          <button class="sm danger" @click="doRollback" title="回滚当前标签页所有未提交修改">回滚</button>
+          <button class="sm primary" @click="doCommit" :title="t('header.commit')">{{ t('header.commit') }}</button>
+          <button class="sm danger" @click="doRollback" :title="t('header.rollback')">{{ t('header.rollback') }}</button>
         </template>
       </template>
-      <button v-if="auth.isAdmin" class="sm" @click="showUserAdmin = true" title="用户列表/审批自助注册/新建账号/细粒度权限">账号管理</button>
-      <button v-if="auth.isAdmin" class="sm" @click="showSessions = true" title="在线用户列表与强制踢下线">在线用户</button>
-      <button v-if="auth.isAdmin" class="sm" @click="showSysQuery = true" title="对内置 SQLite 执行只读查询: 系统用户/权限/连接/审计/任务">系统查询</button>
-      <button v-if="auth.isAdmin" class="sm" @click="showServerConfig = true" title="编辑 dbmanager.conf: 监听地址/端口/HTTPS/注册/LDAP 等(重启生效)">服务器配置</button>
-      <button v-if="auth.isLoggedIn" class="sm" @click="showAuth = true">改密</button>
-      <button v-if="!auth.isLoggedIn" class="sm" @click="showAuth = true">登录</button>
-      <button v-if="conn.connected" class="sm" @click="logout">断开</button>
-      <button v-if="conn.connected" class="sm danger" @click="doShutdown">停止服务</button>
+      <button v-if="auth.isAdmin" class="sm" @click="showUserAdmin = true" :title="t('header.userAdmin')">{{ t('header.userAdmin') }}</button>
+      <button v-if="auth.isAdmin" class="sm" @click="showSessions = true" :title="t('header.sessions')">{{ t('header.sessions') }}</button>
+      <button v-if="auth.isAdmin" class="sm" @click="showSysQuery = true" :title="t('header.sysQuery')">{{ t('header.sysQuery') }}</button>
+      <button v-if="auth.isAdmin" class="sm" @click="showServerConfig = true" :title="t('header.serverConfig')">{{ t('header.serverConfig') }}</button>
+      <button v-if="auth.isLoggedIn" class="sm" @click="showAuth = true">{{ t('header.changePwd') }}</button>
+      <button v-if="!auth.isLoggedIn" class="sm" @click="showAuth = true">{{ t('header.login') }}</button>
+      <button v-if="conn.connected" class="sm" @click="logout">{{ t('header.logout') }}</button>
+      <button v-if="conn.connected" class="sm danger" @click="doShutdown">{{ t('header.shutdown') }}</button>
     </div>
   </header>
   <ConnMgrModal v-if="showConnMgr" :show="showConnMgr" @close="showConnMgr = false" />
@@ -126,8 +138,8 @@ async function logout() {
   <!-- P1-10: 停服状态遮罩(SPA 内状态, 不清空 DOM) -->
   <div v-if="stopped" class="stopped-mask">
     <div class="stopped-card">
-      <h3>服务已停止</h3>
-      <p>如要再次使用，请重新运行本程序（python app.py）。</p>
+      <h3>{{ t('stopped.title') }}</h3>
+      <p>{{ t('stopped.desc') }}</p>
     </div>
   </div>
 </template>

@@ -8,6 +8,7 @@
 - 日常配置写项目根 dbmanager.conf(UTF-8, INI 格式, 见文件内注释), 改一次永久生效;
 - 敏感项(网关令牌/默认密码/LDAP 密码)建议留空, 由系统自动生成或走页面配置。
 """
+
 import configparser
 import os
 import threading
@@ -23,6 +24,7 @@ SERVERS: list = []  # 由 app.run() 赋值(IPv4/IPv6 监听实例), 供 shutdown
 DATA_ROOT = os.environ.get("DBM_DATA_ROOT") or os.path.join(BASE_DIR, "data")
 SQLITE_ALLOW_ROOTS = [p.strip() for p in (os.environ.get("DBM_SQLITE_ALLOW_ROOTS") or "").split(",") if p.strip()]
 
+
 # ------------------------------
 # 配置文件(dbmanager.conf)
 # ------------------------------
@@ -30,7 +32,9 @@ SQLITE_ALLOW_ROOTS = [p.strip() for p in (os.environ.get("DBM_SQLITE_ALLOW_ROOTS
 def _config_path():
     return os.environ.get("DBM_CONF") or os.path.join(BASE_DIR, "dbmanager.conf")
 
+
 _CONFIG_CACHE = None  # configparser 实例, 进程内仅加载一次(改配置需重启生效)
+
 
 def _load_config():
     """惰性加载 dbmanager.conf(UTF-8); 文件不存在/解析失败时返回空配置, 不影响启动。"""
@@ -44,6 +48,7 @@ def _load_config():
             pass
         _CONFIG_CACHE = cfg
     return _CONFIG_CACHE
+
 
 # 环境变量名 -> (配置文件 section, 配置文件 key, 内置默认值)
 # 约定: key 与 DBM_ 去掉前缀后同名(小写), 便于记忆; 敏感项默认留空由系统自动管理
@@ -76,7 +81,10 @@ _ENV_MAP = {
     "DBM_LDAP_BINDDN": ("auth", "ldap_binddn", ""),
     "DBM_LDAP_BINDPW": ("auth", "ldap_bindpw", ""),
     "DBM_LDAP_ATTR": ("auth", "ldap_attr", "sAMAccountName"),
+    # [i18n] 界面/消息语言: zh_CN 默认; 可选 en。后端消息与前端文案据此本地化
+    "DBM_LANG": ("i18n", "lang", "zh_CN"),
 }
+
 
 def conf(name):
     """统一配置读取: 环境变量 > dbmanager.conf > 内置默认值。返回字符串(与 os.environ.get 语义一致)。
@@ -94,6 +102,7 @@ def conf(name):
         val = default
     return val if val is not None else default
 
+
 def conf_int(name):
     """conf() 的整数版本; 解析失败回退默认值。"""
     try:
@@ -104,9 +113,11 @@ def conf_int(name):
         except Exception:
             return 0
 
+
 def conf_bool(name):
     """conf() 的布尔版本: 值 == "1"/"true"/"yes"(忽略大小写) 视为真。"""
     return conf(name).strip().lower() in ("1", "true", "yes")
+
 
 # ------------------------------
 # 运行时配置(读取后不可在运行中热改)
@@ -124,13 +135,13 @@ STATIC_DIRS: dict[str, str] = {}
 VUE_DIST_DIR = os.path.join(BASE_DIR, "frontend", "dist")
 VUE_INDEX_FILE = os.path.join(VUE_DIST_DIR, "index.html")
 
-ENGINE_CACHE: dict[str, Any] = {}          # hash -> Engine
-ENGINE_CACHE_MAX = 32      # 引擎缓存上限, 超出丢弃最旧(防长期运行连接池无限累积)
-TX_CONN: dict[tuple[str, str], tuple] = {}   # (conn_hash, tx_key) -> (Connection, Engine)  事务模式下的持久连接
-SESSIONS: dict[str, tuple] = {}              # token -> (已解析连接, 创建时间); 密码仅存服务端内存, 用于按名直连
-SESSION_TTL = 12 * 3600    # 会话有效期 12 小时, 过期需重新连接
-CONN_IDLE_TIMEOUT = 1800   # 30 分钟闲置自动回收
-QUERY_TIMEOUT = 30         # 查询超时(秒)
+ENGINE_CACHE: dict[str, Any] = {}  # hash -> Engine
+ENGINE_CACHE_MAX = 32  # 引擎缓存上限, 超出丢弃最旧(防长期运行连接池无限累积)
+TX_CONN: dict[tuple[str, str], tuple] = {}  # (conn_hash, tx_key) -> (Connection, Engine)  事务模式下的持久连接
+SESSIONS: dict[str, tuple] = {}  # token -> (已解析连接, 创建时间); 密码仅存服务端内存, 用于按名直连
+SESSION_TTL = 12 * 3600  # 会话有效期 12 小时, 过期需重新连接
+CONN_IDLE_TIMEOUT = 1800  # 30 分钟闲置自动回收
+QUERY_TIMEOUT = 30  # 查询超时(秒)
 
 # 高并发挡板(应对数百级并发查询, 详见 docs/高并发应对方案):
 # REQUEST_WORKERS —— 处理请求的 OS 线程上限(有界线程池); 超额请求在池队列排队,
@@ -152,7 +163,14 @@ DEFAULT_PORT = {"mysql": 3306, "postgresql": 5432, "mssql": 1433, "oracle": 1521
 DEFAULT_DRIVER = "ODBC Driver 17 for SQL Server"
 SUPPORTED = ("sqlite", "mysql", "postgresql", "mssql", "oracle", "mongodb", "redis")
 
+# 界面/消息语言(轻量 i18n, 见 i18n.py): zh_CN 默认, 可选 en。
+# 由 DBM_LANG 环境变量或 dbmanager.conf [i18n] lang 控制; 非法值回退 zh_CN。
+LANG = conf("DBM_LANG")
+if LANG not in ("zh_CN", "en"):
+    LANG = "zh_CN"
+
 _ODBC_DRIVERS_CACHE = None  # 本机已安装 ODBC 驱动列表(惰性缓存)
+
 
 def _odbc_drivers():
     """返回本机已安装的 ODBC 驱动列表；pyodbc 缺失时返回空列表"""
@@ -160,29 +178,34 @@ def _odbc_drivers():
     if _ODBC_DRIVERS_CACHE is None:
         try:
             import pyodbc
+
             _ODBC_DRIVERS_CACHE = pyodbc.drivers()
         except Exception:
             _ODBC_DRIVERS_CACHE = []
     return _ODBC_DRIVERS_CACHE
 
+
 def _pick_mssql_driver():
     """按优先级选择本机可用的 SQL Server 驱动：ODBC Driver 18 > 17 > Native Client > SQL Server"""
     avail = _odbc_drivers()
-    for name in ("ODBC Driver 18 for SQL Server",
-                 "ODBC Driver 17 for SQL Server",
-                 "SQL Server Native Client 11.0",
-                 "SQL Native Client",
-                 "SQL Server"):
+    for name in (
+        "ODBC Driver 18 for SQL Server",
+        "ODBC Driver 17 for SQL Server",
+        "SQL Server Native Client 11.0",
+        "SQL Native Client",
+        "SQL Server",
+    ):
         if name in avail:
             return name
     return None
+
 
 def _mysql_scheme():
     """MySQL/MariaDB 连接串前缀：优先用官方 mariadb 连接器(支持 GSSAPI 等)，
     未安装时回退到纯 Python 的 pymysql。"""
     try:
         import mariadb  # noqa: F401
+
         return "mariadb+mariadbconnector"
     except Exception:
         return "mysql+pymysql"
-

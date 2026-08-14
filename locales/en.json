@@ -1,0 +1,12 @@
+{
+  "auth.old_pwd_wrong": "Incorrect old password",
+  "auth.new_pwd_min": "New password must be at least 6 characters",
+  "auth.user_not_found": "Account does not exist",
+  "auth.cannot_delete_self": "Cannot delete the account you are currently logged in with",
+  "auth.deleted": "Deleted",
+  "auth.rejected": "Account rejected",
+  "auth.approved": "Approved, account can now log in",
+  "auth.cannot_kick_self": "Cannot kick out the account you are currently logged in with",
+  "auth.user_offline": "User is not online",
+  "auth.bad_param": "Invalid parameter"
+}
