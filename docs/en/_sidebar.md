@@ -1,16 +1,16 @@
 * Home
 
-  * [Overview](README)
+  * [Overview](/en/)
 
 * User Guide
 
-  * [User Manual](guide)
-  * [API Reference](api)
-  * [Deployment Guide](deployment)
-  * [Security Model](security)
+  * [User Manual](/en/guide)
+  * [API Reference](/en/api)
+  * [Deployment Guide](/en/deployment)
+  * [Security Model](/en/security)
 
 * Project & Support
 
-  * [Support & Services](support)
-  * [Enterprise Roadmap](enterprise)
-  * [Contributing](contributing)
+  * [Support & Services](/en/support)
+  * [Enterprise Roadmap](/en/enterprise)
+  * [Contributing](/en/contributing)
