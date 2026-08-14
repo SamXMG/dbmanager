@@ -10,7 +10,8 @@ from services.nosql import _mongo_cols, _mongo_doc_to_row, _mongo_oid, _parse_mo
 
 
 def get_data(ci, schema, table, page, size, where, order=""):
-    size = max(1, min(int(size), 500))
+    # 页大小上限 5000: 前端提供 50~2000 选项; 上限防超大请求拉全表(500 的旧钳制会导致 1000/2000 选项失效)
+    size = max(1, min(int(size), 5000))
     page = max(1, int(page))
     offset = (page - 1) * size
     if (ci.get("db_type") or "") == "mongodb":
