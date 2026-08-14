@@ -163,7 +163,8 @@
       margin-bottom: 4px;
     }
 
-    .field input,
+    /* 排除 checkbox/radio: 它们不应被拉成 100% 宽(否则会撑满所在行, 挤掉相邻文本, 如查询构建器的列勾选) */
+    .field input:not([type="checkbox"]):not([type="radio"]),
     .field select {
       width: 100%;
       padding: 8px 10px;

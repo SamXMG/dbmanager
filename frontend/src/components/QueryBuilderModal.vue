@@ -51,7 +51,8 @@ function isReferenced(name: string) {
 
 async function loadCols() {
   const { s, t } = splitTable()
-  if (!s || !t) return
+  // schema(s) 在 SQLite 等库下为空字符串, 不能据此拦截加载; 只需表名(t)非空
+  if (!t) return
   loading.value = true
   try {
     const cols = await getColumns(s, t)
@@ -93,10 +94,12 @@ function onCondRowClick(col: string) { highlightedCol.value = col }
 
 function buildSql() {
   const { s, t } = splitTable()
-  if (!s || !t) { ui.toast('请选择表', true); return }
+  // 只需表名非空; schema(s) 可为空(SQLite 等), 空时不拼 schema. 前缀
+  if (!t) { ui.toast('请选择表', true); return }
   const cols = selectedColumns.value
   const colSql = cols.length ? cols.map(q).join(', ') : '*'
-  let sql = 'SELECT ' + colSql + ' FROM ' + q(s) + '.' + q(t)
+  const fromPart = s ? q(s) + '.' + q(t) : q(t)
+  let sql = 'SELECT ' + colSql + ' FROM ' + fromPart
   const conds = conditions.value.map(c => {
     if (c.op === 'IS NULL') return q(c.col) + ' IS NULL'
     const v = c.val.trim()
@@ -279,7 +282,8 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
   display: flex; flex-direction: column; gap: 12px; padding: 2px;
 }
 .field { display: flex; flex-direction: column; gap: 4px; }
-.field label { font-size: 12px; color: var(--text2); }
+/* 仅作用于字段标题(label 直接子元素); 用 > 限定避免误伤 .qb-col(每个勾选区本身是 <label>) */
+.field > label { font-size: 12px; color: var(--text2); }
 .qb-modal select, .qb-modal input[type="number"], .qb-modal input:not([type]) {
   padding: 5px 8px; border: 1px solid var(--border2); border-radius: 5px;
   font-size: 13px; outline: none; background: var(--panel); color: var(--text); width: 100%;
@@ -298,6 +302,11 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
   color: var(--text);
 }
 .qb-col:hover { background: var(--panel3); }
+/* checkbox 固定尺寸 + 不伸缩, 避免被父级/全局 width:100% 撑大挤掉列名; accent-color 统一主题色 */
+.qb-col input[type="checkbox"] {
+  flex: 0 0 auto; width: 15px; height: 15px; margin: 0;
+  accent-color: var(--primary); cursor: pointer;
+}
 .qb-col-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
 .qb-col-type { color: var(--text3); font-size: 11px; flex-shrink: 0; }
 /* 被条件引用的列: 常驻浅标识 */
