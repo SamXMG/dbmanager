@@ -24,6 +24,7 @@ export const useUIStore = defineStore('ui', {
     routine: null as { s: string; name: string; kind: string } | null,  // 存储过程/函数/触发器编辑器
     showTasks: false,  // 调度任务管理弹窗(TaskModal.vue)
     queryBuilder: false,  // 查询构建器模态(QueryBuilderModal.vue 消费)
+    sqlEditorH: Number(localStorage.getItem('dbm_sql_ed_h') || 0),  // SQL 工作台编辑器高度(px, 0=用默认 30% 比例)
   }),
   actions: {
     /** 初始化主题(读 localStorage + 应用到 body) */
@@ -66,5 +67,11 @@ export const useUIStore = defineStore('ui', {
     /** 查询构建器开关(QueryBuilderModal.vue 消费, 对齐 designer/routine 模式) */
     openQueryBuilder() { this.queryBuilder = true },
     closeQueryBuilder() { this.queryBuilder = false },
+
+    /** SQL 工作台编辑器高度(px): 持久化, 切换视图/刷新不丢失; 0 表示使用默认 30% 比例 */
+    setSqlEditorH(h: number) {
+      this.sqlEditorH = Math.round(h)
+      try { localStorage.setItem('dbm_sql_ed_h', String(this.sqlEditorH)) } catch { /* 隐私模式 */ }
+    },
   },
 })

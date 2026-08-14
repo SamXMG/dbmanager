@@ -187,139 +187,297 @@ onMounted(async () => {
 
 <template>
   <div class="conn-panel">
-    <h2>连接数据库</h2>
-    <div class="sub">支持 SQLite / MySQL / PostgreSQL / SQL Server / Oracle / MongoDB / Redis。</div>
+    <header class="conn-head">
+      <h2>连接数据库</h2>
+      <p class="sub">支持 SQLite / MySQL / PostgreSQL / SQL Server / Oracle / MongoDB / Redis。</p>
+    </header>
 
-    <!-- 我的连接: 点击直接连接(无需密码) -->
-    <div class="field" v-if="connStore.connList.length">
-      <label>我的连接（点击直接连接，无需输入密码）</label>
-      <div class="conn-list">
-        <div v-for="c in connStore.connList" :key="c.name" class="conn-row" @click="doQuickConnect(c.name!)" :title="'连接 ' + c.name">
-          <span class="dot" :class="{ on: connStore.conn?.name === c.name }"></span>
-          <span class="nm">{{ c.name }}</span>
-          <span class="det">{{ [c.db_type, c.server, c.database].filter(Boolean).join(' · ') }}</span>
-          <span class="go">连接 →</span>
+    <div class="conn-body">
+      <!-- 我的连接: 点击直接连接(无需密码) -->
+      <div class="field" v-if="connStore.connList.length">
+        <label>我的连接（点击直接连接，无需输入密码）</label>
+        <div class="conn-list">
+          <div v-for="c in connStore.connList" :key="c.name" class="conn-row" @click="doQuickConnect(c.name!)" :title="'连接 ' + c.name">
+            <span class="dot" :class="{ on: connStore.conn?.name === c.name }"></span>
+            <span class="nm">{{ c.name }}</span>
+            <span class="det">{{ [c.db_type, c.server, c.database].filter(Boolean).join(' · ') }}</span>
+            <span class="go">连接 →</span>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Navicat 快速连接(填入表单) -->
-    <div class="field" v-if="connStore.connList.length">
-      <label>快速填入表单</label>
-      <div class="row2">
-        <select v-model="quickConn" @change="applyQuick">
-          <option value="">— 选择连接填入表单 —</option>
-          <option v-for="c in connStore.connList" :key="c.name" :value="c.name!">{{ c.name }}</option>
-        </select>
-        <button type="button" @click="applyQuick">填入</button>
-      </div>
-    </div>
-
-    <!-- 云厂商模板 -->
-    <div class="field">
-      <label>云厂商快速模板</label>
-      <select v-model="cloudVendor" @change="onCloudChange">
-        <option value="">— 不使用 —</option>
-        <option v-for="(v, k) in CLOUD_VENDORS" :key="k" :value="k">{{ v.name }}</option>
-      </select>
-      <div v-if="cloudVendor && CLOUD_VENDORS[cloudVendor]" class="tip">{{ CLOUD_VENDORS[cloudVendor].tip }}</div>
-    </div>
-
-    <!-- 数据库类型 -->
-    <div class="field">
-      <label>数据库类型</label>
-      <select v-model="dbType">
-        <option v-for="t in DB_TYPES" :key="t.value" :value="t.value">{{ t.label }}</option>
-      </select>
-    </div>
-
-    <!-- SQLite 字段 -->
-    <div v-if="isSqlite" class="field">
-      <label>数据库文件路径</label>
-      <input v-model="sqlitePath" placeholder="如 C:\data\mydb.sqlite 或 :memory:" />
-    </div>
-
-    <!-- 非 SQLite 字段 -->
-    <template v-else>
-      <div class="field">
-        <label>服务器 (SERVER)</label>
-        <input v-model="server" placeholder="如 localhost 或 192.168.1.10\sql2019" />
-      </div>
-      <div class="field">
-        <label>端口 (PORT，可选)</label>
-        <input v-model="port" placeholder="默认按类型自动填充" />
-      </div>
-      <div class="field">
-        <label>数据库 (DATABASE)</label>
+      <!-- Navicat 快速连接(填入表单) -->
+      <div class="field" v-if="connStore.connList.length">
+        <label>快速填入表单</label>
         <div class="row2">
-          <input v-model="database" list="dbListDl" placeholder="数据库名" />
-          <datalist id="dbListDl"><option v-for="d in dbList" :key="d" :value="d" /></datalist>
-          <button type="button" @click="loadDbs">加载</button>
+          <select v-model="quickConn" @change="applyQuick">
+            <option value="">— 选择连接填入表单 —</option>
+            <option v-for="c in connStore.connList" :key="c.name" :value="c.name!">{{ c.name }}</option>
+          </select>
+          <button type="button" @click="applyQuick">填入</button>
         </div>
       </div>
+
+      <!-- 云厂商模板 -->
       <div class="field">
-        <label>用户名 (UID)</label>
-        <input v-model="uid" placeholder="数据库登录账号" />
+        <label>云厂商快速模板</label>
+        <select v-model="cloudVendor" @change="onCloudChange">
+          <option value="">— 不使用 —</option>
+          <option v-for="(v, k) in CLOUD_VENDORS" :key="k" :value="k">{{ v.name }}</option>
+        </select>
+        <div v-if="cloudVendor && CLOUD_VENDORS[cloudVendor]" class="tip">{{ CLOUD_VENDORS[cloudVendor].tip }}</div>
       </div>
-    </template>
 
-    <div class="field">
-      <label>密码 (PASSWORD)</label>
-      <input v-model="pwd" type="password" placeholder="数据库密码" @keyup.enter="doConnect" />
-    </div>
+      <!-- 数据库类型 -->
+      <div class="field">
+        <label>数据库类型</label>
+        <select v-model="dbType">
+          <option v-for="t in DB_TYPES" :key="t.value" :value="t.value">{{ t.label }}</option>
+        </select>
+      </div>
 
-    <!-- SSH 隧道 -->
-    <div class="field">
-      <label><input type="checkbox" v-model="sshEnabled" /> 使用 SSH 隧道</label>
-      <template v-if="sshEnabled">
-        <div class="field"><label>SSH 主机</label><input v-model="sshHost" placeholder="跳板机地址" /></div>
-        <div class="field"><label>SSH 端口</label><input v-model="sshPort" placeholder="22" /></div>
-        <div class="field"><label>SSH 用户</label><input v-model="sshUser" placeholder="SSH 用户名" /></div>
-        <div class="field"><label>SSH 密码</label><input v-model="sshPwd" type="password" placeholder="SSH 密码（与密钥二选一）" /></div>
-        <div class="field"><label>SSH 密钥文件</label><input v-model="sshKey" placeholder="私钥文件路径（可选）" /></div>
+      <!-- SQLite 字段 -->
+      <div v-if="isSqlite" class="field">
+        <label>数据库文件路径</label>
+        <input v-model="sqlitePath" placeholder="如 C:\data\mydb.sqlite 或 :memory:" />
+      </div>
+
+      <!-- 非 SQLite 字段 -->
+      <template v-else>
+        <div class="field">
+          <label>服务器 (SERVER)</label>
+          <input v-model="server" placeholder="如 localhost 或 192.168.1.10\sql2019" />
+        </div>
+        <div class="field">
+          <label>端口 (PORT，可选)</label>
+          <input v-model="port" placeholder="默认按类型自动填充" />
+        </div>
+        <div class="field">
+          <label>数据库 (DATABASE)</label>
+          <div class="row2">
+            <input v-model="database" list="dbListDl" placeholder="数据库名" />
+            <datalist id="dbListDl"><option v-for="d in dbList" :key="d" :value="d" /></datalist>
+            <button type="button" @click="loadDbs">加载</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>用户名 (UID)</label>
+          <input v-model="uid" placeholder="数据库登录账号" />
+        </div>
       </template>
+
+      <div class="field">
+        <label>密码 (PASSWORD)</label>
+        <input v-model="pwd" type="password" placeholder="数据库密码" @keyup.enter="doConnect" />
+      </div>
+
+      <!-- SSH 隧道 -->
+      <div class="field">
+        <label><input type="checkbox" v-model="sshEnabled" /> 使用 SSH 隧道</label>
+        <template v-if="sshEnabled">
+          <div class="field"><label>SSH 主机</label><input v-model="sshHost" placeholder="跳板机地址" /></div>
+          <div class="field"><label>SSH 端口</label><input v-model="sshPort" placeholder="22" /></div>
+          <div class="field"><label>SSH 用户</label><input v-model="sshUser" placeholder="SSH 用户名" /></div>
+          <div class="field"><label>SSH 密码</label><input v-model="sshPwd" type="password" placeholder="SSH 密码（与密钥二选一）" /></div>
+          <div class="field"><label>SSH 密钥文件</label><input v-model="sshKey" placeholder="私钥文件路径（可选）" /></div>
+        </template>
+      </div>
+
+      <!-- 保存为我的连接 -->
+      <div class="field">
+        <label><input type="checkbox" v-model="saveAsMyConn" /> 保存为我的连接</label>
+        <input v-if="saveAsMyConn" v-model="connName" placeholder="连接名称" style="margin-top:6px" />
+      </div>
     </div>
 
-    <!-- 保存为我的连接 -->
-    <div class="field">
-      <label><input type="checkbox" v-model="saveAsMyConn" /> 保存为我的连接</label>
-      <input v-if="saveAsMyConn" v-model="connName" placeholder="连接名称" style="margin-top:4px" />
-    </div>
-
-    <!-- 操作按钮 -->
-    <div class="row2" style="margin-top:12px">
-      <button class="primary" :disabled="loading" @click="doConnect">{{ loading ? '连接中...' : '连接' }}</button>
-      <button @click="doTest">测试连接</button>
-    </div>
-
-    <!-- 消息 -->
-    <div v-if="errMsg" class="err-msg">{{ errMsg }}</div>
-    <div v-if="successMsg" class="ok-msg">{{ successMsg }}</div>
+    <!-- 固定底部操作区: 始终可见(内容过长时仅中间表单区滚动) -->
+    <footer class="conn-foot">
+      <div v-if="errMsg" class="err-msg">{{ errMsg }}</div>
+      <div v-if="successMsg" class="ok-msg">{{ successMsg }}</div>
+      <div class="conn-actions">
+        <button class="primary" :disabled="loading" @click="doConnect">{{ loading ? '连接中...' : '连接' }}</button>
+        <button @click="doTest">测试连接</button>
+      </div>
+    </footer>
   </div>
 </template>
 
 <style scoped>
-.conn-panel { max-width: 600px; margin: 40px auto; padding: 24px; background: var(--panel); border-radius: 8px; border: 1px solid var(--border); }
-.conn-panel h2 { margin: 0 0 4px; color: var(--text); }
-.sub { color: var(--text2); font-size: 13px; margin-bottom: 16px; }
-.field { margin-bottom: 10px; }
-.field label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 3px; }
-.field input, .field select { width: 100%; padding: 6px 8px; border: 1px solid var(--border2); border-radius: 4px; background: var(--panel3); color: var(--text); font-size: 14px; box-sizing: border-box; }
-.row2 { display: flex; gap: 6px; align-items: center; }
+/* 卡片容器: 垂直 flex, 竖向空间受父级(#app)约束, 中间表单滚动、底部按钮固定 */
+.conn-panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 460px;
+  margin: 28px auto;
+  max-height: calc(100% - 56px);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 16px);
+  box-shadow: var(--shadow-card, 0 12px 40px rgba(0, 0, 0, 0.1));
+  overflow: hidden;
+}
+.conn-head {
+  padding: 24px 26px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.conn-head h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 650;
+  letter-spacing: 0.2px;
+  color: var(--text);
+}
+.conn-head .sub {
+  margin: 6px 0 0;
+  color: var(--text3);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.conn-body {
+  padding: 18px 26px;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+.conn-body::-webkit-scrollbar { width: 8px; }
+.conn-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 8px; }
+.conn-body::-webkit-scrollbar-track { background: transparent; }
+
+/* 固定底部操作区 */
+.conn-foot {
+  padding: 16px 26px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.conn-actions {
+  display: flex;
+  gap: 12px;
+}
+.conn-actions button {
+  flex: 1;
+  justify-content: center;
+}
+
+.field { margin-bottom: 14px; }
+.field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text2);
+  margin-bottom: 6px;
+}
+/* 复选框行: 行内排列 */
+.field label:has(input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.field input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  accent-color: var(--primary);
+}
+.field input, .field select {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius, 10px);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 14px;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.field input:focus, .field select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: var(--ring, 0 0 0 3px var(--primary-bg));
+}
+.row2 { display: flex; gap: 8px; align-items: center; }
 .row2 input, .row2 select { flex: 1; }
 .row2 button { white-space: nowrap; }
-.conn-list { display: flex; flex-direction: column; gap: 4px; max-height: 220px; overflow: auto; }
-.conn-row { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 13px; }
+
+.conn-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 200px;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+.conn-list::-webkit-scrollbar { width: 8px; }
+.conn-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 8px; }
+.conn-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+}
 .conn-row:hover { background: var(--panel2); border-color: var(--primary); }
-.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text3); flex-shrink: 0; }
+.conn-row:active { transform: scale(0.995); }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--text3); flex-shrink: 0; }
 .dot.on { background: var(--success); }
 .nm { font-weight: 600; white-space: nowrap; }
 .det { color: var(--text3); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
-.go { color: var(--primary); font-size: 12px; flex-shrink: 0; }
-.tip { font-size: 12px; color: var(--text3); margin-top: 4px; line-height: 1.5; }
-.err-msg { color: var(--danger); margin-top: 8px; font-size: 13px; }
-.ok-msg { color: var(--success); margin-top: 8px; font-size: 13px; }
-button { padding: 6px 16px; border: 1px solid var(--border); border-radius: 4px; background: var(--panel2); color: var(--text); cursor: pointer; font-size: 13px; }
-button.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
-button:disabled { opacity: 0.6; cursor: not-allowed; }
+.go { color: var(--primary); font-size: 12px; font-weight: 600; flex-shrink: 0; }
+.tip { font-size: 12px; color: var(--text3); margin-top: 6px; line-height: 1.5; }
+
+.err-msg {
+  color: var(--danger);
+  background: var(--danger-bg);
+  border-left: 3px solid var(--danger);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+.ok-msg {
+  color: var(--success);
+  background: var(--success-bg);
+  border-left: 3px solid var(--success);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+button {
+  padding: 9px 18px;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius, 10px);
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease;
+}
+button:hover { background: var(--panel2); }
+button:active { transform: scale(0.99); }
+button.primary {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--primary) 35%, transparent);
+}
+button.primary:hover {
+  background: var(--primary);
+  filter: brightness(0.94);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--primary) 45%, transparent);
+}
+button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 </style>

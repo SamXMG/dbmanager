@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // SQL 工作台(阶段 4): 工具栏 + CodeMirror 编辑器 + 历史/收藏 + 多结果 tab + 结果内过滤 + 结果表格
 // 对齐旧版 js/sql.js 的 sqlView 全部功能(执行/格式化/解释/写模式/导出 CSV/导出 Excel/清空历史/看全文)
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import Icon from '@/components/Icon.vue'
 import { errMsg } from '@/utils/err'
 import { confirmDanger } from '@/utils/confirm'
@@ -25,6 +25,76 @@ const sqlText = computed({
 })
 
 onMounted(() => { sqlStore.loadAll() })
+
+// ---- 编辑器 / 结果 上下拖动分隔条(阶段 4 增强) ----
+// 高度持久化到 ui.sqlEditorH(localStorage), 切换视图/刷新不丢失; 0 表示用默认 30% 比例
+const wbRef = ref<HTMLElement | null>(null)
+const editorH = ref(ui.sqlEditorH || 0)   // px, 0 => 默认 30%
+const dragging = ref(false)
+let _startY = 0
+let _startH = 0
+
+// 计算编辑器盒子当前真实高度(默认比例态下取实际渲染高度)
+function currentBoxH(): number {
+  const box = wbRef.value?.querySelector('.sql-editor-box') as HTMLElement | null
+  return box ? box.getBoundingClientRect().height : 220
+}
+// 限位: 编辑器最小 80px, 结果区最少保留 140px
+function clampH(h: number): number {
+  const wb = wbRef.value
+  if (!wb) return h
+  const wbH = wb.getBoundingClientRect().height
+  const barH = (wb.querySelector('.sql-bar') as HTMLElement)?.offsetHeight || 0
+  const resizerH = 12
+  const minH = 80
+  const maxH = wbH - barH - resizerH - 140
+  return Math.max(minH, Math.min(maxH, h))
+}
+function editorBoxStyle() {
+  return editorH.value > 0
+    ? { flex: '0 0 auto', height: Math.round(editorH.value) + 'px' }
+    : {}
+}
+function startDrag(e: MouseEvent) {
+  e.preventDefault()
+  _startY = e.clientY
+  _startH = currentBoxH()
+  dragging.value = true
+  document.body.style.cursor = 'row-resize'
+  document.body.style.userSelect = 'none'
+  window.addEventListener('mousemove', onMove)
+  window.addEventListener('mouseup', stopDrag)
+}
+function onMove(e: MouseEvent) {
+  if (!dragging.value) return
+  const h = clampH(_startH + (e.clientY - _startY))
+  editorH.value = Math.round(h)
+}
+function stopDrag() {
+  if (!dragging.value) return
+  dragging.value = false
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+  window.removeEventListener('mousemove', onMove)
+  window.removeEventListener('mouseup', stopDrag)
+  if (editorH.value > 0) ui.setSqlEditorH(editorH.value)
+}
+// 键盘可达性: 方向键微调, Home/End 到极限
+function onResizerKey(e: KeyboardEvent) {
+  const step = e.shiftKey ? 60 : 20
+  const base = editorH.value > 0 ? editorH.value : currentBoxH()
+  if (e.key === 'ArrowUp') { editorH.value = clampH(base - step); e.preventDefault(); persist() }
+  else if (e.key === 'ArrowDown') { editorH.value = clampH(base + step); e.preventDefault(); persist() }
+  else if (e.key === 'Home') { editorH.value = clampH(80); e.preventDefault(); persist() }
+  else if (e.key === 'End') { editorH.value = clampH(1e9); e.preventDefault(); persist() }
+}
+function persist() { if (editorH.value > 0) ui.setSqlEditorH(editorH.value) }
+onBeforeUnmount(() => {
+  window.removeEventListener('mousemove', onMove)
+  window.removeEventListener('mouseup', stopDrag)
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+})
 
 // ---- 执行 / 解释 / 格式化 ----
 async function onExec() {
@@ -194,7 +264,7 @@ function tabLabel(t: { sql: string }): string {
 </script>
 
 <template>
-  <div class="sql-workbench">
+  <div class="sql-workbench" ref="wbRef">
     <!-- 工具栏 -->
     <div class="sql-bar">
       <button class="primary sm" @click="onExec" title="执行 (Ctrl+Enter)">▶ 执行</button>
@@ -213,10 +283,19 @@ function tabLabel(t: { sql: string }): string {
     </div>
 
     <!-- 编辑器 -->
-    <div class="sql-editor-box">
+    <div class="sql-editor-box" :style="editorBoxStyle()">
       <SqlEditor v-model="sqlText" @exec="onExec" @format="onFormat" />
     </div>
 
+    <!-- 上下拖动分隔条: 拖动调整编辑器高度(结果区自适应) -->
+    <div class="sql-resizer" :class="{ dragging }" role="separator" aria-orientation="horizontal"
+         :aria-valuenow="editorH > 0 ? Math.round(editorH) : 0" aria-label="拖动调整 SQL 编辑器高度"
+         tabindex="0" @mousedown="startDrag" @keydown="onResizerKey">
+      <span class="grip"></span>
+    </div>
+
+    <!-- 结果区(随分隔条拖动自适应收缩/展开) -->
+    <div class="sql-lower">
     <!-- 历史 / 收藏(折叠) -->
     <div class="hist-head" v-if="sqlStore.history.length">
       <button class="sm" @click="toggleHist">{{ showHist ? '▾' : '▸' }} 历史/收藏
@@ -296,6 +375,7 @@ function tabLabel(t: { sql: string }): string {
         </tbody>
       </table>
     </div>
+    </div>
   </div>
 </template>
 
@@ -303,7 +383,19 @@ function tabLabel(t: { sql: string }): string {
 .sql-workbench { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 10px 14px; }
 .sql-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
 .sql-hint { color: var(--text3); font-size: 12px; margin-left: auto; }
-.sql-editor-box { flex: 0 0 30%; min-height: 110px; }
+.sql-editor-box { flex: 0 0 30%; min-height: 110px; overflow: hidden; }
+
+/* 上下拖动分隔条: 拖动调整编辑器高度, 结果区自适应 */
+.sql-resizer { flex: 0 0 12px; height: 12px; cursor: row-resize; display: flex; align-items: center; justify-content: center; position: relative; background: transparent; }
+.sql-resizer::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--border); transform: translateY(-50%); transition: background .15s; }
+.sql-resizer .grip { width: 42px; height: 4px; border-radius: 999px; background: var(--border2, var(--border)); z-index: 1; transition: background .15s, width .15s; }
+.sql-resizer:hover .grip, .sql-resizer:focus .grip, .sql-resizer.dragging .grip { background: var(--primary); width: 56px; }
+.sql-resizer:hover::before, .sql-resizer.dragging::before { background: var(--primary); }
+.sql-resizer:focus { outline: none; }
+.sql-resizer:focus-visible { box-shadow: 0 0 0 2px var(--ring); border-radius: 4px; }
+
+/* 结果区: 随分隔条拖动收缩/展开, 内部独立滚动 */
+.sql-lower { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
 
 /* 写模式按钮: 开=红底白字, 关=浅红 */
 button.write-on { background: var(--danger-solid); color: #fff; border-color: var(--danger-solid); }

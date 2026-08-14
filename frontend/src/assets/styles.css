@@ -21,6 +21,11 @@
       --warning: #d48806;     /* 警告文字 */
       --warning-bg: #fffbe6;  /* 警告浅底 */
       --warning-solid: #d48806; /* 警告实底(图标等) */
+      /* 现代设计原语: 圆角 / 卡片阴影 / 聚焦环(供连接面板等组件统一引用) */
+      --radius: 10px;
+      --radius-lg: 16px;
+      --shadow-card: 0 12px 40px rgba(0, 0, 0, 0.1);
+      --ring: 0 0 0 3px var(--primary-bg);
     }
     body[data-theme="dark"] {
       --bg: #14161a;
@@ -42,6 +47,10 @@
       --warning: #e0b64e;
       --warning-bg: #3a3319;
       --warning-solid: #e0b64e;
+      --radius: 10px;
+      --radius-lg: 16px;
+      --shadow-card: 0 12px 40px rgba(0, 0, 0, 0.45);
+      --ring: 0 0 0 3px var(--primary-bg);
     }
     /* 深色下输入控件等未变量化的元素统一兜底 */
     body[data-theme="dark"] input,
@@ -138,29 +147,8 @@
       flex-shrink: 0;
     }
 
-    /* 连接面板 */
-    #connPanel {
-      max-width: 420px;
-      margin: 8vh auto 0;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 22px 24px;
-      flex: 1 1 auto;
-      min-height: 0;
-      overflow-y: auto;
-    }
-
-    #connPanel h2 {
-      margin: 0 0 4px;
-      font-size: 17px;
-    }
-
-    #connPanel .sub {
-      color: var(--text3);
-      font-size: 12px;
-      margin-bottom: 16px;
-    }
+    /* 连接面板样式已迁移到 ConnPanel.vue 的 scoped <style>(组件根节点为 class .conn-panel, 非 id);
+       此处删除 id 选择器, 避免"死规则"与组件实际样式脱节(此前正是该脱节导致面板超高被裁切) */
 
     .field {
       margin-bottom: 12px;
@@ -1351,6 +1339,27 @@
     .cloud-tip b {
       color: var(--primary);
     }
+
+/* ================= 现代化滚动条(全局一致观感, 深浅主题共用) ================= */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border2);
+  border-radius: 8px;
+  border: 2px solid var(--bg);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text3);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
 
 /* ================= P1-10: 无障碍基础原语 ================= */
 /* 键盘焦点可见(替代默认 outline:none 裸样式) */
