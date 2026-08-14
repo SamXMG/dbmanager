@@ -181,9 +181,13 @@ def test_explain_postgresql(monkeypatch):
     engine, _ = _explain_engine(result)
     monkeypatch.setattr(sql, "get_engine", lambda ci: engine)
     r = sql.explain_query({"db_type": "postgresql"}, "SELECT 1")
-    assert r["mode"] == "table"
-    assert r["total"] == 2  # 根节点 + 子节点
-    assert r["rows"][1]["节点"] == "Index Scan"
+    assert r["mode"] == "tree"
+    # tree 模式以 plan 树承载节点, rows 为空、total 为 0
+    assert r["total"] == 0
+    assert r["rows"] == []
+    # 验证 PG plan 归一化: 根节点 Seq Scan, 子节点 Index Scan
+    assert r["plan"]["operation"] == "Seq Scan"
+    assert r["plan"]["children"][0]["operation"] == "Index Scan"
 
 
 def test_explain_mssql(monkeypatch):
