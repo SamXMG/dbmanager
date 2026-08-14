@@ -1,6 +1,6 @@
 # DB Manager Deployment Guide
 
-> Version: 1.4.x. Covers four deployment shapes — local, internal/LAN team, Docker, and
+> Version: 1.5.x. Covers four deployment shapes — local, internal/LAN team, Docker, and
 > public (HTTPS + gateway) — plus a hardening checklist. Before deploying, read `LICENSE`
 > at the repository root.
 
@@ -96,7 +96,7 @@ env vars, daily deploys should edit the config file directly.
 
 ## 7. Health & monitoring
 
-- **Liveness**: `GET /api/health` → `{"status":"ok","version":"1.4.0","uptime_seconds":…}`
+- **Liveness**: `GET /api/health` → `{"status":"ok","version":"1.5.0","uptime_seconds":…}`
   (no login; usable directly as K8s liveness/readiness).
 - **Metrics**: `GET /api/metrics` → Prometheus text format
   (`dbm_requests_total` / `dbm_requests_by_path` / `dbm_status_codes` /

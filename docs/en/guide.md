@@ -1,6 +1,6 @@
 # DB Manager User Manual
 
-> For DB Manager 1.4.x. Intended for developers, DBAs, and operators who manage databases day to day.
+> For DB Manager 1.5.x. Intended for developers, DBAs, and operators who manage databases day to day.
 
 ## 1. Introduction
 

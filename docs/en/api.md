@@ -1,6 +1,6 @@
 # DB Manager API Reference (overview)
 
-> Version: 1.4.x. Base URL: `http(s)://<host>:<port>`.
+> Version: 1.5.x. Base URL: `http(s)://<host>:<port>`.
 > Auth: after a successful login the server issues a session (HttpOnly Cookie `dbm_user`
 > or header `X-User-Token`); connection context is passed via `X-Session` (named direct
 > connection session) or `X-Conn` (Base64 connection JSON, password RSA-encrypted).
