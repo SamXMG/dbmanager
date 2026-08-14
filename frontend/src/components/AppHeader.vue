@@ -137,7 +137,28 @@ async function logout() {
   display: flex; align-items: center; gap: 12px;
   padding: 8px 16px; background: var(--header-bg); color: var(--header-text);
   font-size: 14px; flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
 }
+/* 顶栏按钮: 浅色主题深字 / 深色主题白字, 边框+hover 自适应, 不刺眼 */
+.sm {
+  background: transparent;
+  color: var(--header-text);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius, 10px);
+  padding: 5px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  transition: background .15s ease, border-color .15s ease;
+}
+.sm:hover { background: color-mix(in srgb, var(--header-text) 10%, transparent); }
+.sm.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+.sm.primary:hover { filter: brightness(0.95); }
+.sm.danger { color: var(--danger-solid); border-color: var(--danger-solid); }
+.sm.danger:hover { background: var(--danger-bg); }
 .app-header h1 { font-size: 16px; font-weight: 600; margin: 0; white-space: nowrap; }
 .app-header .db { color: var(--text3); font-size: 12px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* P1-10: 停服状态遮罩 */
@@ -151,4 +172,5 @@ async function logout() {
 .stopped-card p { margin: 0; color: var(--text2, var(--text3)); }
 .right { display: flex; align-items: center; gap: 6px; }
 button.tx-on { background: var(--danger-solid); color: #fff; border-color: var(--danger-solid); }
+button.tx-on:hover { filter: brightness(0.95); }
 </style>

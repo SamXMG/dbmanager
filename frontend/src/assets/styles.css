@@ -10,8 +10,8 @@
       --border2: #c9cdd4;     /* 输入框边框 */
       --primary: #165dff;     /* 主色 */
       --primary-bg: #e8f3ff;  /* 主色浅底 */
-      --header-bg: #1f2329;   /* 顶栏深色(深浅主题通用) */
-      --header-text: #ffffff;
+      --header-bg: #ffffff;   /* 浅色主题: 顶栏白底深字, 柔和不刺眼 */
+      --header-text: #1f2329;
       /* 语义色(优秀判定 UI-P1a: 裸 hex 收口, 深浅主题联动) */
       --danger: #e54d42;      /* 危险/错误文字与描边 */
       --danger-solid: #e54d42;/* 危险实底(按钮底色) */
@@ -51,6 +51,8 @@
       --radius-lg: 16px;
       --shadow-card: 0 12px 40px rgba(0, 0, 0, 0.45);
       --ring: 0 0 0 3px var(--primary-bg);
+      --header-bg: #1f2329;   /* 深色主题: 顶栏保留深色底白字 */
+      --header-text: #ffffff;
     }
     /* 深色下输入控件等未变量化的元素统一兜底 */
     body[data-theme="dark"] input,
@@ -121,17 +123,17 @@
     .view-switch {
       display: flex;
       gap: 4px;
-      background: rgba(255, 255, 255, 0.1);
+      background: color-mix(in srgb, var(--header-text) 10%, transparent);
       border-radius: 6px;
       padding: 3px;
     }
     .view-switch .sm {
       border: none;
       background: transparent;
-      color: var(--border2);
+      color: var(--header-text);
     }
     .view-switch .sm:hover {
-      color: #fff;
+      background: color-mix(in srgb, var(--header-text) 14%, transparent);
     }
     .view-switch .sm.primary {
       background: var(--primary);
@@ -933,8 +935,8 @@
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
-      background: var(--header-bg);
-      color: #fff;
+      background: var(--text);
+      color: var(--bg);
       padding: 10px 16px;
       border-radius: var(--radius-lg);
       box-shadow: var(--shadow-card);
@@ -951,6 +953,7 @@
 
     .toast.err {
       background: var(--danger-solid);
+      color: #fff;
     }
 
     .empty {

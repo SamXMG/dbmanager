@@ -321,6 +321,7 @@ onMounted(async () => {
   padding: 24px 26px 16px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  display: block; /* 覆盖全局 header 的 flex, 还原 h2/sub 堆叠; 背景跟随白底, 不再被染黑 */
 }
 .conn-head h2 {
   margin: 0;
