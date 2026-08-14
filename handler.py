@@ -764,6 +764,19 @@ from handler_security import (  # noqa: E402
     GATEWAY_FAIL, GATEWAY_MAX_FAIL, GATEWAY_LOCK_SEC, _is_https, _scheme, _gateway_allowed,
 )
 
+# SSL 相关: SSL_CERT/SSL_KEY 会被 _ssl_setup 在运行时重绑定(全局赋值), 直接
+# `from handler_security import SSL_CERT, SSL_KEY` 只会快照到初始 None, 导致 app.py
+# 读到 None 而 HTTPS 起不来。故用模块级 __getattr__ 实时转发到 handler_security(PEP 562),
+# 既保持 handler.SSL_CERT / handler.SSL_KEY / handler._ssl_setup 的旧引用兼容, 又拿到最新值。
+import handler_security as _hs_security
+_ssl_setup = _hs_security._ssl_setup  # 函数别名(不被重绑定, 安全)
+
+
+def __getattr__(name):
+    if name in ("SSL_CERT", "SSL_KEY"):
+        return getattr(_hs_security, name)
+    raise AttributeError("module 'handler' has no attribute %r" % name)
+
 
 def get_default_conn():
     raw = conf("DBM_DEFAULT_CONN")

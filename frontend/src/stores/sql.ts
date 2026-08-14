@@ -1,7 +1,7 @@
 // SQL 工作台 store(阶段 4 完整): 执行/多语句结果 tab/写模式/历史/收藏/格式化
 // 对应旧前端 js/sql.js 的 runSql/addSqlBatch/loadSqlHist/toggleFav 逻辑
 import { defineStore } from 'pinia'
-import { runSql, explainQuery, type SqlResult } from '@/api/sql'
+import { runSql, explainQuery, type SqlResult, type PlanNode } from '@/api/sql'
 import { useConnectionStore } from '@/stores/connection'
 import { useUIStore } from '@/stores/ui'
 
@@ -24,6 +24,10 @@ export interface SqlResultTab {
   readonly?: boolean
   error?: string
   explain?: boolean
+  /** 执行计划形态与归一化树(PG/MySQL 树形, 其他表格/文本) */
+  mode?: string
+  plan?: PlanNode | null
+  dialect?: string
 }
 
 const LS_HISTORY = 'dbm_sql_history'
