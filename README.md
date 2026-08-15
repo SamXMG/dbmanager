@@ -2,6 +2,9 @@
 
 [![License](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 [![CI](https://github.com/SamXMG/dbmanager/actions/workflows/ci.yml/badge.svg)](https://github.com/SamXMG/dbmanager/actions/workflows/ci.yml)
+[![Docs](https://img.shields.io/badge/Docs-文档站-blue)](https://samxmg.github.io/dbmanager/)
+
+[English](README.en.md) · **简体中文** · [文档站](https://samxmg.github.io/dbmanager/)
 
 多数据库管理工具（对标 Navicat / DBeaver 高频场景）：一个 Python 进程同时管理
 SQLite / MySQL / PostgreSQL / SQL Server / Oracle / MongoDB / Redis，
