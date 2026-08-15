@@ -18,7 +18,7 @@ python -m pip install -r requirements.txt
 python app.py            # 默认 http://127.0.0.1:8770，自动打开浏览器
 ```
 
-Windows 也可双击 `setup_new_pc.bat`（自动安装依赖并启动）。
+Windows 也可双击 `scripts/setup_new_pc.bat`（自动安装依赖并启动）。
 
 ### 2.2 首次登录（重要）
 

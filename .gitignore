@@ -2,6 +2,13 @@
 __pycache__/
 *.pyc
 
+# 工具缓存(测试/类型检查/lint 产物, 不入库)
+.coverage
+.coverage.*
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
 # 敏感文件: 密钥、含密码密文的连接配置、网关令牌、自签证书, 绝不入库
 .dbm_rsa
 .dbm_key
@@ -57,6 +64,9 @@ frontend/_tsc_test.json
 dbmanager.db
 dbmanager.db-wal
 dbmanager.db-shm
+data/dbmanager.db
+data/dbmanager.db-wal
+data/dbmanager.db-shm
 users.json.bak
 connections.json.bak
 

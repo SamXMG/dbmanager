@@ -2,6 +2,9 @@
 
 [![License](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 [![CI](https://github.com/SamXMG/dbmanager/actions/workflows/ci.yml/badge.svg)](https://github.com/SamXMG/dbmanager/actions/workflows/ci.yml)
+[![Docs](https://img.shields.io/badge/Docs-文档站-blue)](https://samxmg.github.io/dbmanager/)
+
+[English](README.en.md) · **简体中文** · [文档站](https://samxmg.github.io/dbmanager/)
 
 多数据库管理工具（对标 Navicat / DBeaver 高频场景）：一个 Python 进程同时管理
 SQLite / MySQL / PostgreSQL / SQL Server / Oracle / MongoDB / Redis，
@@ -47,7 +50,7 @@ python -m pip install -r requirements.txt
 # 2. 启动（默认 http://127.0.0.1:8770，自动打开浏览器）
 python app.py
 
-# 或双击 setup_new_pc.bat（自动装依赖并启动）
+# 或双击 scripts/setup_new_pc.bat（自动装依赖并启动）
 ```
 
 ### 局域网访问（其他电脑连进来）
@@ -56,7 +59,7 @@ python app.py
 
 ```bash
 # ① 改配置: 编辑 dbmanager.conf, 将 [server] 下 host 改为 0.0.0.0
-# ② 启动: python app.py (Windows 也可双击 start_lan.bat)
+# ② 启动: python app.py (Windows 也可双击 scripts/start_lan.bat)
 ```
 
 还需两步：
@@ -87,7 +90,7 @@ docker run -p 8770:8770 -v dbmanager_data:/app/data dbmanager
 |------|------|------|
 | `host` | 监听地址：`127.0.0.1`=仅本机（安全默认）；**`0.0.0.0`=开放局域网/公网** | `127.0.0.1` |
 | `port` | 监听端口 | `8770` |
-| `db_file` | 程序数据文件位置（如数据盘/共享目录） | 项目根 `dbmanager.db` |
+| `db_file` | 程序数据文件位置（如数据盘/共享目录） | `data/dbmanager.db`（data/ 目录） |
 | `dev` | `1`=开发模式（跳过登录、错误透传详情） | 关 |
 | `log` | `1`=控制台输出每请求一行（调试用） | 关 |
 | `no_open` / `no_kill` | 不自动开浏览器 / 不自动接管端口 | 关 |
@@ -141,7 +144,7 @@ npx tsc --noEmit                   # 类型检查
 
 ## 数据存储
 
-- **程序数据**：`dbmanager.db`（SQLite，项目根）——规范化表存储：用户账号/角色/审批状态（`users`）、
+- **程序数据**：`dbmanager.db`（SQLite，`data/dbmanager.db`）——规范化表存储：用户账号/角色/审批状态（`users`）、
   细粒度权限（`user_perms`/`user_perm_tables`）、保存的连接配置（`connections`，密码加密存储）、
   审计日志（`audit_log`）、调度任务（`tasks`）。旧版 `users.json` / `connections.json` / `tasks.json`
   首次启动自动迁移入库，源文件改名为 `.bak` 保留；确认无误后可删除。

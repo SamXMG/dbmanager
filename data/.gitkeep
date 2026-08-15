@@ -1,0 +1,1 @@
+# 保留 data/ 目录(运行期 SQLite 库/备份存放于此; dbmanager.db 等已被 .gitignore 忽略)

@@ -28,7 +28,7 @@ except ImportError:
     logging.error("=" * 64)
     logging.error("缺少依赖 pycryptodome（提供 Crypto 模块），无法加密存储密码。")
     logging.error("请先安装依赖，二选一：")
-    logging.error("  1) 双击 setup_new_pc.bat（自动安装并启动）")
+    logging.error("  1) 双击 scripts/setup_new_pc.bat（自动安装并启动）")
     logging.error("  2) 命令行执行: python -m pip install -r requirements.txt")
     logging.error("=" * 64)
     raise SystemExit(1)

@@ -19,10 +19,10 @@ if exist "%VENV_PY%" (
   ) else (
     echo [1/3] 虚拟环境存在但缺依赖, 正在安装...
     "%VENV_PY%" -m pip install --upgrade pip >nul 2>&1
-    "%VENV_PY%" -m pip install -r "%~dp0requirements.txt"
+    "%VENV_PY%" -m pip install -r "%~dp0..\requirements.txt"
     if errorlevel 1 (
       echo [重试] 默认源失败, 切换清华镜像源...
-      "%VENV_PY%" -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r "%~dp0requirements.txt"
+      "%VENV_PY%" -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r "%~dp0..\requirements.txt"
       if errorlevel 1 (
         echo [错误] 依赖安装失败(默认源与清华源均失败), 请检查网络后重试
         pause
@@ -43,10 +43,10 @@ if exist "%VENV_PY%" (
   )
   echo [1/3] 使用系统 Python, 安装依赖...
   python -m pip install --upgrade pip >nul 2>&1
-  python -m pip install -r "%~dp0requirements.txt"
+  python -m pip install -r "%~dp0..\requirements.txt"
   if errorlevel 1 (
     echo [重试] 默认源失败, 切换清华镜像源...
-    python -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r "%~dp0requirements.txt"
+    python -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r "%~dp0..\requirements.txt"
     if errorlevel 1 (
       echo [错误] 依赖安装失败(默认源与清华源均失败),请检查网络后重试
       pause
@@ -78,6 +78,6 @@ echo 提示: 首次启动会自动打开浏览器 http://127.0.0.1:8770
 echo 关闭本窗口即停止工具。
 echo 若要后台运行, 请改在命令行执行: "%PY%" app.py
 echo ============================================
-cd /d "%~dp0"
+cd /d "%~dp0.."
 "%PY%" app.py
 pause

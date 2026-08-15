@@ -20,7 +20,7 @@ python -m pip install -r requirements.txt
 python app.py            # default http://127.0.0.1:8770, opens browser automatically
 ```
 
-On Windows you can also double-click `setup_new_pc.bat` (installs dependencies and starts).
+On Windows you can also double-click `scripts/setup_new_pc.bat` (installs dependencies and starts).
 
 ### 2.2 First login (important)
 

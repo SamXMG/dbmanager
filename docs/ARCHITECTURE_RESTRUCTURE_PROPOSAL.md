@@ -146,7 +146,7 @@ dbmanager/
 2. **分批移动**（每批 ≤3 个文件），每批执行：
    - 移动文件 → 改该文件及调用方的 import → 批量替换 `tests/` 引用；
    - 跑 `python -c "import app"` 验证导入；
-   - 跑后端冒烟（`start.bat` / `python app.py` 起服务，`curl /api/...`）；
+   - 跑后端冒烟（`scripts/start.bat` / `python app.py` 起服务，`curl /api/...`）；
    - 跑 `pytest tests/ -q`（注意：全量覆盖率 `combine()` 会触发沙箱安全删除守卫，需 `dangerouslyDisableSandbox` 或 `rm -f .coverage .coverage.*` 绕过）。
 3. 更新 `README.md` / `docs/` 架构图与启动说明。
 4. 确认 CI（`pytest --cov-fail-under=60`）仍绿。
