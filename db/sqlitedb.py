@@ -18,10 +18,14 @@ import time
 
 from core import config  # 模块引用: config.BASE_DIR 可能在运行时被测试/部署改写, 需动态取值
 
-# 数据库文件: 默认项目根 dbmanager.db; DBM_DB_FILE(或 dbmanager.conf [server] db_file) 可自定义位置。
+# 数据库文件: 默认 BASE_DIR/data/dbmanager.db; DBM_DB_FILE(或 dbmanager.conf [server] db_file) 可自定义位置。
 # 动态求值(而非模块级常量): 兼容 config.BASE_DIR 在运行时被测试/部署改写
 def db_file():
-    return config.conf("DBM_DB_FILE") or os.path.join(config.BASE_DIR, "dbmanager.db")
+    db_path = config.conf("DBM_DB_FILE") or os.path.join(config.BASE_DIR, "data", "dbmanager.db")
+    db_dir = os.path.dirname(db_path)
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)  # 确保 data/ 存在(首次运行/克隆仓库)
+    return db_path
 
 
 SCHEMA_VERSION = "4"
