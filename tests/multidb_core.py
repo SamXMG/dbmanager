@@ -41,7 +41,7 @@ import pytest
 from sqlalchemy import Engine
 from sqlalchemy.engine import make_url
 
-from dbcore import get_engine                       # dbcore.py:203
+from db.dbcore import get_engine                       # dbcore.py:203
 from services.sql import run_sql                    # services/sql.py:10
 from services.metadata import get_tables, get_columns  # metadata.py:61 / :149
 

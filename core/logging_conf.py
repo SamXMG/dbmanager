@@ -7,7 +7,7 @@ import logging
 import os
 from logging.handlers import RotatingFileHandler
 
-_BASE = os.path.dirname(os.path.abspath(__file__))
+_BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOG_DIR = os.path.join(_BASE, "logs")
 LOG_FILE = os.path.join(LOG_DIR, "dbmanager.log")
 FMT = "%(asctime)s | %(levelname)-7s | %(name)s | %(message)s"

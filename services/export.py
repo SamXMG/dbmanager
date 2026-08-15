@@ -6,7 +6,7 @@ import zipfile
 
 from sqlalchemy import insert, select, text, true as sa_true
 
-from dbcore import conn_hash, get_connection, get_engine
+from db.dbcore import conn_hash, get_connection, get_engine
 from services.core import _clear_count_cache, _qi, py_to_json, safe_where_clause
 from services.metadata import get_columns, get_indexes, get_pk, get_table_obj, get_tables
 

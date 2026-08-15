@@ -15,9 +15,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _TMP_ROOT = tempfile.mkdtemp(prefix="dbm_task_test_")
 os.environ["DBM_DB_FILE"] = os.path.join(_TMP_ROOT, "dbmanager.db")
 
-import config
+from core import config
 import sqlite3
-import task_sched
+from infra import task_sched
 
 # P0-3 沙箱适配: 测试库/备份目录在系统 TEMP, 追加为 SQLite 允许根(仅测试生效, 不削弱生产默认)
 config.SQLITE_ALLOW_ROOTS = [tempfile.gettempdir()]
@@ -49,7 +49,7 @@ check('list_tasks 持久化', len(tasks) == 1 and tasks[0]['name'] == 'unit_back
 
 # 3 手动执行备份(mock 连接名 -> 临时 sqlite)
 fake_conn = {'db_type': 'sqlite', 'database': DB}
-with patch('store.get_connection_by_name', return_value=fake_conn):
+with patch('db.store.get_connection_by_name', return_value=fake_conn):
     r = task_sched.run_now(1)
 check('run_now 备份 ok', r.get('ok') and r.get('file'), str(r)[:120])
 check('备份文件生成', os.path.exists(os.path.join(task_sched.BACKUP_DIR, r.get('file', ''))), str(r))
@@ -73,7 +73,7 @@ check('delete 生效', len(task_sched.list_tasks()) == 0)
 
 # 7 不存在的连接 -> 明确错误
 t2 = task_sched.add_task('bad_conn', 'not_exist', 1)
-with patch('store.get_connection_by_name', return_value=None):
+with patch('db.store.get_connection_by_name', return_value=None):
     r = task_sched.run_now(t2['id'])
 check('连接不存在返回错误', not r.get('ok') and '连接不存在' in str(r.get('error')), str(r)[:80])
 

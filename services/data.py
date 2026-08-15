@@ -2,8 +2,8 @@
 """dbmanager - ops 数据层: 分页查询/增删改/事务提交回滚(含Mongo/Redis分支)"""
 from sqlalchemy import and_, delete, func, insert, select, text, true as sa_true, update
 
-from config import LOCK, TX_CONN
-from dbcore import conn_hash, get_connection, get_engine
+from core.config import LOCK, TX_CONN
+from db.dbcore import conn_hash, get_connection, get_engine
 from services.core import _clear_count_cache, _meta_get, _meta_key, _meta_set, py_to_json, safe_where_clause
 from services.metadata import get_columns, get_pk, get_table_obj
 from services.nosql import _mongo_cols, _mongo_doc_to_row, _mongo_oid, _parse_mongo_filter, _redis_rows
@@ -15,7 +15,7 @@ def get_data(ci, schema, table, page, size, where, order=""):
     page = max(1, int(page))
     offset = (page - 1) * size
     if (ci.get("db_type") or "") == "mongodb":
-        from dbcore import get_mongo
+        from db.dbcore import get_mongo
         client = get_mongo(ci)
         coll = client[schema][table]
         flt = _parse_mongo_filter(where)
@@ -30,7 +30,7 @@ def get_data(ci, schema, table, page, size, where, order=""):
                 "rows": rows, "total": total, "page": page, "size": size,
                 "db_type": "mongodb"}
     if (ci.get("db_type") or "") == "redis":
-        from dbcore import get_redis
+        from db.dbcore import get_redis
         r = get_redis(ci)
         cols, rows, total = _redis_rows(r, table, size)
         return {"columns": cols, "pk": ["_id"], "rows": rows, "total": total,
@@ -82,7 +82,7 @@ def get_data(ci, schema, table, page, size, where, order=""):
 
 def mutate(ci, method, schema, table, body, use_tx=False, tx_key=""):
     if (ci.get("db_type") or "") == "mongodb":
-        from dbcore import get_mongo
+        from db.dbcore import get_mongo
         coll = get_mongo(ci)[schema][table]
         orig = body.get("orig", {}) or {}
         values = body.get("values", {}) or {}
@@ -104,7 +104,7 @@ def mutate(ci, method, schema, table, body, use_tx=False, tx_key=""):
         r = coll.update_one(q, {"$set": upd})
         return {"ok": True, "affected": r.modified_count}
     if (ci.get("db_type") or "") == "redis":
-        from dbcore import get_redis
+        from db.dbcore import get_redis
         r = get_redis(ci)
         t = r.type(table)
         orig = body.get("orig", {}) or {}
@@ -197,13 +197,13 @@ def mutate_batch_delete(ci, schema, table, keys, use_tx=False, tx_key=""):
     单事务内循环执行 DELETE, 替代前端 N 次串行 /api/row, 消除请求放大。
     与 mutate 相同的参数化构建(无字符串拼接), 主键定位语义与单行删除一致。"""
     if (ci.get("db_type") or "") == "mongodb":
-        from dbcore import get_mongo
+        from db.dbcore import get_mongo
         coll = get_mongo(ci)[schema][table]
         ids = [k.get("_id") for k in (keys or []) if k.get("_id")]
         r = coll.delete_many({"_id": {"$in": [_mongo_oid(i) for i in ids]}}) if ids else coll.delete_many({})
         return {"ok": True, "affected": r.deleted_count}
     if (ci.get("db_type") or "") == "redis":
-        from dbcore import get_redis
+        from db.dbcore import get_redis
         r = get_redis(ci)
         n = 0
         for k in (keys or []):

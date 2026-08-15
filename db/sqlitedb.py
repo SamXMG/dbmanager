@@ -16,7 +16,7 @@ import sqlite3
 import threading
 import time
 
-import config  # 模块引用: config.BASE_DIR 可能在运行时被测试/部署改写, 需动态取值
+from core import config  # 模块引用: config.BASE_DIR 可能在运行时被测试/部署改写, 需动态取值
 
 # 数据库文件: 默认项目根 dbmanager.db; DBM_DB_FILE(或 dbmanager.conf [server] db_file) 可自定义位置。
 # 动态求值(而非模块级常量): 兼容 config.BASE_DIR 在运行时被测试/部署改写

@@ -3,7 +3,7 @@
 import re
 import time
 
-from config import LOCK
+from core.config import LOCK
 
 # 只读模式允许/阻止的 SQL 首关键字
 SQL_READ_ONLY = ("select", "show", "explain", "desc", "describe")

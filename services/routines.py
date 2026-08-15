@@ -2,7 +2,7 @@
 """dbmanager - ops 存储过程/函数/触发器: 列表/源码/保存重建/删除/执行"""
 from sqlalchemy import text
 
-from dbcore import get_engine
+from db.dbcore import get_engine
 from services.core import _qi
 
 def get_routines(ci, schema=None):

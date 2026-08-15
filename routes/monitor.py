@@ -8,9 +8,9 @@
 import os
 import sys
 
-import auth
-import config
-from metrics import METRICS, METRICS_LOCK, uptime
+from core import auth
+from core import config
+from infra.metrics import METRICS, METRICS_LOCK, uptime
 
 
 def _send_text(handler, code, text, ctype="text/plain; version=0.0.4; charset=utf-8"):

@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _TMP = tempfile.mkdtemp(prefix="dbm_audit_")
 os.environ["DBM_DB_FILE"] = os.path.join(_TMP, "dbmanager.db")
 
-import sqlitedb  # noqa: E402
+from db import sqlitedb  # noqa: E402
 
 FAIL = []
 

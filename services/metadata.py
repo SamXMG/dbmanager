@@ -2,7 +2,7 @@
 """dbmanager - ops 元数据: 库/表/列/索引/主键/关系/用户权限(60s缓存)"""
 from sqlalchemy import MetaData, Table, inspect, text
 
-from dbcore import conn_hash, get_engine
+from db.dbcore import conn_hash, get_engine
 from services.core import _meta_get, _meta_key, _meta_set
 from services.nosql import _redis_type_label
 
@@ -13,12 +13,12 @@ def get_databases(ci: dict):
     if t == "sqlite":
         return []
     if t == "mongodb":
-        from dbcore import get_mongo
+        from db.dbcore import get_mongo
         skip = {"admin", "local", "config"}
         return [d for d in get_mongo(ci).list_database_names() if d not in skip]
     if t == "redis":
         # Redis 库编号 0-15, 仅返回非空库(降低扫描成本)
-        from dbcore import get_redis
+        from db.dbcore import get_redis
         r = get_redis(ci)
         out = []
         for db in range(16):
@@ -64,7 +64,7 @@ def get_tables(ci: dict):
     if hit is not None:
         return hit
     if ci["db_type"] == "mongodb":
-        from dbcore import get_mongo
+        from db.dbcore import get_mongo
         client = get_mongo(ci)
         skip = {"admin", "local", "config"}
         out = []
@@ -78,7 +78,7 @@ def get_tables(ci: dict):
         return result
     if ci["db_type"] == "redis":
         # Redis: 键即"表"(scan 游标迭代, 不阻塞); 上限 5000 键防超大库卡顿
-        from dbcore import get_redis
+        from db.dbcore import get_redis
         r = get_redis(ci)
         out = []
         cur = 0
@@ -183,7 +183,7 @@ def get_pk(ci: dict, schema: str, table: str):
 
 def get_indexes(ci: dict, schema: str, table: str):
     if (ci.get("db_type") or "") == "mongodb":
-        from dbcore import get_mongo
+        from db.dbcore import get_mongo
         coll = get_mongo(ci)[schema][table]
         out = []
         for i in coll.list_indexes():

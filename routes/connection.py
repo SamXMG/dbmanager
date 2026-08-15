@@ -2,18 +2,18 @@
 """dbmanager - routes.connection: 连接: 测试/建立会话/库列表/保存连接/注册/改密/公钥/配置"""
 
 
-import auth
-import config
+from core import auth
+from core import config
 
-from config import DEFAULT_PORT, HOST, PORT
-from crypto import rsa_public_pem
-from dbcore import (
+from core.config import DEFAULT_PORT, HOST, PORT
+from core.crypto import rsa_public_pem
+from db.dbcore import (
     test_connection, is_safe_server, _safe_sqlite_path,
 )
 from ops import (
     get_databases, get_tables,
 )
-from store import (
+from db.store import (
     delete_connection, get_connection_by_name, save_connection,
 )
 

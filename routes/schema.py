@@ -7,7 +7,7 @@ from ops import (
     alter_table, diff_schema,
     execute_schema_sync, get_columns, get_er_data, get_indexes, get_relations, get_routines, get_tables, get_users_privs,
 )
-from store import (
+from db.store import (
     get_connection_by_name,
 )
 

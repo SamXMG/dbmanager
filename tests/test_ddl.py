@@ -9,7 +9,7 @@ from unittest.mock import MagicMock
 
 from sqlalchemy.exc import ResourceClosedError
 
-import dbcore
+from db import dbcore
 import services.ddl as ddl
 
 

@@ -11,7 +11,7 @@ from unittest.mock import MagicMock
 
 from sqlalchemy import Column, Integer, MetaData, String, Table
 
-import dbcore
+from db import dbcore
 import services.data
 
 

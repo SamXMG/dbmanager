@@ -5,9 +5,9 @@
 """
 import os
 
-from config import DEFAULT_PORT, SUPPORTED
-from crypto import _conn_file, decrypt_pwd, encrypt_pwd
-import sqlitedb
+from core.config import DEFAULT_PORT, SUPPORTED
+from core.crypto import _conn_file, decrypt_pwd, encrypt_pwd
+from db import sqlitedb
 
 
 def _load_conn_store():

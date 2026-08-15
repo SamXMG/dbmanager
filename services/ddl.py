@@ -3,7 +3,7 @@
 from sqlalchemy import text
 from sqlalchemy.exc import ResourceClosedError
 
-from dbcore import conn_hash, get_engine
+from db.dbcore import conn_hash, get_engine
 from services.core import META_CACHE, _check_default, _check_type, _clear_count_cache, _qi
 
 
@@ -11,7 +11,7 @@ def alter_table(ci, schema, table, action, payload, tx_key=""):
     """DDL 向导: add/drop/modify column, add/drop index(按 MySQL/MSSQL/PG 方言)"""
     t = (ci.get("db_type") or "mysql").lower()
     if t == "mongodb":
-        from dbcore import get_mongo
+        from db.dbcore import get_mongo
         coll_db = get_mongo(ci)[schema]
         if action in ("create_table", "create"):
             coll_db.create_collection(table)
@@ -21,7 +21,7 @@ def alter_table(ci, schema, table, action, payload, tx_key=""):
             return {"ok": True}
         raise ValueError("MongoDB 仅支持创建/删除集合")
     if t == "redis":
-        from dbcore import get_redis
+        from db.dbcore import get_redis
         r = get_redis(ci)
         if action == "create":
             p = payload or {}

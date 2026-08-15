@@ -9,7 +9,7 @@ from ops import (
     mutate, mutate_batch_delete, rollback_transaction, run_sql,
     stats_column, sync_table, transfer_data,
 )
-from store import (
+from db.store import (
     get_connection_by_name,
 )
 

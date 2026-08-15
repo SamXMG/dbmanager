@@ -5,7 +5,7 @@ import json
 
 from sqlalchemy import text
 
-from dbcore import get_engine
+from db.dbcore import get_engine
 from services.core import SQL_BLOCKED, SQL_READ_ONLY, split_sql_statements
 
 def run_sql(ci, sql, limit=500, write=False):

@@ -47,7 +47,7 @@ def J(b):
 
 
 def main():
-    import sqlitedb
+    from db import sqlitedb
     _users_bak = sqlitedb.users_load()
 
     port = _free_port() if PORT == 0 else PORT

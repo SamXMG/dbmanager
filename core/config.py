@@ -15,7 +15,7 @@ import threading
 from typing import Any
 
 # 基础路径(所有模块共用, 各模块据此定位同目录文件)
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # INDEX_FILE(旧前端入口)已随双前端退役删除(路线图 1.2)
 SERVERS: list = []  # 由 app.run() 赋值(IPv4/IPv6 监听实例), 供 shutdown 接口读取
 

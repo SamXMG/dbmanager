@@ -8,8 +8,8 @@ from urllib.parse import quote, quote_plus
 
 from sqlalchemy import create_engine, text
 
-import config
-from config import (
+from core import config
+from core.config import (
     CONN_IDLE_TIMEOUT, DEFAULT_DRIVER, DEFAULT_PORT, ENGINE_CACHE,
     ENGINE_CACHE_MAX, LOCK, QUERY_TIMEOUT, TX_CONN,
     DB_POOL_SIZE, DB_POOL_MAX_OVERFLOW, DB_POOL_TIMEOUT,
@@ -190,7 +190,7 @@ def _apply_tunnel(ci: dict) -> dict:
     if not t or not t.get("host"):
         return ci
     try:
-        from tunnel import start_tunnel
+        from infra.tunnel import start_tunnel
         local_port = start_tunnel(t)
     except Exception as e:
         raise ValueError("SSH 隧道建立失败: %s" % e)

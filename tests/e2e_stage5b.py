@@ -8,7 +8,7 @@ import os
 import time
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import sqlitedb   # 用于备份/恢复用户数据(改密流程影响同服务连跑的后续 e2e)
+from db import sqlitedb   # 用于备份/恢复用户数据(改密流程影响同服务连跑的后续 e2e)
 
 BASE = 'http://127.0.0.1:8770'
 DB = 'dbm_st5b_%s.db' % int(time.time())   # 项目根相对路径(P0-3 沙箱)

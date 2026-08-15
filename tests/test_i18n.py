@@ -8,8 +8,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-import i18n
-from i18n import t
+from core import i18n
+from core.i18n import t
 
 
 def test_default_lang_is_zh_CN():

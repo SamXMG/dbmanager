@@ -35,7 +35,7 @@ def mkuser(name, pwd, role):
 
 import sys
 sys.path.insert(0, ROOT)
-import sqlitedb
+from db import sqlitedb
 users = sqlitedb.users_load()
 # 备份原始, 注入测试账号
 BACKUP = json.loads(json.dumps(users))

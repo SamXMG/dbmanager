@@ -4,7 +4,7 @@ import datetime
 
 from sqlalchemy import select, text
 
-from dbcore import get_engine
+from db.dbcore import get_engine
 from services.core import _qi, split_sql_statements
 from services.metadata import get_columns, get_pk, get_table_obj, get_tables
 

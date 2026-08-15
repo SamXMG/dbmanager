@@ -19,17 +19,17 @@ import time
 import traceback
 import urllib.parse
 
-import config
-import auth  # 账号体系（users.json; 不存在则整体不启用）
-import sqlitedb  # 程序数据(SQLite): 用户/权限/连接/审计/任务
+from core import config
+from core import auth  # 账号体系（users.json; 不存在则整体不启用）
+from db import sqlitedb  # 程序数据(SQLite): 用户/权限/连接/审计/任务
 
 logger = logging.getLogger("handler")
-from config import (
+from core.config import (
     HOST, PORT, SESSIONS, SESSION_TTL, conf,
 )
-from crypto import maybe_decrypt_pwd
-from dbcore import _norm_db_type
-from store import (
+from core.crypto import maybe_decrypt_pwd
+from db.dbcore import _norm_db_type
+from db.store import (
     list_connections,
 )
 from routes import ROUTE_MODS
@@ -122,7 +122,7 @@ def _safe_error(e):
 # Prometheus 指标: 轻量计数器, /api/metrics 输出; 无第三方依赖
 # 指标本体在独立模块 metrics.py(零依赖), 避免 routes 反向 import handler 的循环导入
 # ------------------------------
-from metrics import record as _metrics_record
+from infra.metrics import record as _metrics_record
 
 
 def _req_log(method: str):
@@ -759,7 +759,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
 # 默认连接（来自环境变量 DBM_DEFAULT_CONN，JSON 字符串；含密码，仅本进程内存，不落盘）
 
 # 网关令牌 / HTTPS·SSL / 内网判定(优化路线图 1.1: 已拆至独立模块 handler_security.py, re-export 保持兼容)
-from handler_security import (  # noqa: E402
+from server.handler_security import (  # noqa: E402
     GATEWAY_HASH, GATEWAY_SESSIONS, GATEWAY_SESSION_TTL,
     GATEWAY_FAIL, GATEWAY_MAX_FAIL, GATEWAY_LOCK_SEC, _is_https, _scheme, _gateway_allowed,
 )
@@ -768,7 +768,7 @@ from handler_security import (  # noqa: E402
 # `from handler_security import SSL_CERT, SSL_KEY` 只会快照到初始 None, 导致 app.py
 # 读到 None 而 HTTPS 起不来。故用模块级 __getattr__ 实时转发到 handler_security(PEP 562),
 # 既保持 handler.SSL_CERT / handler.SSL_KEY / handler._ssl_setup 的旧引用兼容, 又拿到最新值。
-import handler_security as _hs_security
+from server import handler_security as _hs_security
 _ssl_setup = _hs_security._ssl_setup  # 函数别名(不被重绑定, 安全)
 
 
@@ -797,4 +797,4 @@ def get_default_conn():
 
 
 # Navicat 保存连接扫描(优化路线图 1.1: 已拆至独立模块 scanner.py, 此处 re-export 保持旧引用兼容)
-from scanner import _navicat_base, _NAV_TYPE_MAP, discover_navicat_connections  # noqa: E402,F401
+from infra.scanner import _navicat_base, _NAV_TYPE_MAP, discover_navicat_connections  # noqa: E402,F401

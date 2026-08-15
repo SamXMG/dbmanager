@@ -52,7 +52,7 @@ def main():
     # 备份用户数据(首次部署默认账号会被强制改密, 结束后恢复, 避免污染共享 SQLite)
     import sys
     sys.path.insert(0, WORKDIR)
-    import sqlitedb
+    from db import sqlitedb
     _users_bak = sqlitedb.users_load()
 
     # 1) 准备测试库(唯一后缀 + 相对路径: 绝对路径含中文目录在部分环境连接异常)

@@ -18,8 +18,8 @@ sys.path.insert(0, ROOT)
 _TMP_ROOT = tempfile.mkdtemp(prefix="dbm_auth_test_")
 os.environ["DBM_DB_FILE"] = os.path.join(_TMP_ROOT, "dbmanager.db")
 
-import auth  # noqa: E402
-import sqlitedb  # noqa: E402
+from core import auth  # noqa: E402
+from db import sqlitedb  # noqa: E402
 
 
 # ---------- fake ldap3 ----------
@@ -96,7 +96,7 @@ class TestLdapLogin(unittest.TestCase):
 
     def _set_ldap(self, url="", base="", binddn="", bindpw=""):
         """mock 运行时 LDAP 配置(等价于 dbmanager.conf 修改即时生效)"""
-        self._patch = mock.patch("auth._ldap_cfg", return_value={
+        self._patch = mock.patch("core.auth._ldap_cfg", return_value={
             "url": url, "base": base, "binddn": binddn, "bindpw": bindpw,
             "attr": "sAMAccountName"})
         self._patch.start()

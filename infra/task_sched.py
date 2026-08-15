@@ -10,9 +10,9 @@ import threading
 import time
 from datetime import datetime
 
-import sqlitedb
+from db import sqlitedb
 
-_BASE = os.path.dirname(os.path.abspath(__file__))
+_BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TASKS_FILE = os.path.join(_BASE, 'tasks.json')   # 遗留路径: 仅迁移检测
 BACKUP_DIR = os.path.join(_BASE, 'backups')
 LOCK = threading.Lock()
@@ -71,7 +71,7 @@ def toggle_task(tid: int, enabled: bool) -> bool:
 
 def _run_backup(task: dict) -> dict:
     """执行备份任务: 按连接名取配置(含解密密码) -> 生成 SQL 脚本写 backups/"""
-    from store import get_connection_by_name
+    from db.store import get_connection_by_name
     from ops import backup_database
     conn = get_connection_by_name(task.get('conn_name', ''))
     if not conn:

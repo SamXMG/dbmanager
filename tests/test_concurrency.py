@@ -13,8 +13,8 @@ import time
 import pytest
 
 sys.path.insert(0, ".")
-import config
-import handler
+from core import config
+from server import handler
 from app import ResilientHTTPServer
 
 

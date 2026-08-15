@@ -11,18 +11,18 @@ import unittest
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BASE)
 
-import config
+from core import config
 # P0-3 SQLite 路径沙箱: 测试库位于系统临时目录(绝对路径, 在 cwd/DATA_ROOT 之外),
 # 仅测试进程内将临时目录加入允许根, 不弱化生产默认(cwd + DATA_ROOT)。
 config.SQLITE_ALLOW_ROOTS = [tempfile.gettempdir()]
-import crypto
-from crypto import decrypt_pwd, encrypt_pwd
-from dbcore import create_engine, get_engine, text
+from core import crypto
+from core.crypto import decrypt_pwd, encrypt_pwd
+from db.dbcore import create_engine, get_engine, text
 from ops import (
     export_data, export_schema_doc, get_columns, get_data, get_pk,
     get_tables, mutate, run_sql, safe_where_clause,
 )
-from store import (
+from db.store import (
     delete_connection, get_connection_by_name, list_connections, save_connection,
 )
 

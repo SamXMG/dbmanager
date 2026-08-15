@@ -16,9 +16,9 @@ import secrets
 import threading
 import time
 
-from config import BASE_DIR, conf
-from i18n import t  # 轻量 i18n: 用户可见文案走 t("key"), 默认 zh_CN 行为不变
-import sqlitedb  # 用户/权限数据存 SQLite(dbmanager.db); 旧 users.json 首次启动自动迁移
+from core.config import BASE_DIR, conf
+from core.i18n import t  # 轻量 i18n: 用户可见文案走 t("key"), 默认 zh_CN 行为不变
+from db import sqlitedb  # 用户/权限数据存 SQLite(dbmanager.db); 旧 users.json 首次启动自动迁移
 
 USERS_FILE = os.path.join(BASE_DIR, "users.json")  # 遗留路径: 仅用于迁移检测与老部署兼容
 USER_SESSIONS = {}  # token -> {user, role, exp, login_time, ip, last_active}

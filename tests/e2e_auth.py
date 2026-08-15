@@ -16,7 +16,7 @@ PASS, FAIL = [], []
 # 备份用户数据(强制改密流程会改写 admin 密码, 结束后恢复, 避免污染共享 SQLite 影响后续 e2e)
 import sys
 sys.path.insert(0, ROOT)
-import sqlitedb
+from db import sqlitedb
 _USERS_BAK = sqlitedb.users_load()
 
 def check(name, cond, extra=''):

@@ -23,14 +23,14 @@ import threading
 import time
 import webbrowser
 
-import config
-from config import HOST, PORT
-import logging_conf
+from core import config
+from core.config import HOST, PORT
+from core import logging_conf
 logging_conf.setup_logging()  # 结构化日志: 控制台 + logs/dbmanager.log(必须先于 handler/crypto 的日志输出)
 import logging
-import handler
-from handler import Handler
-import auth  # 账号体系: ensure_default 幂等创建/迁移(默认 admin 角色升级)
+from server import handler
+from server.handler import Handler
+from core import auth  # 账号体系: ensure_default 幂等创建/迁移(默认 admin 角色升级)
 
 logger = logging.getLogger("app")
 
@@ -222,7 +222,7 @@ def run():
     _created = auth.ensure_default()  # 幂等: 创建默认 admin(admin 角色) + 旧部署自动升级 admin 角色
     # 审计历史导入(SQLite audit_log 表, 仅首次/表空时) + 旧 tasks.json 迁移
     try:
-        import sqlitedb
+        from db import sqlitedb
         sqlitedb.audit_import_file(os.path.join(config.BASE_DIR, "logs", "audit.log"))
         sqlitedb.migrate_tasks_json(os.path.join(config.BASE_DIR, "tasks.json"))
     except Exception:
@@ -232,7 +232,7 @@ def run():
         logger.warning("安全提醒: 默认管理员口令仍为默认值(admin123 / DBM_DEFAULT_PWD), 存在弱口令风险!")
         logger.warning("请立即登录后修改默认密码(或删除默认账号); LAN/公网部署务必处理。")
         logger.warning("=" * 64)
-    import task_sched
+    from infra import task_sched
     task_sched.start()  # 启动调度线程(定时备份任务, P2-2)
     if _port_in_use(PORT):
         if _kill_old_instance(PORT):

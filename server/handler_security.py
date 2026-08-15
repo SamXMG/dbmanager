@@ -14,8 +14,8 @@ import subprocess
 import sys
 import time
 
-import config
-from config import conf
+from core import config
+from core.config import conf
 
 logger = logging.getLogger("handler_security")
 

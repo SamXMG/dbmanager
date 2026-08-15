@@ -2,7 +2,7 @@
 """轻量 i18n(无第三方依赖): 字典式查找 + 参数替换 + 回退。
 
 用法:
-    from i18n import t
+    from core.i18n import t
     t("auth.old_pwd_wrong")                 # 默认语言(由 config.LANG 决定, 默认 zh_CN)
     t("auth.old_pwd_wrong", lang="en")      # 显式指定
     t("common.deleted_n", n=3)              # 带参数替换 {n}
@@ -18,7 +18,7 @@ import json
 import os
 from typing import Any, Dict, Optional
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOCALE_DIR = os.path.join(BASE_DIR, "locales")
 SUPPORTED = ("zh_CN", "en")
 DEFAULT_LANG = "zh_CN"
@@ -40,7 +40,7 @@ _CATALOGS = {lang: _load(lang) for lang in SUPPORTED}
 
 def current_lang() -> str:
     """返回当前生效语言(来自 config.LANG, 非法值回退默认)。"""
-    from config import LANG  # 惰性导入, 避免与 config 的潜在循环(实际无环)
+    from core.config import LANG  # 惰性导入, 避免与 config 的潜在循环(实际无环)
 
     return LANG if LANG in SUPPORTED else DEFAULT_LANG
 

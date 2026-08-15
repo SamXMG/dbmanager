@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from unittest.mock import MagicMock
 
-import dbcore
+from db import dbcore
 import services.sql as sql
 
 

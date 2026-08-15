@@ -4,7 +4,7 @@ import random
 
 from sqlalchemy import MetaData, Table, inspect, select, text
 
-from dbcore import get_engine
+from db.dbcore import get_engine
 from services.core import _qi, safe_where_clause
 from services.metadata import get_columns
 

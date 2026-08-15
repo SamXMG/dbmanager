@@ -9,7 +9,7 @@ import os
 import secrets
 import sys
 
-import config
+from core import config
 
 # ------------------------------
 # 连接加密存储（密码 AES-GCM 加密落盘，密钥存本机文件，权限 600）

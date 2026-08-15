@@ -6,14 +6,14 @@ import sys
 import threading
 
 
-import auth
-import config
-import task_sched
+from core import auth
+from core import config
+from infra import task_sched
 
-from store import (
+from db.store import (
     list_connections,
 )
-import sqlitedb  # 系统数据查询(/api/sysdb)与审计查询(/api/audit)
+from db import sqlitedb  # 系统数据查询(/api/sysdb)与审计查询(/api/audit)
 
 
 def _sysdb_validate(sql):
@@ -314,7 +314,7 @@ def handle_post(handler, path, q):
                     # 登出: 删服务端会话 + 清 Cookie(未登录调用也返回 200)
                     tok = (handler.headers.get("X-User-Token") or "")
                     if not tok:
-                        from auth import _cookie_token
+                        from core.auth import _cookie_token
                         tok = _cookie_token(handler.headers.get("Cookie")) or ""
                     auth.logout(tok)
                     handler.add_cookie("dbm_user", "", max_age=0)

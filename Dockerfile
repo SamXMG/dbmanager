@@ -47,10 +47,12 @@ COPY requirements.txt .
 COPY --from=pybuilder /build/wheels ./wheels
 RUN pip install --no-cache-dir --no-index ./wheels && rm -rf ./wheels
 
-# 后端全部源码(含重构后的 services/routes 分层)
-COPY app.py config.py crypto.py dbcore.py handler.py ops.py store.py tunnel.py auth.py \
-     logging_conf.py task_sched.py get_ipv6.py sqlitedb.py metrics.py \
-     scanner.py handler_security.py ./
+# 后端全部源码(重构后: 入口在根, 业务/平台按包收口 core/server/db/infra)
+COPY app.py manage.py ops.py ./
+COPY core ./core
+COPY server ./server
+COPY db ./db
+COPY infra ./infra
 COPY services ./services
 COPY routes ./routes
 

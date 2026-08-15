@@ -4,7 +4,7 @@
 import os
 import sqlite3
 
-from config import DEFAULT_PORT
+from core.config import DEFAULT_PORT
 
 
 def _navicat_base():

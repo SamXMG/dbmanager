@@ -14,7 +14,7 @@ import urllib.request
 BASE = "http://127.0.0.1:8770"
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
-import sqlitedb
+from db import sqlitedb
 USERS = os.path.join(ROOT, "users.json")   # 遗留路径(迁移前兼容), 数据实际在 SQLite
 
 passed = failed = 0

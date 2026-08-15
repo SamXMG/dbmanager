@@ -14,9 +14,9 @@ sys.path.insert(0, ROOT)
 _TMP = tempfile.mkdtemp(prefix="dbm_p0_")
 os.environ["DBM_DB_FILE"] = os.path.join(_TMP, "dbmanager.db")
 
-import auth   # noqa: E402
-import config  # noqa: E402
-import dbcore  # noqa: E402
+from core import auth   # noqa: E402
+from core import config  # noqa: E402
+from db import dbcore  # noqa: E402
 
 FAIL = []
 
