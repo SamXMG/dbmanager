@@ -9,6 +9,15 @@
       "problemMatcher": [],
       "group": { "kind": "build", "isDefault": true },
       "presentation": { "reveal": "silent", "panel": "shared", "clear": true }
+    },
+    {
+      "label": "dev-frontend",
+      "type": "npm",
+      "script": "dev",
+      "path": "frontend",
+      "problemMatcher": [],
+      "isBackground": true,
+      "presentation": { "reveal": "silent", "panel": "shared", "clear": true }
     }
   ]
 }
