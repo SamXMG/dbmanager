@@ -38,8 +38,9 @@ jobs:
       - name: Import integrity (no circular imports)
         run: python -c "import app; print('import app OK')"
       - name: Unit tests (pytest + coverage, 路线图 P1-5)
-        # 门槛随 M2 补测试逐里程碑抬升: 15%(基线)→30→45→60; 实测已 67%, 钉死 60 防回退
-        run: python -m pytest tests/ -q --cov=services --cov=routes --cov-report=xml --cov-fail-under=60
+        # 门槛随补测试逐里程碑抬升: 15%(基线)→30→45→60→65; 实测约 67%, 钉 65 防回退
+        # 下一目标 75%: 需补 services 深路径(backup/sync/nosql 未触达分支)
+        run: python -m pytest tests/ -q --cov=services --cov=routes --cov-report=xml --cov-fail-under=65
       - name: HTTP full-chain smoke (real server + SQLite)
         run: python tests/e2e_http_smoke.py 18777
         env:
