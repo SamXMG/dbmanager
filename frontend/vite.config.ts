@@ -15,6 +15,19 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
+    // P2-13: 生产构建优化(产物体积/源码泄露/构建速度)
+    target: 'es2019', // 对齐目标浏览器语法, 避免过新特性导致旧端白屏
+    minify: 'terser', // 比默认 esbuild 更激进的压缩(去 console/debugger)
+    sourcemap: false, // 生产不产出 sourcemap, 避免源码泄露
+    cssCodeSplit: true, // 样式按 chunk 拆分, 提升缓存命中
+    reportCompressedSize: false, // 关闭压缩体积上报, 加速构建
+    assetsInlineLimit: 4096, // 小于 4KB 的资源内联为 base64, 减少请求数
+    terserOptions: {
+      compress: {
+        drop_console: true, // 生产构建剔除 console.* (性能+避免信息泄露)
+        drop_debugger: true,
+      },
+    },
     // 复核 P1-9: 警告阈值回归 1000(原 3000 掩盖包体肥胖); 配合 manualChunks 分包
     chunkSizeWarningLimit: 1000,
     rollupOptions: {

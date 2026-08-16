@@ -12,6 +12,7 @@
     "typecheck": "vue-tsc --noEmit",
     "test": "vitest run",
     "lint": "eslint . --max-warnings 0",
+    "i18n:check": "node -e \"const fs=require('fs');const k=f=>new Set([...fs.readFileSync(f,'utf8').matchAll(/^\\s*'([^']+)':/gm)].map(m=>m[1]));const zh=k('src/i18n/locales/zh-CN.ts');const en=k('src/i18n/locales/en.ts');const miss=[...zh.difference(en)];const extra=[...en.difference(zh)];if(miss.length||extra.length){console.error('i18n key mismatch\\n only in zh:',miss,'\\n only in en:',extra);process.exit(1)}console.log('i18n keys symmetric: '+zh.size+' entries ✓')\"",
     "format": "prettier --write \"src/**/*.{ts,vue}\"",
     "format:check": "prettier --check \"src/**/*.{ts,vue}\""
   },
@@ -39,6 +40,7 @@
     "eslint-plugin-vue": "^9.0.0",
     "jsdom": "^30.0.1",
     "prettier": "^3.0.0",
+    "terser": "^5.31.0",
     "typescript": "~5.6.0",
     "vite": "^5.4.0",
     "vitest": "^4.1.10",
