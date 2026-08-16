@@ -1,6 +1,7 @@
 # Python
 __pycache__/
 *.pyc
+.venv/
 
 # 工具缓存(测试/类型检查/lint 产物, 不入库)
 .coverage
