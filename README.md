@@ -42,15 +42,35 @@ accounts & RBAC, LDAP/AD, connection ACL, audit log, encrypted storage.
 
 ## 快速开始
 
+**一键启动**（推荐）：装依赖 + 编译前端静态产物 + 启动，全程一个命令。
+
+```bash
+# Linux / macOS
+./start.sh                 # 后台启动并自动打开浏览器 http://127.0.0.1:8770
+./start.sh --fg            # 前台启动 (调试用, 关终端即停)
+./start.sh stop|restart|status|build
+
+# Windows
+双击 manage.py             # 前台启动 (窗口保持可见, 关窗口即停)
+# 或: python manage.py start        # 后台启动
+#    python manage.py stop          # 停止
+```
+
+> 前端编译为纯静态文件 `frontend/dist/`，由后端 Python `http.server` 直接 serve——
+> **不运行任何 node 服务器**，一个 Python 进程同时提供 API 与 Web 界面。
+
+手动分步（等价）：
+
 ```bash
 # 1. 安装依赖（Python 3.10+）
 python -m pip install -r requirements.txt
 # 可复现部署(固定精确版本, 含传递依赖): python -m pip install -r requirements.lock
 
-# 2. 启动（默认 http://127.0.0.1:8770，自动打开浏览器）
-python app.py
+# 2. 编译前端为静态产物 (dist/ 已存在则 start 自动跳过, 无需每次构建)
+cd frontend && npm install && npm run build && cd ..
 
-# 或双击 scripts/setup_new_pc.bat（自动装依赖并启动）
+# 3. 启动（默认 http://127.0.0.1:8770）
+python app.py
 ```
 
 ### 局域网访问（其他电脑连进来）
