@@ -2,17 +2,18 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "DBManager 后端 (app.py)",
+      "name": "DBManager 一键启动 (app.py)",
       "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/app.py",
-      "python": "/home/honor/Git/DBManager/dbmanager/.venv/bin/python",
+      "python": "${workspaceFolder}/.venv/bin/python",
       "console": "integratedTerminal",
       "justMyCode": false,
       "cwd": "${workspaceFolder}",
       "env": {
         "DBM_DEV": "1"
-      }
+      },
+      "preLaunchTask": "ensure-frontend"
     },
     {
       "name": "DBManager 前端 (Vite Dev)",
