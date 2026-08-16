@@ -138,10 +138,62 @@ def test_dev_mode_transparency():
     check("非 dev ValueError 仍透传", safe_error(e2) == str(e2))
 
 
+# ---------- 5) _security_headers: 统一注入安全头, 防遗漏/漂移 ----------
+def test_security_headers():
+    from server.handler import Handler
+
+    class _Stub(Handler):
+        def __init__(self):
+            self._headers = []
+            self._https = False
+
+        def send_header(self, k, v):
+            self._headers.append((k, v))
+
+    # 捕获 _is_https 结果以断言 HSTS 条件分支
+    import server.handler as _mod
+    _orig = _mod._is_https
+
+    def _set_https(val):
+        _mod._is_https = lambda: val
+
+    try:
+        # 非 HTTPS: JSON 路径 -> 两个通用头, 无 HSTS/CSP
+        s = _Stub()
+        _set_https(False)
+        s._security_headers()
+        hdrs = dict(s._headers)
+        check("X-Content-Type-Options=nosniff", hdrs.get("X-Content-Type-Options") == "nosniff")
+        check("X-Frame-Options=DENY", hdrs.get("X-Frame-Options") == "DENY")
+        check("非 HTTPS 无 HSTS", "Strict-Transport-Security" not in hdrs)
+        check("JSON 路径无 CSP", "Content-Security-Policy" not in hdrs)
+
+        # 非 HTTPS + HTML: 仅 HTML 才有 CSP, 仍无 HSTS
+        s2 = _Stub()
+        s2._security_headers(is_html=True)
+        hdrs2 = dict(s2._headers)
+        check("HTML 路径注入 CSP", "Content-Security-Policy" in hdrs2)
+        check("HTML 非 HTTPS 仍无 HSTS", "Strict-Transport-Security" not in hdrs2)
+
+        # HTTPS: 两种路径均有 HSTS
+        s3 = _Stub()
+        _set_https(True)
+        s3._security_headers()
+        check("HTTPS 注入 HSTS", "Strict-Transport-Security" in dict(s3._headers))
+        s4 = _Stub()
+        s4._security_headers(is_html=True)
+        check("HTTPS+HTML 注入 HSTS 与 CSP",
+              "Strict-Transport-Security" in dict(s4._headers)
+              and "Content-Security-Policy" in dict(s4._headers))
+    finally:
+        _mod._is_https = _orig
+
+
 if __name__ == "__main__":
     test_client_is_internal()
     test_gateway_allowed_token()
     test_load_gateway_token()
     test_dev_mode_transparency()
+    test_security_headers()
     print()
     print("server.handler_security 单测全部通过 ✓")
