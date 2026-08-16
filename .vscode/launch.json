@@ -11,7 +11,8 @@
       "justMyCode": false,
       "cwd": "${workspaceFolder}",
       "env": {
-        "DBM_DEV": "1"
+        "DBM_DEV": "1",
+        "DBM_NO_OPEN": "1"
       },
       "preLaunchTask": "ensure-frontend"
     },
