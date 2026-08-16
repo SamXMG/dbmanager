@@ -8,6 +8,7 @@ import threading
 
 from core import auth
 from core import config
+from core.error import safe_error
 from infra import task_sched
 
 from db.store import (
@@ -48,8 +49,11 @@ def _sysdb_validate(sql):
 
 
 def _safe_error_short(e):
-    """SQL 错误脱敏短文案(系统查询用): 透传 sqlite 错误信息对排查有用"""
-    return str(e)[:300]
+    """SQL 错误短文案(系统查询用): dev 模式透传前 300 字符便于排查,
+    非 dev 复用 core.error.safe_error 脱敏, 防表/列名泄露。"""
+    if config.conf("DBM_DEV"):
+        return str(e)[:300]
+    return safe_error(e)
 
 
 # ------------------------------

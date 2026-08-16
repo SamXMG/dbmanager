@@ -138,6 +138,31 @@ def test_dev_mode_transparency():
     check("非 dev ValueError 仍透传", safe_error(e2) == str(e2))
 
 
+# ---------- 4b) safe_error: SQLAlchemyError 脱敏(防表/列名泄露) ----------
+def test_safe_error_sqlalchemy_masked():
+    from core.error import safe_error
+
+    class _FakeSAErr(Exception):
+        """模拟 SQLAlchemyError: str() 含表名/列名等库结构(泄露面)"""
+
+        pass
+
+    _leak = _FakeSAErr('relation "users" does not exist\nLINE 1: SELECT * FROM users')
+    # 非 dev: 必须脱敏, 不得透出表名
+    if "DBM_DEV" in os.environ:
+        del os.environ["DBM_DEV"]
+    masked = safe_error(_leak)
+    check("非 dev SQLAlchemyError 已脱敏", "users" not in masked and "relation" not in masked)
+    check("非 dev 返回通用错误消息", masked.startswith("服务器内部错误"))
+    # dev: 透传原始消息(排错用)
+    os.environ["DBM_DEV"] = "1"
+    try:
+        exposed = safe_error(_leak)
+        check("dev 模式 SQLAlchemyError 透传原始消息", "users" in exposed)
+    finally:
+        del os.environ["DBM_DEV"]
+
+
 # ---------- 5) _security_headers: 统一注入安全头, 防遗漏/漂移 ----------
 def test_security_headers():
     from server.handler import Handler
@@ -194,6 +219,7 @@ if __name__ == "__main__":
     test_gateway_allowed_token()
     test_load_gateway_token()
     test_dev_mode_transparency()
+    test_safe_error_sqlalchemy_masked()
     test_security_headers()
     print()
     print("server.handler_security 单测全部通过 ✓")
