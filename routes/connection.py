@@ -4,6 +4,7 @@
 
 from core import auth
 from core import config
+from core.error import safe_error
 
 from core.config import DEFAULT_PORT, HOST, PORT
 from core.crypto import rsa_public_pem
@@ -108,7 +109,8 @@ def handle_post(handler, path, q):
                         port = b.get("port") or DEFAULT_PORT.get(b.get("db_type", "mysql"), "")
                         handler._send_json(200, {"ok": True, "message": f"连接成功 ({server}:{port})"})
                     except Exception as e:
-                        handler._send_json(200, {"ok": False, "error": str(e)})
+                        # 统一脱敏 + 正确状态码(500): 业务/DB 错误透传, 内部异常脱敏
+                        handler._send_json(500, {"ok": False, "error": safe_error(e)})
                     return True
     if path == "/api/connect":
                     b = handler._body()
@@ -226,6 +228,7 @@ def handle_post(handler, path, q):
                         names = [t.get("name") if isinstance(t, dict) else str(t) for t in tables]
                         handler._send_json(200, {"tables": names})
                     except Exception as e:
-                        handler._send_json(200, {"ok": False, "error": str(e)})
+                        # 统一脱敏 + 正确状态码(500)
+                        handler._send_json(500, {"ok": False, "error": safe_error(e)})
                     return True
     return False

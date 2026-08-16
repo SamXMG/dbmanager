@@ -13,6 +13,7 @@ import hashlib
 import os
 import re
 import secrets
+import string
 import threading
 import time
 
@@ -28,13 +29,23 @@ _LOCK = threading.Lock()
 
 # 登录限流: 同一 IP+用户名 连续失败 MAX_FAIL 次锁定 LOCK_SEC 秒
 LOGIN_FAIL = {}
+# 登录限流(账号维度): 仅按用户名计数, 防攻击者变换 IP 暴力破解同一账号(P2-1)
+LOGIN_FAIL_USER = {}
 LOGIN_MAX_FAIL = 5
 LOGIN_LOCK_SEC = 300
 
-# 首次启用时的默认账号（管理员）——密码 admin123, 首次登录后请手工改 users.json
-# 可用 DBM_DEFAULT_PWD(或 dbmanager.conf [auth] default_pwd) 覆盖首次创建的默认密码(仅首次建库生效, 之后修改请走改密接口)
+# 首次启用时的默认账号（管理员）。
+# 安全默认: 未显式配置 DBM_DEFAULT_PWD 时, 首次建库使用 16 位高熵随机口令(消除 admin/admin123 弱口令窗口期),
+# 该口令仅打印在启动日志一次(见 app.py), 登录后即强制改密。
+# 如需固定初始密码, 设置 DBM_DEFAULT_PWD(或 dbmanager.conf [auth] default_pwd); 仅首次建库生效。
 DEFAULT_USER = "admin"
-DEFAULT_PWD = conf("DBM_DEFAULT_PWD") or "admin123"
+DEFAULT_PWD = conf("DBM_DEFAULT_PWD")  # 可能为空 -> 由 ensure_default() 生成随机口令
+
+
+def _gen_default_pwd():
+    """生成满足复杂度要求的高熵初始口令(16 位: 大小写+数字+符号)"""
+    alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
+    return "".join(secrets.choice(alphabet) for _ in range(16))
 
 # LDAP/AD 接入（内网可选）: 配置后 LDAP 用户可直接登录, users.json 管理角色与本地管理员
 # 注意: 以下为 import 时的快照(兼容旧代码引用); 运行时判定一律走 _ldap_cfg() 动态读取,
@@ -98,7 +109,10 @@ def _migrate_admin_role():
 def ensure_default():
     """SQLite 无用户时创建默认管理员账号(首次部署自动生成, 调用方应据此提示改密)
     旧 users.json 部署: 存在则先迁移到 SQLite(数据入库后 json 改名 .bak)。
-    返回 True=本次新建默认账号(需提示改密), False=已有部署(仅平滑迁移 admin 角色)。"""
+    返回:
+      True         = 本次新建默认账号; 若使用随机口令, 该口令通过 (True, "<pwd>") 第二个元素返回
+      (True, pwd)  = 本次新建默认账号且使用随机口令 pwd(仅供启动日志打印, 不落盘明文)
+      False        = 已有部署(仅平滑迁移 admin 角色)"""
     # 老部署迁移: users.json 存在 -> 导入 SQLite(仅当 SQLite 空)
     if os.path.exists(USERS_FILE):
         sqlitedb.migrate_users_json(USERS_FILE)
@@ -113,11 +127,14 @@ def ensure_default():
             pass
         return False
     try:
+        pwd = DEFAULT_PWD or _gen_default_pwd()  # 未配置则使用高熵随机口令
         salt = secrets.token_hex(16)
-        h = hashlib.pbkdf2_hmac("sha256", DEFAULT_PWD.encode(), bytes.fromhex(salt), 120000).hex()
+        h = hashlib.pbkdf2_hmac("sha256", pwd.encode(), bytes.fromhex(salt), 120000).hex()
         # is_default: 默认账号标记(强制首改密依据), 改密成功后清除
         _save({DEFAULT_USER: {"pwd_hash": h, "salt": salt, "role": "admin", "is_default": True}})
-        return True
+        if DEFAULT_PWD:
+            return True          # 使用固定口令(来自 DBM_DEFAULT_PWD), 无需打印随机口令
+        return (True, pwd)       # 使用随机口令: 返回明文供启动日志(仅此一次)
     except Exception:
         return False
 
@@ -201,10 +218,18 @@ def login(username, password, ip=""):
     """校验账号密码；返回三元组 (status, payload)：
     ('ok', (token, role, username)) / ('fail', None) / ('locked', 剩余秒数)
     / ('pending', None) 待审批 / ('rejected', None) 已拒绝
-    限流：同一 IP+用户名 连续失败 MAX_FAIL 次锁 LOCK_SEC 秒
+    限流：同一 IP+用户名 连续失败 MAX_FAIL 次锁 LOCK_SEC 秒;
+          另设账号维度(仅用户名)失败计数, 防止变换 IP 暴力破解同一账号(P2-1)。
     认证顺序: 本地 users.json 优先(管理员/离线可用) -> LDAP(配置启用时) -> 失败"""
     key = "%s|%s" % (ip or "", username)
     now = time.time()
+    # 账号维度锁定检查(不依赖 IP)
+    uf = LOGIN_FAIL_USER.get(username)
+    if uf and uf[0] >= LOGIN_MAX_FAIL:
+        if now - uf[1] < LOGIN_LOCK_SEC:
+            return ("locked", int(LOGIN_LOCK_SEC - (now - uf[1])))
+        LOGIN_FAIL_USER.pop(username, None)
+    # IP+用户名 维度锁定检查
     f = LOGIN_FAIL.get(key)
     if f and f[0] >= LOGIN_MAX_FAIL:
         if now - f[1] < LOGIN_LOCK_SEC:
@@ -214,6 +239,7 @@ def login(username, password, ip=""):
     u = users.get(username)
     if u and u.get("salt") and secrets.compare_digest(_hash(password, u["salt"]), u.get("pwd_hash", "")):
         LOGIN_FAIL.pop(key, None)
+        LOGIN_FAIL_USER.pop(username, None)
         status = u.get("status", "active")
         if status == "pending":
             return ("pending", None)
@@ -226,15 +252,21 @@ def login(username, password, ip=""):
     # 本地无此账号(或密码不符)且启用了 LDAP -> 走 AD 认证
     if ldap_enabled() and ldap_auth(username, password):
         LOGIN_FAIL.pop(key, None)
+        LOGIN_FAIL_USER.pop(username, None)
         role = users.get(username, {}).get("role", "read")  # LDAP 用户角色在 users.json 配置, 默认只读
         tok = secrets.token_hex(16)
         with _LOCK:
             USER_SESSIONS[tok] = _new_session_entry(username, role, ip)
         return ("ok", (tok, role, username))
+    # 双维度记录失败计数
     cnt, ts = f if f else (0, now)
     LOGIN_FAIL[key] = [cnt + 1, ts if cnt else now]
+    ucnt, uts = uf if uf else (0, now)
+    LOGIN_FAIL_USER[username] = [ucnt + 1, uts if ucnt else now]
     if len(LOGIN_FAIL) > 10000:
         LOGIN_FAIL.clear()
+    if len(LOGIN_FAIL_USER) > 10000:
+        LOGIN_FAIL_USER.clear()
     return ("fail", None)
 
 

@@ -78,7 +78,9 @@ export function qp(obj: Record<string, string | number | undefined>): string {
 }
 
 // ---- 核心请求 ----
-export async function request<T = any>(
+// 默认返回类型改为 unknown, 避免 any 从 API 层向全项目扩散(P2-2);
+// 调用方应显式声明 request<MyType>(...) 以获得类型安全, 未声明时须自行收窄 unknown。
+export async function request<T = unknown>(
   path: string,
   opts: { method?: string; body?: Record<string, unknown> | string | null;
           headers?: Record<string, string>; raw?: boolean } = {},
@@ -126,6 +128,6 @@ export async function request<T = any>(
   return d as T
 }
 
-export const get = <T = any>(p: string) => request<T>(p, { method: 'GET' })
-export const post = <T = any>(p: string, body?: Record<string, unknown>) =>
+export const get = <T = unknown>(p: string) => request<T>(p, { method: 'GET' })
+export const post = <T = unknown>(p: string, body?: Record<string, unknown>) =>
   request<T>(p, { method: 'POST', body })
