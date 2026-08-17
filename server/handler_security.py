@@ -151,6 +151,7 @@ def _ssl_setup():
                 sys.stdout.flush()
                 return
         SSL_CERT, SSL_KEY, USE_HTTPS = dcert, dkey, True
+        return True
 
 
 def _is_https():

@@ -1,0 +1,9 @@
+# dbmanager 开发/测试依赖(P1-6): 静态检查 + 格式 + 类型 + 测试
+# 安装: pip install -r requirements-dev.txt
+# 用法见 pyproject.toml 的 [tool.ruff]/[tool.black]/[tool.mypy]/[tool.pytest.ini_options]
+ruff>=0.6
+black>=24.0
+mypy>=1.10
+pytest>=8.0
+pytest-cov>=5.0
+coverage>=7.5

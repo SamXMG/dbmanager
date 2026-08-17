@@ -98,7 +98,7 @@ async function logout() {
 
 <template>
   <header class="app-header">
-    <h1>DB Manager</h1>
+    <h1><span class="title-grad">DB Manager</span></h1>
     <span class="db" v-if="conn.connected">{{ info }}</span>
     <div class="right">
       <span v-if="conn.connected" style="font-size:13px;color:var(--text2);margin-right:8px">
@@ -147,13 +147,32 @@ async function logout() {
 <style scoped>
 .app-header {
   display: flex; align-items: center; gap: 12px;
-  padding: 8px 16px; background: var(--header-bg); color: var(--header-text);
+  padding: 8px 16px; background: var(--header-grad); color: var(--header-text);
   font-size: 14px; flex-shrink: 0;
   border-bottom: 1px solid var(--border);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+  position: relative;
+}
+/* 品牌徽标: 渐变方块 + DB 首字母 */
+.app-header h1 {
+  font-size: 16px; font-weight: 700; margin: 0; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 9px; letter-spacing: .2px;
+}
+.app-header h1::before {
+  content: "DB";
+  display: inline-grid; place-items: center;
+  width: 26px; height: 26px; border-radius: 8px;
+  background: var(--brand); color: #fff;
+  font-size: 12px; font-weight: 800; letter-spacing: .5px;
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.5);
+}
+.app-header h1 .title-grad {
+  background: linear-gradient(90deg, #cfe0ff, #e8e2ff);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 /* 顶栏按钮: 浅色主题深字 / 深色主题白字, 边框+hover 自适应, 不刺眼 */
 .sm {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.04);
   color: var(--header-text);
   border: 1px solid var(--border2);
   border-radius: var(--radius, 10px);
@@ -164,14 +183,18 @@ async function logout() {
   align-items: center;
   gap: 4px;
   white-space: nowrap;
-  transition: background .15s ease, border-color .15s ease;
+  transition: background .15s var(--ease), border-color .15s var(--ease), transform .08s var(--ease), box-shadow .15s var(--ease);
 }
-.sm:hover { background: color-mix(in srgb, var(--header-text) 10%, transparent); }
-.sm.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
-.sm.primary:hover { filter: brightness(0.95); }
+.sm:hover {
+  background: color-mix(in srgb, var(--header-text) 14%, transparent);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px);
+}
+.sm:active { transform: translateY(0); }
+.sm.primary { background: var(--primary-grad); color: #fff; border-color: transparent; box-shadow: var(--glow); }
+.sm.primary:hover { filter: brightness(1.06); box-shadow: 0 4px 16px rgba(59, 123, 255, 0.5); }
 .sm.danger { color: var(--danger-solid); border-color: var(--danger-solid); }
 .sm.danger:hover { background: var(--danger-bg); }
-.app-header h1 { font-size: 16px; font-weight: 600; margin: 0; white-space: nowrap; }
 .app-header .db { color: var(--text3); font-size: 12px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* P1-10: 停服状态遮罩 */
 .stopped-mask {

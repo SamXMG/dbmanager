@@ -1,6 +1,14 @@
 # Python
 __pycache__/
 *.pyc
+.venv/
+
+# 工具缓存(测试/类型检查/lint 产物, 不入库)
+.coverage
+.coverage.*
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
 
 # 工具缓存(测试/类型检查/lint 产物, 不入库)
 .coverage
@@ -85,3 +93,7 @@ dbm_st5b_*.db
 
 # WorkBuddy 代理运行数据（本地会话记忆/交接文档，机器相关且工作区私有，不入库）
 .workbuddy/
+
+# IDE 本地配置（每台机器各自维护, 不入库）: VS Code 与 CodeBuddy/WorkBuddy
+.vscode/
+.codebuddy/

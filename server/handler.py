@@ -102,20 +102,9 @@ def _sql_first_table(sql):
 # HTTP 处理
 # ------------------------------
 def _safe_error(e):
-    """错误脱敏: 业务校验错误(ValueError)与数据库错误(SQLAlchemyError, 含语法错误/
-    表不存在等, 对用户排查 SQL 有直接价值)以及开发模式(DBM_DEV=1)透传详情;
-    其余内部异常(代码 bug 等)对外只给通用消息, 防止泄露内部细节。"""
-    if isinstance(e, ValueError) or conf("DBM_DEV"):
-        return str(e)
-    try:
-        from sqlalchemy.exc import SQLAlchemyError
-        if isinstance(e, SQLAlchemyError):
-            return str(e)
-    except Exception:
-        pass
-    # 脱敏前把原始异常打到结构化日志(控制台 + logs/dbmanager.log), 便于排查
-    logger.error("内部错误(已脱敏): %s: %s", type(e).__name__, e, exc_info=True)
-    return "服务器内部错误（设置 DBM_DEV=1 可查看详细错误）"
+    """错误脱敏(委托 core.error.safe_error 以保持单点实现)。"""
+    from core.error import safe_error
+    return safe_error(e)
 
 
 # ------------------------------
@@ -266,14 +255,30 @@ class Handler(http.server.BaseHTTPRequestHandler):
         req_host = self._request_host()
         return bool(req_host) and host == req_host
 
-    def _send_json(self, code, obj):
-        self._last_status = code  # 请求日志用
-        self.send_response(code)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
+    def _security_headers(self, is_html=False):
+        """统一注入安全响应头(JSON/HTML/网关登录共用, 防头漂移与遗漏)。
+
+        - X-Content-Type-Options: 禁止 MIME 嗅探
+        - X-Frame-Options: 防点击劫持(嵌套)
+        - HSTS: 仅 HTTPS 启用, 强制后续访问走 TLS
+        - CSP: 仅 HTML 启用, 收紧脚本/连接来源
+        """
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("X-Frame-Options", "DENY")
         if _is_https():
             self.send_header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+        if is_html:
+            # 基础 CSP: 前端全部外部脚本(CSP 收紧后页面须正常渲染, 已在冒烟验证)
+            self.send_header("Content-Security-Policy",
+                             "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+                             "img-src 'self' data: blob:; font-src 'self' data:; "
+                             "connect-src 'self' ws: wss:; object-src 'none'; base-uri 'self'")
+
+    def _send_json(self, code, obj):
+        self._last_status = code  # 请求日志用
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self._security_headers()
         for _c in getattr(self, "_extra_cookies", []):
             self.send_header("Set-Cookie", _c)
         origin = self.headers.get("Origin")
@@ -303,15 +308,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_response(code)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Cache-Control", "no-store")
-        self.send_header("X-Content-Type-Options", "nosniff")
-        self.send_header("X-Frame-Options", "DENY")
-        if _is_https():
-            self.send_header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-        # 基础 CSP: 前端全部外部脚本(CSP 收紧后页面须正常渲染, 已在冒烟验证)
-        self.send_header("Content-Security-Policy",
-                         "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
-                         "img-src 'self' data: blob:; font-src 'self' data:; "
-                         "connect-src 'self' ws: wss:; object-src 'none'; base-uri 'self'")
+        self._security_headers(is_html=True)
         self.end_headers()
         self.wfile.write(html.encode("utf-8"))
 
@@ -607,7 +604,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Set-Cookie", cookie)
-            self.send_header("X-Content-Type-Options", "nosniff")
+            self._security_headers()
             origin = self.headers.get("Origin")
             if origin and self._origin_allowed(origin):
                 self.send_header("Access-Control-Allow-Origin", origin)

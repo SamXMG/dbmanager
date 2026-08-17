@@ -227,9 +227,18 @@ def run():
         sqlitedb.migrate_tasks_json(os.path.join(config.BASE_DIR, "tasks.json"))
     except Exception:
         pass
-    if _created or auth.is_default_pwd():
+    if isinstance(_created, tuple) and len(_created) == 2 and _created[0] is True:
+        # 本次新建默认账号且使用了随机生成的初始口令: 明文仅打印一次(不落盘)
+        _rand_pwd = _created[1]
         logger.warning("=" * 64)
-        logger.warning("安全提醒: 默认管理员口令仍为默认值(admin123 / DBM_DEFAULT_PWD), 存在弱口令风险!")
+        logger.warning("首次启动已自动创建默认管理员账号:")
+        logger.warning("  用户名: admin")
+        logger.warning("  初始口令: %s", _rand_pwd)
+        logger.warning("该口令为随机生成、仅显示此一次, 请立即登录并修改(日志中亦会留存, 注意清理)。")
+        logger.warning("=" * 64)
+    elif _created or auth.is_default_pwd():
+        logger.warning("=" * 64)
+        logger.warning("安全提醒: 默认管理员口令使用了固定默认值(DBM_DEFAULT_PWD), 存在弱口令风险!")
         logger.warning("请立即登录后修改默认密码(或删除默认账号); LAN/公网部署务必处理。")
         logger.warning("=" * 64)
     from infra import task_sched
@@ -296,6 +305,15 @@ def run():
         logger.error("  1) 仅本机访问: 将监听地址改回 127.0.0.1(dbmanager.conf [server] host=127.0.0.1);")
         logger.error("  2) 局域网/公网开放: 启用 HTTPS, 设置 DBM_SSL=1 自动生成自签名证书,")
         logger.error("     或提供自有证书(DBM_SSL_CERT / DBM_SSL_KEY)。")
+        logger.error("=" * 64)
+        sys.stdout.flush()
+        sys.exit(1)
+    # 调试后门门禁(P0-4): DBM_DEV=1 会透传内部错误详情/可能放宽校验, 严禁在非回环地址暴露。
+    # 仅当监听 127.0.0.1 / ::1 / localhost 时允许; 否则直接拒绝启动。
+    if config.conf("DBM_DEV") and HOST not in ("127.0.0.1", "::1", "localhost"):
+        logger.error("=" * 64)
+        logger.error("安全拦截: DBM_DEV=1(调试模式, 会泄露内部错误详情)禁止在非回环地址(%s)启动!", HOST)
+        logger.error("处理方法: 仅本机访问时设 DBM_HOST=127.0.0.1, 或将 DBM_DEV 关闭。")
         logger.error("=" * 64)
         sys.stdout.flush()
         sys.exit(1)
