@@ -52,7 +52,7 @@ onMounted(() => { sql.value = SAMPLE[0].sql; run() })
 <template>
   <Teleport to="body">
     <div class="modal-mask" @click.self="emit('close')">
-      <div class="modal-box" style="max-width:860px">
+      <div class="modal-box" style="max-width:860px" v-draggable-modal>
         <div class="modal-header">
           <h3>系统查询（内置 SQLite 只读）</h3>
           <button class="sm" @click="emit('close')"><Icon name="x" :size="14" /></button>

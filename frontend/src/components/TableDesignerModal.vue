@@ -202,7 +202,7 @@ const previewSql = computed(() => {
 <template>
   <Teleport to="body">
     <div v-if="ui.designer" class="td-mask" @click.self="ui.closeDesigner()">
-      <div class="td-modal">
+      <div class="td-modal" v-draggable-modal>
         <!-- 头部: 标题 + 表切换 + 完成 -->
         <div class="td-head">
           <h3>表设计器 · {{ target?.s }}.{{ target?.t }}</h3>

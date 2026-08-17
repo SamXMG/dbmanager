@@ -162,7 +162,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
   <Teleport to="body">
     <div v-if="open" class="qb-mask" role="dialog" aria-modal="true" aria-label="查询构建器"
          @click.self="ui.closeQueryBuilder()">
-      <div class="qb-modal" tabindex="-1">
+      <div class="qb-modal" tabindex="-1" v-draggable-modal>
         <div class="qb-head">
           <h3>查询构建器</h3>
           <button class="sm" type="button" @click="ui.closeQueryBuilder()">关闭</button>

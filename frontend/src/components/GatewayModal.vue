@@ -26,7 +26,7 @@ async function doSubmit() {
 <template>
   <Teleport to="body">
     <div v-if="show" class="modal-mask" @click.self="emit('close')">
-      <div class="modal-box" style="max-width:400px">
+      <div class="modal-box" style="max-width:400px" v-draggable-modal>
         <div class="modal-header">
           <h3>公网访问验证</h3>
           <button class="sm" @click="emit('close')"><Icon name="x" :size="14" /></button>

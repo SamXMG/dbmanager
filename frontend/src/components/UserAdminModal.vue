@@ -118,7 +118,7 @@ onMounted(refresh)
 <template>
   <Teleport to="body">
     <div v-if="show" class="modal-mask" @click.self="emit('close')">
-      <div class="modal-box" style="max-width:640px">
+      <div class="modal-box" style="max-width:640px" v-draggable-modal>
         <div class="modal-header">
           <h3>账号管理</h3>
           <button class="sm" @click="emit('close')"><Icon name="x" :size="14" /></button>

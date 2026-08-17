@@ -60,7 +60,7 @@ onUnmounted(() => { if (timer) window.clearInterval(timer) })
 <template>
   <Teleport to="body">
     <div class="modal-mask" @click.self="emit('close')">
-      <div class="modal-box" style="max-width:720px">
+      <div class="modal-box" style="max-width:720px" v-draggable-modal>
         <div class="modal-header">
           <h3>在线用户（{{ sessions.length }}）</h3>
           <button class="sm" @click="emit('close')"><Icon name="x" :size="14" /></button>

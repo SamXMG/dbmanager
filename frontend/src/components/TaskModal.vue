@@ -75,7 +75,7 @@ async function onDelete(t: TaskInfo) {
 <template>
   <Teleport to="body">
     <div v-if="ui.showTasks" class="tk-mask" @click.self="ui.showTasks = false">
-      <div class="tk-modal">
+      <div class="tk-modal" v-draggable-modal>
         <div class="tk-head">
           <h3>调度任务(定时备份)</h3>
           <button class="primary sm" @click="ui.showTasks = false">关闭</button>

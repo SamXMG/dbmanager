@@ -153,7 +153,7 @@ onMounted(() => { connStore.refreshConnList() })
 <template>
   <Teleport to="body">
     <div v-if="show" class="modal-mask" @click.self="emit('close')">
-      <div class="modal-box" style="max-width:700px">
+      <div class="modal-box" style="max-width:700px" v-draggable-modal>
         <div class="modal-header">
           <h3>我的连接</h3>
           <button class="sm" @click="emit('close')"><Icon name="x" :size="14" /></button>

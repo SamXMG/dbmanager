@@ -105,7 +105,7 @@ async function doDrop() {
 <template>
   <Teleport to="body">
     <div v-if="ui.routine" class="rt-mask" @click.self="ui.closeRoutine()">
-      <div class="rt-modal">
+      <div class="rt-modal" v-draggable-modal>
         <div class="rt-head">
           <h3>{{ KIND_LABEL[target?.kind || ''] || target?.kind }}编辑器 · {{ target?.s }}.{{ target?.name }}</h3>
           <button class="primary sm" @click="ui.closeRoutine()">关闭</button>

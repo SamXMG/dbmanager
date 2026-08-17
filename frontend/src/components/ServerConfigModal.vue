@@ -88,7 +88,7 @@ onMounted(load)
 <template>
   <Teleport to="body">
     <div class="modal-mask" @click.self="emit('close')">
-      <div class="modal-box">
+      <div class="modal-box" v-draggable-modal>
         <div class="modal-header">
           <h3>服务器配置</h3>
           <button class="sm" @click="emit('close')"><Icon name="x" :size="14" /></button>

@@ -95,7 +95,7 @@ async function doChangePwd() {
 <template>
   <Teleport to="body">
     <div v-if="show" class="modal-mask" @click.self="!props.force && emit('close')">
-      <div class="modal-box" style="max-width:400px">
+      <div class="modal-box" style="max-width:400px" v-draggable-modal>
         <div class="modal-header">
           <h3>{{ view === 'login' ? '登录' : view === 'register' ? '注册' : props.force ? '修改密码（首次登录必须修改默认密码）' : '修改密码' }}</h3>
           <button v-if="!props.force" class="sm" @click="emit('close')"><Icon name="x" :size="14" /></button>
