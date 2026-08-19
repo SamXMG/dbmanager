@@ -95,7 +95,7 @@ async function doChangePwd() {
 <template>
   <Teleport to="body">
     <div v-if="show" class="modal-mask" @click.self="!props.force && emit('close')">
-      <div class="modal-box" style="max-width:400px" v-draggable-modal>
+      <div class="modal-box" style="max-width:400px">
         <div class="modal-header">
           <h3>{{ view === 'login' ? '登录' : view === 'register' ? '注册' : props.force ? '修改密码（首次登录必须修改默认密码）' : '修改密码' }}</h3>
           <button v-if="!props.force" class="sm" @click="emit('close')"><Icon name="x" :size="14" /></button>
@@ -135,10 +135,11 @@ async function doChangePwd() {
 </template>
 
 <style scoped>
-.modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; box-sizing: border-box; }
-.modal-box { background: var(--panel); border-radius: 8px; padding: 20px; width: 90%; max-width: 400px; border: 1px solid var(--border); max-height: 90vh; overflow-y: auto; box-sizing: border-box; }
-.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.modal-header h3 { margin: 0; color: var(--text); }
+.modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; box-sizing: border-box; overflow: auto; }
+.modal-box { background: var(--panel); border-radius: 8px; padding: 20px; width: 90%; max-width: 400px; border: 1px solid var(--border); box-sizing: border-box; margin: auto; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; }
+.modal-header h3 { margin: 0; color: var(--text); flex: 1 1 auto; min-width: 0; word-break: break-word; overflow-wrap: anywhere; }
+.modal-header .sm { flex-shrink: 0; }
 .field { margin-bottom: 10px; }
 .field label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 3px; }
 .field input { width: 100%; padding: 6px 8px; border: 1px solid var(--border2); border-radius: 4px; background: var(--panel3); color: var(--text); font-size: 14px; box-sizing: border-box; }
