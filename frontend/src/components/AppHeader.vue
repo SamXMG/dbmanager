@@ -101,7 +101,7 @@ async function logout() {
     <h1><span class="title-grad">DB Manager</span></h1>
     <span class="db" v-if="conn.connected">{{ info }}</span>
     <div class="right">
-      <span v-if="conn.connected" style="font-size:13px;color:var(--text2);margin-right:8px">
+      <span v-if="conn.connected" style="font-size:13px;color:var(--header-fg2);margin-right:8px">
         {{ auth.name || tr('header.notLoggedIn') }}<span v-if="auth.roleLabel"> ({{ auth.roleLabel }})</span>
       </span>
       <button v-if="!conn.connected" class="sm" @click="showConnMgr = true">{{ tr('header.myConnections') }}</button>
@@ -147,7 +147,7 @@ async function logout() {
 <style scoped>
 .app-header {
   display: flex; align-items: center; gap: 12px;
-  padding: 8px 16px; background: var(--header-grad); color: var(--header-text);
+  padding: 8px 16px; background: var(--header-grad); color: var(--header-fg); /* 顶栏背景/文字随主题: 浅色柔和浅蓝灰+深字, 深色渐变+白字 */
   font-size: 14px; flex-shrink: 0;
   border-bottom: 1px solid var(--border);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
@@ -172,8 +172,8 @@ async function logout() {
 }
 /* 顶栏按钮: 浅色主题深字 / 深色主题白字, 边框+hover 自适应, 不刺眼 */
 .sm {
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--header-text);
+  background: color-mix(in srgb, var(--header-fg) 6%, transparent);
+  color: var(--header-fg);
   border: 1px solid var(--border2);
   border-radius: var(--radius, 10px);
   padding: 5px 12px;
@@ -186,7 +186,7 @@ async function logout() {
   transition: background .15s var(--ease), border-color .15s var(--ease), transform .08s var(--ease), box-shadow .15s var(--ease);
 }
 .sm:hover {
-  background: color-mix(in srgb, var(--header-text) 14%, transparent);
+  background: color-mix(in srgb, var(--header-fg) 14%, transparent);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
   transform: translateY(-1px);
 }
@@ -195,7 +195,7 @@ async function logout() {
 .sm.primary:hover { filter: brightness(1.06); box-shadow: 0 4px 16px rgba(59, 123, 255, 0.5); }
 .sm.danger { color: var(--danger-solid); border-color: var(--danger-solid); }
 .sm.danger:hover { background: var(--danger-bg); }
-.app-header .db { color: var(--text3); font-size: 12px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-header .db { color: var(--header-fg3); font-size: 12px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* P1-10: 停服状态遮罩 */
 .stopped-mask {
   position: fixed; inset: 0; z-index: 9999;

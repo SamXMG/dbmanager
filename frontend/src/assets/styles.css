@@ -33,7 +33,10 @@
       --shadow-md: 0 4px 12px rgba(16, 24, 40, 0.1), 0 2px 6px rgba(16, 24, 40, 0.06);
       --shadow-lg: 0 16px 48px rgba(16, 24, 40, 0.18), 0 6px 16px rgba(16, 24, 40, 0.1);
       --glow: 0 4px 16px rgba(59, 123, 255, 0.35);
-      --header-grad: linear-gradient(100deg, #1f2937 0%, #243b53 55%, #1f2937 100%);
+      --header-grad: linear-gradient(100deg, #eaf1fb 0%, #dde9f6 55%, #eaf1fb 100%); /* 浅色: 柔和浅蓝灰, 温柔不刺眼 */
+      --header-fg: #1f2329;     /* 顶栏前景(主文字/按钮) */
+      --header-fg2: #4e5969;    /* 顶栏次级文字 */
+      --header-fg3: #6b7280;    /* 顶栏弱文字 */
       --brand: linear-gradient(135deg, #4f9dff 0%, #8b7dff 100%);
       --ease: cubic-bezier(0.22, 1, 0.36, 1);
       --ring-strong: 0 0 0 3px color-mix(in srgb, var(--primary) 35%, transparent);
@@ -74,6 +77,9 @@
       --ring-strong: 0 0 0 3px color-mix(in srgb, var(--primary) 40%, transparent);
       --header-bg: #1f2329;   /* 深色主题: 顶栏保留深色底白字 */
       --header-text: #ffffff;
+      --header-fg: #ffffff;     /* 顶栏前景(主文字/按钮) */
+      --header-fg2: rgba(255, 255, 255, 0.85);
+      --header-fg3: rgba(255, 255, 255, 0.72);
     }
     /* 深色下输入控件等未变量化的元素统一兜底 */
     body[data-theme="dark"] input,
