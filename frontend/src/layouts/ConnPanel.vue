@@ -28,6 +28,9 @@ const dbList = ref<string[]>([])
 const saveAsMyConn = ref(false)
 const connName = ref('')
 
+// 「我的连接」折叠: 默认收起, 不挤压下方连接表单
+const connListOpen = ref(false)
+
 // SSH 隧道
 const sshEnabled = ref(false)
 const sshHost = ref('')
@@ -194,10 +197,13 @@ onMounted(async () => {
     </header>
 
     <div class="conn-body">
-      <!-- 我的连接: 点击直接连接(无需密码) -->
+      <!-- 我的连接: 可折叠(默认收起, 不挤压表单); 展开后点击直接连接(无需密码) -->
       <div class="field" v-if="connStore.connList.length">
-        <label>{{ tr('conn.myConnLabel') }}</label>
-        <div class="conn-list">
+        <div class="collapse-head" @click="connListOpen = !connListOpen">
+          <label>{{ tr('conn.myConnLabel') }}</label>
+          <span class="chev" :class="{ open: connListOpen }" aria-hidden="true">▾</span>
+        </div>
+        <div class="conn-list" v-show="connListOpen">
           <div v-for="c in connStore.connList" :key="c.name" class="conn-row" @click="doQuickConnect(c.name!)" :title="tr('conn.connectTitle') + ' ' + c.name">
             <span class="dot" :class="{ on: connStore.conn?.name === c.name }"></span>
             <span class="nm">{{ c.name }}</span>
@@ -418,6 +424,22 @@ onMounted(async () => {
   scrollbar-width: thin;
   scrollbar-color: var(--border2) transparent;
 }
+/* 可折叠标题栏: 点击展开/收起「我的连接」, 收起时不占用表单空间 */
+.collapse-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+.collapse-head label { margin-bottom: 0; cursor: pointer; }
+.chev {
+  font-size: 12px;
+  line-height: 1;
+  color: var(--text3);
+  transition: transform 0.18s ease;
+}
+.chev.open { transform: rotate(180deg); }
 .conn-list::-webkit-scrollbar { width: 8px; }
 .conn-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 8px; }
 .conn-row {
