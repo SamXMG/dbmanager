@@ -22,14 +22,29 @@ python app.py            # default http://127.0.0.1:8770, opens browser automati
 
 On Windows you can also double-click `scripts/setup_new_pc.bat` (installs dependencies and starts).
 
-### 2.2 First login (important)
+### 2.2 First login (important · read first)
 
-- On first launch a default admin `admin` is created (password `admin123`; override with
-  the `DBM_DEFAULT_PWD` environment variable).
-- **The system forces a password change on first login**; business features are blocked
-  until you do.
-- After logging in, immediately create regular accounts (read-only / read-write roles) in
-  "Account Management", and mark production connections as "force read-only".
+> ⚠️ **First-deploy must-read — the initial password is no longer the fixed `admin123`**
+>
+> The default admin **username is fixed as `admin`**, but the **initial password is no longer `admin123`**:
+>
+> - **Unset (recommended)**: on first launch the system generates a **16-char high-entropy random password** (mixed-case + digits + symbols).
+>   It is printed **only once to the startup log** — the console running `python app.py` and `logs/dbmanager.log`
+>   (search **"初始口令"**). **It is not shown in the UI and not stored in plaintext** — note it down right after startup, then change it.
+>   (The random password also remains in `logs/dbmanager.log`; after changing it in production, consider clearing that log line.)
+> - **Set**: if you set the env var `DBM_DEFAULT_PWD` or `[auth] default_pwd` in `dbmanager.conf`, the initial password is that value
+>   (⚠️ plaintext in config / env, weak-password risk — recommended to leave blank for a system-generated random password).
+>
+> **First login forces a password change**; business features are blocked until you do.
+
+How to get the initial password (random case):
+
+1. Startup console: the terminal running `python app.py` prints a `=` delimited block with `用户名: admin` and `初始口令: <random>`;
+2. Runtime log: open `logs/dbmanager.log` and search **"初始口令"**.
+
+Login URL: `http://127.0.0.1:8770` (or your LAN / public address).
+
+> After logging in, immediately create regular accounts (read-only / read-write roles) in "Account Management", and mark production connections as "force read-only".
 
 ### 2.3 Creating a connection
 

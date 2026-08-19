@@ -77,7 +77,7 @@ docker run -d --name dbm \
 | `DBM_PORT` | 监听端口 | `8770` |
 | `DBM_SSL=1` | 启用 HTTPS（自动生成自签名证书） | 关 |
 | `DBM_SSL_CERT` / `DBM_SSL_KEY` | 自有证书路径 | — |
-| `DBM_DEFAULT_PWD` | 覆盖首次创建 admin 的密码（仅首建生效） | `admin123` |
+| `DBM_DEFAULT_PWD` | 覆盖首次创建 admin 的密码（仅首建生效；**留空则系统生成 16 位随机口令并打印到启动日志，更安全**） | 留空（随机生成） |
 | `DBM_AUTH=1` | 无用户也强制启用账号体系 | 关 |
 | `DBM_ALLOW_REGISTER=1` | 开放自助注册（默认只读角色） | 关 |
 | `DBM_LDAP_URL` / `DBM_LDAP_BASE` | 启用 LDAP/AD 登录 | 关 |

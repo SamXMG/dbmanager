@@ -85,7 +85,7 @@ env vars, daily deploys should edit the config file directly.
 | `DBM_PORT` | Listen port | `8770` |
 | `DBM_SSL=1` | Enable HTTPS (auto self-signed cert) | off |
 | `DBM_SSL_CERT` / `DBM_SSL_KEY` | Path to your own cert | — |
-| `DBM_DEFAULT_PWD` | Override the admin password created on first launch (first creation only) | `admin123` |
+| `DBM_DEFAULT_PWD` | Override the admin password created on first launch (first creation only; **leave blank so the system generates a 16-char random password printed to the startup log — more secure**) | blank (random) |
 | `DBM_AUTH=1` | Force the account system even with no users | off |
 | `DBM_ALLOW_REGISTER=1` | Open self-registration (defaults to read-only role) | off |
 | `DBM_LDAP_URL` / `DBM_LDAP_BASE` | Enable LDAP/AD login | off |

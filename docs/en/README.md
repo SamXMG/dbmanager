@@ -27,9 +27,7 @@ python -m pip install -r requirements.txt
 python app.py            # default http://127.0.0.1:8770, opens browser automatically
 ```
 
-> On first launch a default admin `admin / admin123` is created, and **the first login
-> forces a password change**. For LAN / public deployments, change the default password
-> and enable HTTPS first. See the Deployment Guide.
+> On first launch a default admin `admin` is created, but the **initial password is no longer the fixed `admin123`**: when `DBM_DEFAULT_PWD` is unset the system generates a **16-char random password** (printed only to the startup log `logs/dbmanager.log`, search "初始口令"); when set, it uses that value. **The first login forces a password change.** For LAN / public deployments, get the initial password, change it, and enable HTTPS first. See the Deployment Guide and User Manual §2.2.
 
 ## Documentation
 

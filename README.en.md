@@ -66,7 +66,10 @@ Two more steps:
 > Warning: once the LAN is open, anyone on the same subnet can reach it. Change the default password right after logging in.
 > For production, strongly enable `ssl=1` (HTTPS, see config table below).
 
-> **Security warning**: on first launch `ensure_default()` **automatically creates** the default admin `admin / admin123` (admin role, stored in `dbmanager.db`) — i.e. a default deployment is "auth on + public weak password". LAN/public deployments **must change the default password immediately after login**, otherwise anyone on the intranet can log in and take over (and, via the account-management API, escalate further). Override the first-boot password with the `default_pwd` config (or env `DBM_DEFAULT_PWD`) — only takes effect on first DB creation. Single-machine no-auth mode only applies when the DB has no users AND `auth_enabled=1` (`DBM_AUTH=1`) is not set.
+> **First-deploy must-read — the initial password is no longer the fixed `admin123`**: on first launch `ensure_default()` **automatically creates** the default admin account `admin` (admin role, stored in `dbmanager.db`), but the **initial password depends on configuration**:
+> - **Unset** `default_pwd` / `DBM_DEFAULT_PWD`: the system generates a **16-char high-entropy random password** and prints it **only once to the startup log** (`logs/dbmanager.log` and the startup console, search "初始口令") — **not shown in the UI, not stored in plaintext**;
+> - **Set**: the initial password is that value (⚠️ plaintext in config / env, weak-password risk — recommended to leave blank for a system-generated random password).
+> Either way, **first login forces a password change** before any business feature is usable. LAN/public deployments **must obtain the initial password and change it immediately**, otherwise anyone on the intranet can log in and take over before you change it. Single-machine no-auth mode only applies when the DB has no users AND `auth_enabled=1` (`DBM_AUTH=1`) is not set.
 
 ## Docker Deployment
 
@@ -96,7 +99,7 @@ Daily config lives at the project root **`dbmanager.conf`** (UTF-8 INI; template
 
 | Key (`[auth]`) | Purpose | Default |
 |------|------|------|
-| `default_pwd` | First-time default admin password (only on first create; plaintext on disk, leave blank) | `admin123` |
+| `default_pwd` | First-time default admin password (first create only; plaintext on disk — **leave blank**: the system then generates a 16-char random password printed to the startup log) | blank (random) |
 | `allow_register` | `0` = disable self-registration (default on: members register then await admin approval) | on |
 | `auth_enabled` | `1` = force account system (even with no users in DB) | off |
 | `ldap_url` / `ldap_base` | Enable LDAP/AD auth (optional dep ldap3) | off |
@@ -158,7 +161,7 @@ npx tsc --noEmit                   # type check
 
 ## Security
 
-- Default account `admin/admin123` is auto-created on first launch — **change the password in production immediately**
+- The default admin account is fixed as `admin`; the initial password is **randomly generated when unset** (see the "First-deploy must-read" note above — get it from `logs/dbmanager.log`, search "初始口令"), or **takes the `default_pwd`/`DBM_DEFAULT_PWD` value when set** — **first login forces a password change; change it immediately in production**
   (frontend "Change Password" or `POST /api/password`)
 - Connection passwords are AES-GCM encrypted at rest (bound to the current Windows user via DPAPI), transported via RSA-OAEP
 - Production databases can be flagged `read_only` (forced read-only; writes return 403)

@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """dbmanager 账号体系（最小商用改造 + 内网分治）：
-- 账号存 users.json（pbkdf2 密码哈希 + 角色 read/write/admin）
-- 注意: 启动时 ensure_default() 会**自动创建** users.json + 默认账号 admin/admin123(admin 角色)
-  → 默认部署即"认证开启 + 弱口令", 请务必立即改密(可用 DBM_DEFAULT_PWD 覆盖首次建库密码)
+- 账号存 SQLite(dbmanager.db)（pbkdf2 密码哈希 + 角色 read/write/admin）
+- 注意: 启动时 ensure_default() 会**自动创建**默认管理员账号 admin(admin 角色)。
+  未配置 DBM_DEFAULT_PWD 时初始口令为 16 位高熵随机口令(仅打印到启动日志一次, 不落盘明文);
+  配置时取该值(明文落盘, 弱口令风险)。无论哪种, 首次登录强制改密。
 - /api/login 换取 X-User-Token 会话；写操作要求 write 角色，管理操作要求 admin 角色
 - 启用方式：users.json 存在(ensure_default 自动建)或设置环境变量 DBM_AUTH=1
 - 内网 LDAP/AD 接入：设置 DBM_LDAP_URL + DBM_LDAP_BASE 启用（ldap3 库，未安装自动降级）；LDAP 认证通过的用户按 users.json 配角色，未配置默认 read
@@ -82,7 +83,8 @@ def register_enabled():
 
 def auth_enabled():
     """启用条件：SQLite 已有用户 或 users.json 存在(迁移前) 或 DBM_AUTH=1(或 dbmanager.conf [auth] auth_enabled=1)。
-    默认部署 ensure_default() 会在 SQLite 创建默认账号 -> 默认即启用认证(默认口令 admin123)。
+    默认部署 ensure_default() 会在 SQLite 创建默认账号 -> 默认即启用认证(初始口令为随机生成的
+    16 位高熵口令, 或 DBM_DEFAULT_PWD 指定值; 非固定 admin123)。
     顺带执行幂等迁移: 默认 admin 账号角色升级为 admin(内网管理权限)。"""
     _migrate_admin_role()
     if conf("DBM_AUTH") == "1":
@@ -140,7 +142,7 @@ def ensure_default():
 
 
 def is_default_pwd():
-    """admin 账号是否仍使用默认口令(admin123 或 DBM_DEFAULT_PWD)——用于启动时提示改密"""
+    """admin 账号是否仍使用首次创建的默认口令(随机初始口令或 DBM_DEFAULT_PWD 指定值)——用于启动时提示改密"""
     try:
         users = _load_users()
         a = users.get(DEFAULT_USER)
